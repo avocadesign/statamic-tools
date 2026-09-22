@@ -2,6 +2,10 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.6 (22 September 2026)
+
+- The readme's installing section drops the repository entry sites needed while the package was private. It comes from Packagist now, so Composer needs no repository and no credentials anywhere.
+
 ## v0.1.5 (22 September 2026)
 
 The first release of the package in public, under a new name. A site updating to it changes the package it requires; nothing about how the addon works changes with it.

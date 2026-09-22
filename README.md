@@ -112,16 +112,8 @@ Sites made from the Avoca starter kit get the addon while the kit installs. For 
 composer require "avocadesign/statamic-tools:<2.0"
 ```
 
-It needs Statamic 6.
-
-Until the package is listed on Packagist, a site also needs the repository in its `composer.json`,
-and Composer on that computer or server needs read access to it:
-
-```json
-"repositories": [
-    { "type": "vcs", "url": "https://github.com/avocadesign/statamic-tools" }
-]
-```
+It needs Statamic 6. It comes from Packagist, so Composer needs no repository entry and no
+credentials, on a computer or on a server.
 
 ## Versions and releases
 
