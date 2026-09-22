@@ -343,7 +343,7 @@ inside a site. What a site owes the process is small, and it is all in the repos
 - **`.nvmrc` and `engines.node`**, so the server and the runner build on the same Node. `.npmrc` sets
   `engine-strict=true`, which turns a silent build on the wrong major into a failed one.
 - **`resources/site/updates.yaml`**, which says whether the site is enrolled, whether it is a canary or
-  part of the fleet, the branch to work on, and the pages the check has to render.
+  part of the fleet, the branch to work on, and the handful of pages that must always render.
 - **The check itself**, which comes with this addon, so it improves in one place rather than in a
   hundred repositories:
 
@@ -352,7 +352,12 @@ bash vendor/avocadesign/statamic-tools/scripts/check-site.sh
 ```
 
 It installs from the lock files, builds the assets, refreshes the Stache, runs `avoca:site:check
---strict`, serves the site and renders every page in `updates.yaml`. It writes `.env.check` and runs
+--strict`, serves the site and renders the pages `avoca:site:urls` names. A site with two thousand
+pages is not rendered two thousand times: an update breaks a template or a block, not a page, so the
+pages worth rendering are the ones that cover the most between them. That list is the ones the site
+names in `updates.yaml`, every page a collection is mounted on, one entry from each collection so
+each collection's own template runs, and then whichever pages add blocks and blueprints nothing
+already chosen has. Run `php please avoca:site:urls` to see what a site would render. It writes `.env.check` and runs
 with `APP_ENV=check` and Statamic Pro off, so it never touches the site's own `.env` and needs no
 licence key. It exits 0 when the site renders, 1 when it doesn't, 2 when it couldn't run at all. Run it
 by hand before pushing a dependency change; that is the same thing the runner will do.

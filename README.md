@@ -7,6 +7,7 @@ The machinery Avoca Design sites share: reference pages for clients, plus the ch
 - `/site/content`: every page builder block and text editor set, with its guidance, required fields, display settings and a live preview.
 - `/site/style`: colours, typography, spacing, buttons, colour schemes and image output, read from the site's CSS and templates.
 - `php please avoca:site:install`: says which images from the images container the reference pages will use.
+- `php please avoca:site:urls`: the pages a check should render, which is not all of them.
 - `scripts/check-site.sh`: installs, builds, boots and renders the site, for the updater and for a developer changing a dependency. See Updates in the recipe.
 - `php please avoca:site:catalogue`: writes the site's AI block catalogue.
 - `php please avoca:make:collection`: makes a collection with a page builder or custom blueprint, a listing block, editor access and a record an AI agent finishes it from.

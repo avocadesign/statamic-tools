@@ -99,12 +99,10 @@ for _ in $(seq 1 40); do
     sleep 0.5
 done
 
-urls=$(php -r '
-    require "vendor/autoload.php";
-    $file = "resources/site/updates.yaml";
-    $urls = is_file($file) ? (Symfony\Component\Yaml\Yaml::parseFile($file)["urls"] ?? null) : null;
-    foreach ($urls ?: ["/"] as $url) { echo $url, PHP_EOL; }
-')
+# The site says which pages matter: the ones it lists, every page a collection is mounted on, one
+# entry from each collection, and then whatever covers the most blocks. Rendering every page of a
+# large site would take all morning and tell us no more.
+urls=$(php please avoca:site:urls --no-ansi) || fail "avoca:site:urls"
 bad=0
 while IFS= read -r url; do
     [ -n "$url" ] || continue

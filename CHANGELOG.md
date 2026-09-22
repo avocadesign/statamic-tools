@@ -2,6 +2,11 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.9 (22 September 2026)
+
+- `php please avoca:site:urls` says which pages a check should render, because listing them by hand does not survive a site with two thousand of them. It takes the pages the site names in `resources/site/updates.yaml`, every page a collection is mounted on, one entry from each collection so each collection's own template runs, and then whichever pages add blocks and blueprints nothing chosen already has. `--sample` sets how many of those last it adds.
+- `check-site.sh` renders that list rather than a hand written one.
+
 ## v0.1.8 (22 September 2026)
 
 Groundwork for updating dependencies automatically. Nothing runs on its own yet: this is what a site has to offer the runner that will.
