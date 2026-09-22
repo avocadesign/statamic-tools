@@ -182,7 +182,7 @@ class SiteStyleController extends SiteController
             $widths[] = ['class' => $class, 'steps' => $steps, 'file' => $rule['file']];
         }
 
-        $section = Spacing::section($sectionFile = resource_path('views/'.($cfg['page_template'] ?? 'default').'.antlers.html'));
+        $section = Spacing::section($sectionFile = resource_path('views/'.($cfg['page_template'] ?? 'default').'.antlers.html'), $tokens);
         $rows = [];
         if ($section) {
             $prefixes = array_unique([...array_keys($section['stack']), ...array_keys($section['padding_bottom'])]);

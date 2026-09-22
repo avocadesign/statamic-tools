@@ -2,6 +2,10 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.12 (22 September 2026)
+
+- `/site/style` and `/site/content` read the space between blocks from `--block-space` tokens when the page template names a rhythm rather than numbers, such as the starter kit's new `stack-block`. A template that still carries `stack-12 md:stack-16` is read as before.
+
 ## v0.1.11 (22 September 2026)
 
 - Help text on a field is one short line, and the recipe says so: five or six words saying what the field does, with what it is for and when to use it left to the block's guidance, where the reference pages show it. The library blocks' display settings follow, and so does the one a scaffolded collection writes.

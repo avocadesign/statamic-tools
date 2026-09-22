@@ -4,6 +4,7 @@ namespace Avocadesign\StatamicTools\Http\Controllers;
 
 use Avocadesign\StatamicTools\Site\BardBuilder;
 use Avocadesign\StatamicTools\Site\Blocks;
+use Avocadesign\StatamicTools\Site\CssTokens;
 use Avocadesign\StatamicTools\Site\Docs;
 use Avocadesign\StatamicTools\Site\Settings;
 use Illuminate\Http\Request;
@@ -29,7 +30,10 @@ class SiteContentController extends SiteController
             'sets' => self::sets(),
             'revealer' => self::revealer(),
             // Block previews are spaced by the page template's own section stack, so the gaps match a real page.
-            'section_stack' => \Avocadesign\StatamicTools\Site\Spacing::section(resource_path('views/'.config('statamic-tools.site.page_template', 'default').'.antlers.html'))['stack_classes'] ?? 'page-builder',
+            'section_stack' => \Avocadesign\StatamicTools\Site\Spacing::section(
+                resource_path('views/'.config('statamic-tools.site.page_template', 'default').'.antlers.html'),
+                CssTokens::fromEntry(base_path(config('statamic-tools.site.css_entry')))
+            )['stack_classes'] ?? 'page-builder',
         ]);
     }
 

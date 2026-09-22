@@ -60,23 +60,77 @@ final class Spacing
      *
      * @return array{file: string, classes: string, stack_classes: string, stack: array<string, float>, padding_top: array<string, float>, padding_bottom: array<string, float>}|null
      */
-    public static function section(string $templatePath): ?array
+    public static function section(string $templatePath, ?CssTokens $tokens = null): ?array
     {
-        if (! is_file($templatePath) || ! preg_match('/class="([^"]*(?<![\w:-])(?:[a-z0-9]+:)?stack-\d[^"]*)"/', (string) file_get_contents($templatePath), $m)) {
+        if (! is_file($templatePath) || ! preg_match('/class="([^"]*(?<![\w:-])(?:[a-z0-9]+:)?stack-[\w-]+[^"]*)"/', (string) file_get_contents($templatePath), $m)) {
             return null;
         }
         $classes = (string) preg_replace('/\s+/', ' ', trim($m[1]));
         preg_match_all(self::STACK, $classes, $stacks);
         $py = self::responsive($classes, 'py');
+        $stack = self::responsive($classes, 'stack');
+        $stackClasses = implode(' ', $stacks[0]);
+
+        // A template that names a rhythm rather than numbers, such as stack-block, keeps them in tokens.
+        if ($stack === [] && $tokens !== null && preg_match('/(?<![\w:-])(stack-[a-z][\w-]*)/', $classes, $named)) {
+            $fromTokens = self::blockSpace($tokens);
+            if ($fromTokens !== []) {
+                $stack = $fromTokens;
+                $stackClasses = $named[1];
+            }
+        }
+
+        if ($stack === []) {
+            return null;
+        }
 
         return [
             'file' => basename($templatePath),
             'classes' => $classes,
-            'stack_classes' => implode(' ', $stacks[0]),
-            'stack' => self::responsive($classes, 'stack'),
+            'stack_classes' => $stackClasses,
+            'stack' => $stack,
             'padding_top' => self::responsive($classes, 'pt') ?: $py,
             'padding_bottom' => self::responsive($classes, 'pb') ?: $py,
         ];
+    }
+
+    /**
+     * The block rhythm from --block-space tokens: the plain one for every width, then one per breakpoint,
+     * such as --block-space-md. In steps of the spacing unit, so it reads the same as stack-12 did.
+     *
+     * @return array<string, float> breakpoint prefix ('' for every width) => steps
+     */
+    private static function blockSpace(CssTokens $tokens): array
+    {
+        $unit = self::unit($tokens);
+        $out = [];
+        foreach ($tokens->all() as $name => $token) {
+            if ($name !== 'block-space' && ! str_starts_with($name, 'block-space-')) {
+                continue;
+            }
+            $steps = self::steps((string) ($token['value'] ?? ''), $unit);
+            if ($steps !== null) {
+                $out[$name === 'block-space' ? '' : substr($name, 12)] = $steps;
+            }
+        }
+
+        return $out;
+    }
+
+    /** Steps behind a token's value: calc(var(--spacing) * 12), or a plain length such as 3rem. */
+    private static function steps(string $value, string $unit): ?float
+    {
+        if (preg_match('/calc\(\s*var\(--spacing\)\s*\*\s*([\d.]+)\s*\)/', $value, $m)) {
+            return (float) $m[1];
+        }
+        if (preg_match('/^([\d.]+)rem$/', trim($value), $m)) {
+            $size = (float) $unit;
+            $size = str_ends_with(trim($unit), 'px') ? $size / 16 : $size;
+
+            return $size > 0 ? (float) $m[1] / $size : null;
+        }
+
+        return null;
     }
 
     /**
