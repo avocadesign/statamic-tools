@@ -2,6 +2,16 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.14 (22 September 2026)
+
+The server git script becomes the site's file rather than the package's.
+
+- `php please avoca:site:script` writes `scripts/server-git.sh` into the site, executable, and records the version and a checksum of it in `resources/site/installed.yaml`. The site owns that copy from then on: the add-on never reads it back and never changes it again, so a site whose server needs something different can have it. The starter kit runs the command when a site is installed, so new sites start with one.
+- It refuses to write over a copy the site has changed, and says so rather than doing it. `--diff` shows what differs, `--force` takes the add-on's copy anyway. A copy the site has not touched is simply brought up to date, because nothing is lost. Run it by hand, not from a deploy script: it exits non-zero when it refuses.
+- `avoca:site:check` warns when the add-on's copy has moved on, and when a copy exists that nothing recorded publishing. It says nothing about a site with no copy, because a site whose content is not edited on the server never needs one, and nothing about a copy the site changed on purpose.
+- `scripts/server-git.sh` in the package is executable at last. It was committed 0644, which is why only `bash vendor/...` ever worked.
+- **Nothing existing breaks.** The package keeps the script at the same path, so cron jobs and deploy scripts that call `vendor/avocadesign/statamic-tools/scripts/server-git.sh` keep working. That path stays working; the site's own copy is what the notes and the recipe now describe.
+
 ## v0.1.13 (22 September 2026)
 
 - `avoca:site:check` warns when `llms.txt` doesn't mention a collection that has a route, and when the starter kit's placeholder text is still in it. A site that gains a collection stops describing itself accurately, and nothing was saying so. Warnings only: the site works either way.

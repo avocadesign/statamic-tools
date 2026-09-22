@@ -5,11 +5,19 @@
 # DRAFT. UNTESTED ON A REAL SERVER. It has only been run on a Mac against
 # throwaway local repositories. Read Avoca's hosting notes before using it.
 #
+# A site gets its own copy at scripts/server-git.sh, written by
+#
+#   php please avoca:site:script
+#
+# and the site owns it from then on: change it if this site needs something
+# different, and commit it. The add-on never reads the site's copy back, and
+# php please avoca:site:check says when the add-on's copy has moved on.
+#
 # Run it from the site's root directory:
 #
-#   bash vendor/avocadesign/statamic-tools/scripts/server-git.sh commit [--now]
-#   bash vendor/avocadesign/statamic-tools/scripts/server-git.sh sync
-#   bash vendor/avocadesign/statamic-tools/scripts/server-git.sh status
+#   ./scripts/server-git.sh commit [--now]
+#   ./scripts/server-git.sh sync
+#   ./scripts/server-git.sh status
 #
 # commit  For cron, every minute. Commits content that Statamic left uncommitted
 #         once nothing has changed for AVOCA_GIT_QUIET_MINUTES, then pushes the

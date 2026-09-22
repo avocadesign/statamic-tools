@@ -350,6 +350,20 @@ On a site whose content is edited on the server:
 - Pull before you start work and again before you push, because the server may have pushed content in between.
 - Change code in the repository, never on the server.
 - Commits ending in `[BOT]` come from the server pushing content it saved. Never put `[BOT]` in your own commit messages.
+- The site commits that content with its own `scripts/server-git.sh`, which cron and the deploy script both call. It is a normal tracked file: read it to see what the server does, and treat a change to it as code, so it goes through a plan and a pull request like anything else.
+
+### The server git script
+
+The add-on ships the script every site starts from, and `php please avoca:site:script` writes a copy into the site at `scripts/server-git.sh`. A new site gets one during installation, so most of the time there is nothing to do.
+
+The copy belongs to the site. The add-on never reads it back and never changes it again, so a site that needs something different can have it. That is the point of the copy: a server's git setup is the site's business, not the package's.
+
+- `php please avoca:site:script` writes or updates the copy. It refuses to write over a copy the site has changed, so nobody loses work by running it.
+- `--diff` says how the site's copy differs from the add-on's. `--force` takes the add-on's copy anyway, which is safe to undo because the site's copy is in git.
+- `php please avoca:site:check` warns when the add-on's copy has moved on. It says nothing about a site with no copy, and nothing about a copy the site has changed on purpose.
+- Run it by hand, never from a deploy script. It exits non-zero when it refuses, and a site that customised its copy would then fail every deploy.
+
+When you change the script for one site, change it in that site's copy and say why in the commit. When the change suits every site, change the add-on's template instead and release it, so the next site starts from it.
 
 ## Updates
 

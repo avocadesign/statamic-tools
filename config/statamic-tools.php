@@ -46,6 +46,9 @@ return [
         // Guidance files: <docs_path>/blocks/<handle>.md and <docs_path>/sets/<handle>.md
         'docs_path' => 'resources/site',
 
+        // Where avoca:site:script puts the server scripts it publishes. The site owns what lands there.
+        'scripts_path' => 'scripts',
+
         // The AI block catalogue the site commits: written by avoca:site:catalogue, checked by avoca:site:check.
         'catalogue_path' => 'resources/site/catalogue.md',
 

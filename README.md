@@ -9,6 +9,7 @@ The machinery Avoca Design sites share: reference pages for clients, plus the ch
 - `php please avoca:site:install`: says which images from the images container the reference pages will use.
 - `php please avoca:site:urls`: the pages a check should render, which is not all of them.
 - `scripts/check-site.sh`: installs, builds, boots and renders the site, for the updater and for a developer changing a dependency. See Updates in the recipe.
+- `php please avoca:site:script`: writes the server git script into the site at `scripts/server-git.sh`, where the site owns it. See [Server scripts](#server-scripts).
 - `php please avoca:site:catalogue`: writes the site's AI block catalogue.
 - `php please avoca:make:collection`: makes a collection with a page builder or custom blueprint, a listing block, editor access and a record an AI agent finishes it from.
 - `php please avoca:site:permissions`: gives the editor role the permissions for every collection, taxonomy, navigation, global set and asset container that isn't opted out. `--dry-run` lists what it would add.
@@ -27,8 +28,23 @@ On production the reference pages are only visible to a logged-in Statamic user.
 | `resources/site/catalogue.md` | `avoca:site:catalogue` | AI editors |
 | `resources/site/collections/<handle>.md` | `avoca:make:collection`, then people and AI agents | AI agents finishing or changing a collection |
 | `resources/site/editor-access.yaml` | people | `avoca:site:permissions`, the automatic editor role updates and `avoca:site:check` |
+| `resources/site/installed.yaml` | `avoca:library:install`, `avoca:site:script` | `avoca:library:list`, `avoca:site:check` |
+| `scripts/server-git.sh` | `avoca:site:script`, then the site | cron and the deploy script on the server |
 
 The paths are set in `config/statamic-tools.php`.
+
+## Server scripts
+
+`scripts/check-site.sh` stays in the package: it is the same everywhere, and a site forking the thing that judges it would defeat the point.
+
+`scripts/server-git.sh` does not. How a server commits a site's content is the site's business, so `php please avoca:site:script` writes a copy into the site at `scripts/server-git.sh`, executable, and records its version and a checksum of it in `resources/site/installed.yaml`. The starter kit runs the command when a site is installed. From then on the copy is the site's: the add-on never reads it back and never changes it again.
+
+- Running it again brings a copy the site has not touched up to date, and refuses to write over one the site has changed.
+- `--diff` says what differs. `--force` takes the add-on's copy anyway, which is safe to undo because the copy is in git.
+- `avoca:site:check` warns when the add-on's copy has moved on, and says nothing about a site that has no copy or has changed its own on purpose.
+- Run it by hand, not from a deploy script: it exits non-zero when it refuses.
+
+The package still holds the script at `vendor/avocadesign/statamic-tools/scripts/server-git.sh`, so a server set up before this and pointing at that path keeps working.
 
 ## Guidance files
 

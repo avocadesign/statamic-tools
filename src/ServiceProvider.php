@@ -10,6 +10,7 @@ use Avocadesign\StatamicTools\Console\LibraryInstall;
 use Avocadesign\StatamicTools\Console\LibraryList;
 use Avocadesign\StatamicTools\Console\MakeCollection;
 use Avocadesign\StatamicTools\Console\SiteInstall;
+use Avocadesign\StatamicTools\Console\SiteScript;
 use Avocadesign\StatamicTools\Console\SiteUrls;
 use Avocadesign\StatamicTools\Console\SitePermissions;
 use Avocadesign\StatamicTools\Permissions\GrantEditorAccess;
@@ -32,6 +33,7 @@ class ServiceProvider extends AddonServiceProvider
         LibraryList::class,
         MakeCollection::class,
         SiteInstall::class,
+        SiteScript::class,
         SiteUrls::class,
         SiteCheck::class,
         SiteCatalogue::class,

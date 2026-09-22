@@ -60,7 +60,7 @@ final class Library
         return $this->items()[$handle] ?? null;
     }
 
-    /** @return array<string, array{version: string, installed: string, category: string}> */
+    /** @return array<string, array{version: string, installed: string, category: string, checksum?: string}> */
     public function installed(): array
     {
         $file = $this->installedFile();
@@ -82,8 +82,19 @@ final class Library
 
     public function record(Item $item, string $date): void
     {
+        $this->write($item->handle, ['version' => $item->version(), 'installed' => $date, 'category' => $item->category]);
+    }
+
+    /**
+     * Records something else the add-on put in the site, under its own key. The server scripts use it: they are not
+     * library items, but a site wants one list of what the add-on gave it and which version it came from.
+     *
+     * @param  array<string, string>  $entry
+     */
+    public function write(string $handle, array $entry): void
+    {
         $installed = $this->installed();
-        $installed[$item->handle] = ['version' => $item->version(), 'installed' => $date, 'category' => $item->category];
+        $installed[$handle] = $entry;
         ksort($installed);
         $file = $this->installedFile();
         if (! is_dir(dirname($file))) {

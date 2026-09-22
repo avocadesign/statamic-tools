@@ -8,6 +8,7 @@ use Avocadesign\StatamicTools\Permissions\PermissionSets;
 use Avocadesign\StatamicTools\Site\Blocks;
 use Avocadesign\StatamicTools\Site\Catalogue;
 use Avocadesign\StatamicTools\Site\Llms;
+use Avocadesign\StatamicTools\Site\Scripts;
 use Avocadesign\StatamicTools\Site\Docs;
 use Illuminate\Console\Command;
 use Statamic\Facades\Collection;
@@ -133,6 +134,11 @@ class SiteCheck extends Command
         // when it moves to Statamic Pro. Always a warning: roles do nothing on Core, so --strict never fails on it.
         $warnings += $this->checkEditorAccess();
 
+        // The server scripts a site keeps its own copy of. Nothing is said about a site that has none: a site whose
+        // content is not edited on the server never needs one. A copy the site has changed is left alone too, because
+        // owning it is the point. Always a warning: the site works either way.
+        $warnings += $this->checkServerScripts();
+
         // Render the pages the way a browser would and make sure everything appears.
         foreach (['style', 'content'] as $page) {
             $response = app()->handle(Request::create("/{$prefix}/{$page}", 'GET'));
@@ -167,6 +173,32 @@ class SiteCheck extends Command
         $this->info('Site pages are in step with the fieldsets'.($warnings ? " ({$warnings} warning(s))" : '.'));
 
         return self::SUCCESS;
+    }
+
+    /** Writes the lines for the server scripts the site has a copy of, and returns how many of them are warnings. */
+    private function checkServerScripts(): int
+    {
+        $scripts = Scripts::make();
+        $warnings = 0;
+
+        foreach (Scripts::names() as $name) {
+            $path = $scripts->path($name);
+            $status = $scripts->status($name);
+            $warning = match ($status) {
+                'behind' => "{$path} is behind the add-on's copy: run php please avoca:site:script {$name}",
+                'edited and behind' => "{$path} has this site's changes and the add-on's copy has moved on since: run php please avoca:site:script {$name} --diff",
+                'unrecorded' => "{$path} is not recorded in {$scripts->installedPath()}, so whether this site changed it cannot be told: run php please avoca:site:script {$name} --diff",
+                default => null,
+            };
+            if ($warning !== null) {
+                $this->line("  <fg=yellow>!</> {$warning}");
+                $warnings++;
+            } elseif ($status === 'current') {
+                $this->line("  <fg=green>✓</> {$path} matches the add-on's copy");
+            }
+        }
+
+        return $warnings;
     }
 
     /** Writes the lines for the editor role's permissions, and returns how many of them are warnings. */
