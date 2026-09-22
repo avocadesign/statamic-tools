@@ -1,0 +1,2 @@
+{{# One block or set with chosen options, returned to the live preview on the content page. #}}
+{{ if kind == 'block' }}{{ items scope="block" }}{{ partial src="page_builder/{type}" }}{{ /items }}{{ else }}{{ partial:page_builder/block }}<article class="prose max-w-none contents stack-8">{{ bard }}{{ partial src="components/{type}" }}{{ /bard }}</article>{{ /partial:page_builder/block }}{{ /if }}

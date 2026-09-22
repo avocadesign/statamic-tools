@@ -1,0 +1,23 @@
+Copyright © Avoca Design Ltd.
+
+Avoca Tools is published so that the websites Avoca Design Ltd hosts can install it with Composer.
+It is not open source.
+
+Permission is granted to install and run this software on a website hosted by Avoca Design Ltd, or
+on another website where Avoca Design Ltd agrees to it in writing, and to keep copies of it in that
+website's repository, backups and deployments.
+
+Where a website leaves Avoca Design Ltd's hosting, or such an agreement ends, it may keep running
+the version of this software it has at that point, on that website alone. No right to any later
+version comes with it.
+
+That permission is given on the condition that the copyright notice above and this licence are kept
+in every copy, and in every substantial portion, of the software.
+
+No other permission is granted. Without written permission from Avoca Design Ltd you may not use
+this software on any other website, redistribute it, sell it, or make derivative works from it.
+
+This software is provided as is, without warranty of any kind, express or implied. Releases may
+change or remove what it does, and nothing here entitles anyone to updates, to support, or to a
+version that works with a later Statamic or a later Avoca starter kit. Avoca Design Ltd is not
+liable for any claim, damage or other liability arising from this software or its use.

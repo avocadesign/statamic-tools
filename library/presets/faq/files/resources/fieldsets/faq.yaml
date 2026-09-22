@@ -1,0 +1,66 @@
+title: 'Block: FAQ'
+fields:
+  -
+    handle: heading
+    field:
+      type: text
+      display: Heading
+  -
+    handle: sub_heading
+    field:
+      type: text
+      display: 'Sub heading'
+  -
+    handle: source
+    field:
+      options:
+        -
+          key: all
+          value: 'All questions'
+        -
+          key: chosen
+          value: 'Chosen questions'
+      default: all
+      type: button_group
+      display: 'Questions to show'
+      instructions: 'All questions shows every question in the FAQs collection.'
+      width: 50
+  -
+    handle: sort
+    field:
+      options:
+        -
+          key: order
+          value: 'Collection order'
+        -
+          key: title
+          value: 'A to Z'
+      default: order
+      type: button_group
+      display: Order
+      instructions: 'Collection order is the order the questions are arranged in, in the FAQs collection.'
+      width: 50
+      if:
+        source: 'equals all'
+  -
+    handle: questions
+    field:
+      type: entries
+      collections:
+        - faq
+      mode: default
+      create: true
+      display: Questions
+      instructions: 'Choose the questions for this block, in the order they should appear. With none chosen, every question shows.'
+      if:
+        source: 'equals chosen'
+  -
+    handle: display_settings
+    field:
+      mode: toggle
+      input_label: 'Show settings'
+      type: revealer
+      display: 'Display settings'
+      instructions: 'Change how this block looks: its layout, colour scheme and spacing.'
+  -
+    import: colour_scheme

@@ -1,0 +1,368 @@
+{{# 0. Brand: logos and favicons #}}
+<section class="sk-section fluid-grid" data-sk="brand"><div class="sk-inner span-content">
+    <h2 class="sk-title">Brand</h2>
+    <p class="sk-lead">The site logo as the header renders it, the control-panel logos from <code>config/statamic/cp.php</code>, and the favicons in <code>public/favicons</code>.</p>
+    <div class="sk-logo-tiles">
+        <div class="sk-tile">{{ partial:components/logo width="160" }}<span class="sk-note">Site logo (components/logo) on light</span></div>
+        <div class="sk-tile sk-tile-dark">{{ partial:components/logo width="160" }}<span class="sk-note">Site logo on dark</span></div>
+        <div class="sk-tile">
+            {{ if brand:cp_nav_logo }}<img src="{{ brand:cp_nav_logo }}" alt="">{{ else }}<strong>{{ brand:cp_logo_text }}</strong>{{ /if }}
+            <span class="sk-note">Control panel nav logo{{ if !brand:cp_nav_logo }} (none set: shows the text){{ /if }}</span>
+        </div>
+        <div class="sk-tile">
+            {{ if brand:cp_login_logo }}<img src="{{ brand:cp_login_logo }}" alt="">{{ else }}<strong>{{ brand:cp_logo_text }}</strong>{{ /if }}
+            <span class="sk-note">Control panel login logo{{ if !brand:cp_login_logo }} (none set){{ /if }}</span>
+        </div>
+        {{ if brand:cp_dark_logo }}<div class="sk-tile sk-tile-dark"><img src="{{ brand:cp_dark_logo }}" alt=""><span class="sk-note">Control panel dark-mode logo</span></div>{{ /if }}
+    </div>
+    <div class="sk-group"><h3 class="sk-h">Favicons</h3>
+        {{ if brand:favicons }}
+            <div class="sk-favicons">
+                {{ brand:favicons }}<figure><img src="{{ url }}" alt="" width="48" height="48">{{ name }}<br>{{ size }}</figure>{{ /brand:favicons }}
+            </div>
+        {{ else }}
+            <p class="sk-note">No favicons generated yet. Peak Tools writes them to <code>public/favicons</code> when the Browser appearance global is saved.</p>
+        {{ /if }}
+        {{ if brand:cp_favicon }}<p class="sk-note">Control panel favicon: <img src="{{ brand:cp_favicon }}" alt="" width="16" height="16"> <code>{{ brand:cp_favicon }}</code></p>{{ /if }}
+    </div>
+</div></section>
+
+{{# 1. Colours #}}
+<section class="sk-section fluid-grid" data-sk="colours" id="sk-colours"><div class="sk-inner span-content">
+    <h2 class="sk-title">Colours</h2>
+    <p class="sk-lead">Every colour token in the site's CSS ({{ css_files | join(', ') }}), painted with <code>var(--token)</code> so they cannot differ from the stylesheet.</p>
+    <div class="sk-row sk-controls">
+        <label><input type="checkbox" id="sk-contrast-toggle"> Show contrast ratios</label>
+        <label>against
+            <select id="sk-contrast-bg">
+                {{ colour_groups }}<optgroup label="{{ title }}">{{ tokens }}<option value="var(--{{ name }})">{{ label }}</option>{{ /tokens }}</optgroup>{{ /colour_groups }}
+                <optgroup label="Custom"><option value="custom">custom colour…</option></optgroup>
+            </select>
+        </label>
+        <label>or pick <input type="color" id="sk-contrast-custom" value="#ffffff" aria-label="Custom background colour"></label>
+        <span class="sk-note">WCAG: 4.5:1 for body text (AA), 3:1 for large text and UI. A hatched chip is a token the build left out because nothing uses it.</span>
+    </div>
+    {{ colour_groups }}
+        <div class="sk-group">
+            <h3 class="sk-h">{{ title }}</h3>
+            <div class="sk-swatches">
+                {{ tokens }}
+                    <div class="sk-swatch" data-token="{{ name }}" tabindex="0" aria-label="{{ label }}: {{ value }} ({{ file }})">
+                        <div class="sk-chip" style="background-color: var(--{{ name }})">
+                            <span class="sk-contrast"></span>
+                            <div class="sk-details"><span>--{{ name }}</span><span>{{ value }}</span><i>{{ file }}</i><button type="button" class="sk-use-bg" data-bg="var(--{{ name }})">use as background</button></div>
+                        </div>
+                        <div class="sk-name">{{ label }}</div>
+                    </div>
+                {{ /tokens }}
+            </div>
+        </div>
+    {{ /colour_groups }}
+</div></section>
+
+{{# 2. Typography #}}
+<section class="sk-section fluid-grid" data-sk="typography"><div class="sk-inner span-content">
+    <h2 class="sk-title">Typography</h2>
+    <p class="sk-lead">The fluid type scale, the heading elements, the typography classes and a prose sample. Rows are set from the declared value, so a size shows even when nothing on the site uses it; a token the build left out is marked, because <code>var(--token)</code> would not resolve for it.</p>
+
+    <div class="sk-group"><h3 class="sk-h">Type scale</h3>
+        <table class="sk-table">
+            {{ type_scale }}<tr data-token="{{ name }}"><td class="sk-token">--{{ name }}<span class="sk-unbuilt"></span></td><td style='font-size: {{ value }}; line-height: 1.15'>The quick brown fox jumps over the lazy dog</td></tr>{{ /type_scale }}
+            {{ if type_scale_noted }}<tr><td class="sk-token">also declared</td><td class="sk-note">{{ type_scale_noted }}<span data-token="{{ name }}"><code>--{{ name }}</code> {{ value }} <span class="sk-unbuilt"></span></span><br>{{ /type_scale_noted }}Display sizes, listed by value rather than set as a specimen.</td></tr>{{ /if }}
+        </table>
+    </div>
+
+    <div class="sk-cols">
+        <div>
+    <div class="sk-group"><h3 class="sk-h">Headings</h3>
+        <div class="stack-4">
+            <h1>Heading one</h1>
+            <h2>Heading two</h2>
+            <h3>Heading three</h3>
+            <h4>Heading four</h4>
+            <h5>Heading five</h5>
+            <h6>Heading six</h6>
+            <p>Body paragraph at the base size, followed by <small>small text</small>.</p>
+        </div>
+    </div>
+        </div>
+        <div>
+    <div class="sk-group"><h3 class="sk-h">Fonts and weights</h3>
+        <table class="sk-table">
+            <tr><td class="sk-token">body (computed)</td><td><span id="sk-body-font"></span><span class="sk-note" id="sk-body-font-name"></span></td></tr>
+            {{ fonts }}<tr data-token="{{ name }}"><td class="sk-token">--{{ name }}<span class="sk-unbuilt"></span></td><td style='font-family: {{ value }}'>Sphinx of black quartz, judge my vow · 0123456789</td></tr>{{ /fonts }}
+            {{ weights }}<tr data-token="{{ name }}"><td class="sk-token">--{{ name }}<span class="sk-unbuilt"></span></td><td style='font-weight: {{ value }}'>Weight {{ label }} · The five boxing wizards jump quickly</td></tr>{{ /weights }}
+        </table>
+    </div>
+    <div class="sk-group"><h3 class="sk-h">Typography classes</h3>
+        <table class="sk-table">
+            {{ typography_classes }}<tr><td class="sk-token">.{{ class }}</td><td><p class="{{ class }}">{{ sample }}</p></td></tr>{{ /typography_classes }}
+        </table>
+    </div>
+        </div>
+    </div>
+
+    <div class="sk-group"><h3 class="sk-h">Prose</h3>
+        <div class="sk-cols sk-cols-2">
+            <div><p class="sk-recipe">.prose on the page background</p>{{ partial:statamic-tools::site._prose_sample }}</div>
+            <div><p class="sk-recipe">.prose .prose-invert on --color-dark</p><div class="sk-prose-dark">{{ partial:statamic-tools::site._prose_sample class="prose-invert" }}</div></div>
+        </div>
+    </div>
+
+    <div class="sk-group"><h3 class="sk-h">Macrons</h3>
+        <p class="sk-lead">Te reo Māori in every active font. A font without macron glyphs falls back to another face for those letters, which shows here as a mismatch.</p>
+        <table class="sk-table">
+            <tr><td class="sk-token">body</td><td><p>Kia ora Aotearoa: Ōtautahi, Tāmaki Makaurau, Whangārei, Ōtepoti, Te Whanganui-a-Tara. Āā Ēē Īī Ōō Ūū</p></td></tr>
+            <tr><td class="sk-token">headings</td><td><p class="heading-size-3" style="font-weight: var(--font-weight-bold); color: var(--headings-color)">Kia ora Aotearoa: Ōtautahi, Tāmaki Makaurau, Whangārei. Āā Ēē Īī Ōō Ūū</p></td></tr>
+            {{ fonts }}<tr data-token="{{ name }}"><td class="sk-token">--{{ name }}<span class="sk-unbuilt"></span></td><td><p style='font-family: {{ value }}'>Kia ora Aotearoa: Ōtautahi, Tāmaki Makaurau, Whangārei, Ōtepoti. Āā Ēē Īī Ōō Ūū</p></td></tr>{{ /fonts }}
+        </table>
+    </div>
+</div></section>
+
+{{# 3. Spacing #}}
+<section class="sk-section" data-sk="spacing" id="sk-spacing"><div class="fluid-grid"><div class="sk-inner span-content">
+    <h2 class="sk-title">Spacing</h2>
+    <p class="sk-lead">The grid and the spacing steps the blocks are built from, drawn with the site's own classes. Hatching marks space. The measurements are read from the page, so resize the window and they update.</p>
+    <h3 class="sk-h">Fluid grid</h3>
+    <p class="sk-note">Twelve columns between two side margins. The column gap is fluid, <code>--col-gap: {{ spacing:grid:gap }}</code>, and blocks use the same gap between rows with <code>gap-fluid-grid-gap</code>. Declared in {{ spacing:grid:file }}.</p>
+</div></div>
+<div class="fluid-grid sk-grid-demo" aria-hidden="true">
+    <div class="sk-grid-side"></div><div class="sk-grid-col"></div><div class="sk-grid-col"></div><div class="sk-grid-col"></div><div class="sk-grid-col"></div><div class="sk-grid-col"></div><div class="sk-grid-col"></div><div class="sk-grid-col"></div><div class="sk-grid-col"></div><div class="sk-grid-col"></div><div class="sk-grid-col"></div><div class="sk-grid-col"></div><div class="sk-grid-col"></div><div class="sk-grid-side"></div>
+</div>
+<div class="fluid-grid"><div class="span-content">
+    <dl class="sk-measures">
+        <div><dt>Column gap</dt><dd data-sk-m="gap"></dd></div>
+        <div><dt>Column</dt><dd data-sk-m="col"></dd></div>
+        <div><dt>Side margin</dt><dd data-sk-m="side"></dd></div>
+        <div><dt>Content</dt><dd data-sk-m="content"></dd></div>
+    </dl>
+    <p class="sk-note">At this window width. The side margin is <code>{{ spacing:grid:side }}</code> plus one gap, and content stops growing at <code>{{ spacing:grid:max }}</code>.</p>
+    <h3 class="sk-h sk-spacing-h">Content widths</h3>
+    <p class="sk-note">The span classes set how wide a block's content runs on the grid.</p>
+</div></div>
+{{ spacing:widths }}
+<div class="fluid-grid sk-width-row">
+    <div class="{{ class }} sk-width-bar" data-sk-width="{{ class }}"><code>.{{ class }}</code> <span data-sk-m="width"></span></div>
+    <div class="span-content sk-width-steps">{{ steps }}<span>{{ value }}</span>{{ /steps }}</div>
+</div>
+{{ /spacing:widths }}
+<div class="fluid-grid"><div class="span-content">
+    <h3 class="sk-h sk-spacing-h">Stack spacing</h3>
+    <p class="sk-note">The space <code>stack-N</code> puts between elements stacked in a column: N steps of <code>{{ spacing:unit }}</code>. These are the values the site's templates use, with the templates that use each one.</p>
+    <div class="sk-stacks">
+        {{ spacing:stacks }}
+            <figure class="sk-stack" data-sk-stack="{{ steps }}">
+                <div class="sk-stack-demo" style="--sk-stack: calc(var(--spacing) * {{ steps }})" aria-hidden="true"><span></span><span></span></div>
+                <figcaption><strong>.{{ class }}</strong> {{ rem }} · {{ px }}<span class="sk-note">{{ used_in | join(', ') }}</span></figcaption>
+            </figure>
+        {{ /spacing:stacks }}
+    </div>
+    {{ if spacing:section }}
+        <h3 class="sk-h sk-spacing-h">Section spacing</h3>
+        <p class="sk-note">The space between blocks on a page comes from the page template's classes, <code>{{ spacing:section:stack_classes }}</code> in {{ spacing:section:file }}. A block's Block margins setting changes the space above or below it, and a coloured scheme adds padding inside the block.</p>
+        <table class="sk-table sk-section-table">
+            <tr><td class="sk-token">Window</td><td class="sk-token">Between blocks</td><td class="sk-token">After the last block</td></tr>
+            {{ spacing:section:rows }}<tr><td>{{ window }}</td><td>{{ between }}</td><td>{{ after }}</td></tr>{{ /spacing:section:rows }}
+            {{ if spacing:scheme_padding }}<tr><td>Inside a coloured block</td><td colspan="2"><code>--scheme-block-padding: {{ spacing:scheme_padding }}</code> above and below the content</td></tr>{{ /if }}
+        </table>
+        <div class="sk-pages">
+            {{ margins }}
+                <div class="sk-page-demo">
+                    <p class="sk-recipe">Block margins: {{ label }}</p>
+                    <div class="{{ spacing:section:stack_classes }} sk-page" data-sk-page>
+                        {{ partial:page_builder/block block_margins="default" colour_scheme="default" }}<div class="span-content sk-page-block">Block above</div>{{ /partial:page_builder/block }}
+                        {{ partial:page_builder/block :block_margins="handle" colour_scheme="default" }}<div class="span-content sk-page-block sk-page-this">{{ label }}</div>{{ /partial:page_builder/block }}
+                        {{ partial:page_builder/block block_margins="default" colour_scheme="default" }}<div class="span-content sk-page-block">Block below</div>{{ /partial:page_builder/block }}
+                    </div>
+                </div>
+            {{ /margins }}
+            {{ schemes }}{{ if index == 1 }}
+                <div class="sk-page-demo">
+                    <p class="sk-recipe">Colour scheme: {{ label }}</p>
+                    <div class="{{ spacing:section:stack_classes }} sk-page" data-sk-page>
+                        {{ partial:page_builder/block block_margins="default" colour_scheme="default" }}<div class="span-content sk-page-block">Block above</div>{{ /partial:page_builder/block }}
+                        {{ partial:page_builder/block block_margins="default" :colour_scheme="handle" }}<div class="span-content sk-page-block sk-page-this">{{ label }} block</div>{{ /partial:page_builder/block }}
+                        {{ partial:page_builder/block block_margins="default" colour_scheme="default" }}<div class="span-content sk-page-block">Block below</div>{{ /partial:page_builder/block }}
+                    </div>
+                </div>
+            {{ /if }}{{ /schemes }}
+        </div>
+    {{ /if }}
+</div></div>
+</section>
+
+{{# 4. Buttons #}}
+<section class="sk-section fluid-grid" data-sk="buttons"><div class="sk-inner span-content">
+    <h2 class="sk-title">Buttons</h2>
+    <p class="sk-lead">Every combination of the button fieldset's option fields, with the settings that produce it.</p>
+    <table class="sk-table">
+        {{ button_rows }}<tr><td class="sk-token">{{ recipe }}</td><td>{{ partial:components/button :label="label" :button_type="button_type" :button_colour="button_colour" :button_style="button_style" :target_blank="target_blank" link_type="url" url="#" }}</td></tr>{{ /button_rows }}
+    </table>
+</div></section>
+
+{{# 5. Colour schemes with text and every button #}}
+<section class="sk-section" data-sk="schemes"><div class="fluid-grid"><div class="sk-inner span-content">
+    <h2 class="sk-title">Colour schemes</h2>
+    <p class="sk-lead">Each scheme from the colour scheme field, rendered through the real block wrapper with prose, headings and every button variant inside it. Text must invert on the dark and primary schemes without any colour class in the template.</p>
+</div></div>
+<div class="sk-snapper" data-sk-param="scheme">
+<div class="fluid-grid"><div class="span-content sk-snap-nav" role="tablist" aria-label="Colour schemes">
+    <button type="button" class="sk-snap-prev" aria-label="Previous scheme">‹</button>
+    {{ schemes }}<button type="button" role="tab" data-target="{{ handle }}">{{ label }}</button>{{ /schemes }}
+    <button type="button" class="sk-snap-next" aria-label="Next scheme">›</button>
+</div></div>
+<div class="sk-snap" id="sk-schemes">
+{{ schemes }}
+    <div class="sk-snap-item" data-sk-scheme="{{ handle }}" data-sk-key="{{ handle }}" id="scheme-{{ handle }}">
+        {{ partial:page_builder/block :colour_scheme="handle" block_margins="default" }}
+            <div class="span-content">
+                <p class="sk-recipe" style="color: inherit; opacity: .7">Colour scheme: {{ label }} ({{ handle }})</p>
+                {{ partial:statamic-tools::site._prose_sample }}
+                <div class="sk-row" style="margin-top: 1.5rem">
+                    {{ buttons }}
+                        {{ partial:components/button :label="label" :button_type="button_type" :button_colour="button_colour" :button_style="button_style" link_type="url" url="#" }}
+                    {{ /buttons }}
+                </div>
+            </div>
+        {{ /partial:page_builder/block }}
+    </div>
+{{ /schemes }}
+</div>
+</div>
+</section>
+
+
+{{# 6. Images #}}
+<section class="sk-section" data-sk="images"><div class="fluid-grid"><div class="sk-inner span-content">
+    <h2 class="sk-title">Images</h2>
+    <p class="sk-lead">The image set rendered through the figure and picture partials, once per value of each of its option fields, with captions, and once with the inline caption. Placeholder images are generated, in three orientations.</p>
+</div></div>
+<div class="fluid-grid"><div class="span-content">
+    <div class="sk-strip" aria-label="Image variants">
+        {{ image_variants }}
+            <div class="sk-strip-item" data-sk-image="{{ recipe }}" title="{{ recipe }}">
+                {{ partial:components/image :image="image" :crop="crop" :size="size" :link_type="link_type" :link_url="link_url" :caption="caption" :caption_inline="caption_inline" }}
+            </div>
+        {{ /image_variants }}
+    </div>
+</div></div>
+</section>
+
+
+
+<script>
+// Contrast badges, computed from the painted colours so they reflect the real stylesheet.
+(function () {
+    const lum = (r, g, b) => { const f = v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); }; return .2126 * f(r) + .7152 * f(g) + .0722 * f(b); };
+    // Computed colours come back in whatever space they were declared in (oklch for this palette),
+    // so convert through a canvas, which always yields sRGB bytes.
+    const canvas = document.createElement('canvas'); canvas.width = canvas.height = 1;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const rgb = el => {
+        const raw = getComputedStyle(el).backgroundColor;
+        if (!raw || raw === 'transparent' || /^rgba\(0, 0, 0, 0\)$/.test(raw)) return null;
+        ctx.clearRect(0, 0, 1, 1); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, 1, 1);
+        ctx.fillStyle = raw; ctx.fillRect(0, 0, 1, 1);
+        const d = ctx.getImageData(0, 0, 1, 1).data; return lum(d[0], d[1], d[2]);
+    };
+    const toggle = document.getElementById('sk-contrast-toggle');
+    const select = document.getElementById('sk-contrast-bg');
+    const probe = document.createElement('div'); probe.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden'; document.body.appendChild(probe);
+    const section = document.getElementById('sk-colours');
+    const custom = document.getElementById('sk-contrast-custom');
+    const whiteOption = [...select.options].find(o => o.text === 'white');
+    if (whiteOption) select.value = whiteOption.value;
+    const currentBg = () => select.value === 'custom' ? custom.value : select.value;
+    const run = () => {
+        probe.style.backgroundColor = currentBg();
+        const bg = rgb(probe);
+        section.style.backgroundColor = currentBg();
+        section.classList.toggle('sk-dark-bg', bg !== null && bg < 0.35);
+        document.querySelectorAll('.sk-swatch .sk-chip').forEach(chip => {
+            const el = chip.querySelector('.sk-contrast');
+            const raw = getComputedStyle(chip).backgroundColor;
+            if (/^rgba\(0, 0, 0, 0\)$/.test(raw) || raw === 'transparent') {
+                // The token is declared in the source CSS but Tailwind did not emit it: nothing in the site uses it.
+                chip.closest('.sk-swatch').classList.add('sk-unresolved'); el.textContent = 'not in built CSS'; return;
+            }
+            const l = rgb(chip);
+            if (l === null || bg === null) { el.textContent = ''; return; }
+            const ratio = (Math.max(l, bg) + .05) / (Math.min(l, bg) + .05);
+            // A chip that matches the background would vanish: give it an inset edge suited to the background.
+            chip.classList.toggle('sk-same-as-bg', ratio < 1.15);
+            el.textContent = toggle.checked ? ratio.toFixed(1) + ':1 ' + (ratio >= 4.5 ? 'AA' : ratio >= 3 ? 'AA large' : 'fail') : '';
+        });
+        try { localStorage.setItem('sk-contrast', JSON.stringify({ on: toggle.checked, bg: select.value, custom: custom.value })); } catch (e) {}
+    };
+    try { const saved = JSON.parse(localStorage.getItem('sk-contrast') || 'null'); if (saved) { toggle.checked = !!saved.on; if (saved.custom) custom.value = saved.custom; if ([...select.options].some(o => o.value === saved.bg)) select.value = saved.bg; } } catch (e) {}
+    // ?bg=gray-500 (any token name) or ?bg=%23336699 (any hex), plus ?contrast=1, preselect for sharing a link or a screenshot.
+    const q = new URLSearchParams(location.search);
+    if (q.has('bg')) {
+        const want = q.get('bg');
+        const o = [...select.options].find(o => o.text === want);
+        if (o) select.value = o.value; else if (/^#[0-9a-f]{6}$/i.test(want)) { custom.value = want; select.value = 'custom'; }
+    }
+    if (q.has('contrast')) toggle.checked = q.get('contrast') === '1';
+    const bodyFont = getComputedStyle(document.body).fontFamily;
+    document.getElementById('sk-body-font').textContent = 'Sphinx of black quartz, judge my vow · 0123456789';
+    document.getElementById('sk-body-font-name').textContent = ' ' + bodyFont + (document.querySelector('tr[data-token="font-sans"]') ? '' : ' (no font token declared; this is the framework default)');
+    const rootStyle = getComputedStyle(document.documentElement);
+    document.querySelectorAll('[data-token] > .sk-unbuilt, [data-token] > td > .sk-unbuilt').forEach(el => {
+        const token = el.closest('[data-token]').dataset.token;
+        if (rootStyle.getPropertyValue('--' + token).trim() === '') el.textContent = 'not in built CSS';
+    });
+    // ?only=schemes shows a single section, for screenshots.
+    const only = new URLSearchParams(location.search).get('only');
+    if (only) document.querySelectorAll('.sk-section[data-sk]').forEach(sec => { if (sec.dataset.sk !== only) sec.hidden = true; });
+    toggle.addEventListener('change', run); select.addEventListener('change', run);
+    custom.addEventListener('input', () => { select.value = 'custom'; run(); });
+    document.querySelectorAll('.sk-use-bg').forEach(b => b.addEventListener('click', e => {
+        e.stopPropagation(); select.value = b.dataset.bg; if (!toggle.checked) toggle.checked = true; run();
+        section.scrollIntoView({ block: 'start' });
+    }));
+    run();
+    document.querySelectorAll('.sk-swatch').forEach(sw => sw.addEventListener('click', () => sw.classList.toggle('sk-open')));
+})();
+</script>
+<script>
+// Spacing: read every measurement from the drawings, so the numbers are what this window renders.
+(function () {
+    const px = n => (Math.round(n * 10) / 10) + 'px';
+    const measure = () => {
+        const grid = document.querySelector('.sk-grid-demo');
+        const cols = grid ? [...grid.querySelectorAll('.sk-grid-col')].map(c => c.getBoundingClientRect()) : [];
+        if (cols.length) {
+            const set = (key, value) => { const el = document.querySelector('[data-sk-m="' + key + '"]'); if (el) el.textContent = value; };
+            set('gap', px(parseFloat(getComputedStyle(grid).columnGap)));
+            set('col', px(cols[0].width));
+            set('side', px(cols[0].left - grid.getBoundingClientRect().left));
+            set('content', px(cols[cols.length - 1].right - cols[0].left));
+        }
+        document.querySelectorAll('[data-sk-width]').forEach(bar => {
+            const r = bar.getBoundingClientRect();
+            const spanned = cols.filter(c => c.left >= r.left - 1 && c.right <= r.right + 1).length;
+            bar.querySelector('[data-sk-m="width"]').textContent = px(r.width) + (bar.dataset.skWidth === 'span-full' ? ' · edge to edge' : spanned ? ' · ' + spanned + ' of 12 columns' : '');
+        });
+        document.querySelectorAll('[data-sk-page]').forEach(page => {
+            page.querySelectorAll('.sk-gap').forEach(label => label.remove());
+            const top = page.getBoundingClientRect().top;
+            const blocks = [...page.children].filter(el => el.tagName === 'SECTION');
+            const add = (text, y, height, extra) => {
+                const label = document.createElement('span');
+                label.className = 'sk-gap' + (extra ? ' ' + extra : '');
+                label.textContent = text; label.style.top = y + 'px'; label.style.height = height + 'px';
+                page.appendChild(label);
+            };
+            blocks.forEach((block, i) => {
+                const r = block.getBoundingClientRect();
+                if (i > 0) { const gap = r.top - blocks[i - 1].getBoundingClientRect().bottom; add(px(gap), blocks[i - 1].getBoundingClientRect().bottom - top, gap, gap < 1 ? 'sk-gap-zero' : ''); }
+                const pad = parseFloat(getComputedStyle(block).paddingTop);
+                if (pad > 0) add(px(pad) + ' padding', r.top - top, pad, 'sk-pad');
+            });
+        });
+    };
+    let frame; const later = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(measure); };
+    measure(); window.addEventListener('load', measure); window.addEventListener('resize', later);
+    if (document.fonts) document.fonts.ready.then(measure);
+})();
+</script>

@@ -1,0 +1,93 @@
+title: 'Block: Projects'
+fields:
+  -
+    handle: heading
+    field:
+      type: text
+      display: Heading
+  -
+    handle: sub_heading
+    field:
+      type: text
+      display: 'Sub heading'
+  -
+    handle: source
+    field:
+      options:
+        -
+          key: all
+          value: 'All projects'
+        -
+          key: chosen
+          value: 'Chosen projects'
+      default: all
+      type: button_group
+      display: 'Projects to show'
+      instructions: 'All projects lists projects from the Projects collection, in the order and number set here.'
+      width: 50
+  -
+    handle: sort
+    field:
+      options:
+        -
+          key: newest
+          value: 'Newest first'
+        -
+          key: oldest
+          value: 'Oldest first'
+        -
+          key: title
+          value: 'A to Z'
+      default: newest
+      type: button_group
+      display: Order
+      width: 50
+      if:
+        source: 'equals all'
+  -
+    handle: limit
+    field:
+      options:
+        -
+          key: '3'
+          value: '3'
+        -
+          key: '6'
+          value: '6'
+        -
+          key: '9'
+          value: '9'
+        -
+          key: '12'
+          value: '12'
+        -
+          key: all
+          value: All
+      default: '3'
+      type: button_group
+      display: 'Number to show'
+      width: 50
+      if:
+        source: 'equals all'
+  -
+    handle: projects
+    field:
+      type: entries
+      collections:
+        - projects
+      mode: default
+      create: false
+      display: Projects
+      instructions: 'Choose the projects for this block, in the order they should appear. With none chosen, the three newest projects show.'
+      if:
+        source: 'equals chosen'
+  -
+    handle: display_settings
+    field:
+      mode: toggle
+      input_label: 'Show settings'
+      type: revealer
+      display: 'Display settings'
+      instructions: 'Change how this block looks: its layout, colour scheme and spacing.'
+  -
+    import: colour_scheme

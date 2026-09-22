@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="{{ site:short_locale }}" class="antialiased">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <title>{{ title }} · {{ config:app:name }}</title>
+    {{ vite src="resources/css/site.css|resources/js/site.js" directory="_build" }}
+    <style>
+        /* Site page chrome. Plain CSS on purpose: the site's Tailwind build never scans addon views. */
+        .sk-toolbar { padding: 1rem 0; background: #fff } .sk-toolbar + main > .sk-section:first-child { border-top: 0 } .sk-toolbar .sk-note { margin-left: auto }
+        .sk-logo-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: .75rem } .sk-tile { display: flex; flex-direction: column; gap: .5rem; align-items: flex-start; padding: 1.25rem; border-radius: .5rem; border: 1px solid #e2e8f0 } .sk-tile.sk-tile-dark { background: #0f172a; border-color: #0f172a } .sk-tile .sk-note { font-size: .7rem } .sk-tile-dark .sk-note { color: #94a3b8 } .sk-tile img { max-height: 4rem; width: auto }
+        .sk-favicons { display: flex; flex-wrap: wrap; gap: 1rem } .sk-favicons figure { margin: 0; text-align: center; font: .7rem/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; color: #64748b } .sk-favicons img { display: block; margin: 0 auto .35rem; image-rendering: auto }
+        .sk-section { padding: 3rem 0; border-top: 1px solid #e2e8f0; transition: background-color .2s ease }
+        /* The colours section takes on the selected contrast background; text inverts when it is dark. */
+        .sk-section.sk-dark-bg, .sk-section.sk-dark-bg .sk-title, .sk-section.sk-dark-bg .sk-lead, .sk-section.sk-dark-bg .sk-note, .sk-section.sk-dark-bg .sk-h, .sk-section.sk-dark-bg .sk-name, .sk-section.sk-dark-bg .sk-controls { color: #f1f5f9 }
+        .sk-section.sk-dark-bg .sk-controls select, .sk-section.sk-dark-bg .sk-controls select option, .sk-section.sk-dark-bg .sk-controls select optgroup { color: #0f172a; -webkit-text-fill-color: #0f172a }
+        .sk-section.sk-dark-bg .sk-lead code { color: inherit }
+        .sk-section h2.sk-title { font: 700 1.5rem/1.2 ui-sans-serif, system-ui, sans-serif; margin: 0 0 .25rem }
+        .sk-help { margin: 0 0 .75rem; font: 600 .8125rem/1.4 ui-sans-serif, system-ui, sans-serif } .sk-help a { color: var(--color-primary); text-decoration: underline; text-underline-offset: .15em }
+        .sk-section p.sk-lead { margin: 0 0 1.5rem; color: #475569; font: .9rem/1.5 ui-sans-serif, system-ui, sans-serif }
+        .sk-group { margin: 1.5rem 0 }
+        .sk-cols { display: grid; grid-template-columns: 1fr; gap: 0 2.5rem; align-items: start } @media (min-width: 768px) { .sk-cols { grid-template-columns: 1fr 2fr } .sk-cols.sk-cols-2 { grid-template-columns: 1fr 1fr } }
+        .sk-prose-dark { background: var(--color-dark); padding: 1.5rem; border-radius: .5rem }
+        .sk-h { font: 600 .8125rem/1 ui-sans-serif, system-ui, sans-serif; letter-spacing: .06em; text-transform: uppercase; color: #64748b; margin: 0 0 .75rem }
+        .sk-swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr)); gap: .75rem }
+        .sk-swatch { cursor: pointer; outline: none; font: .75rem/1.35 ui-monospace, SFMono-Regular, Menlo, monospace }
+        .sk-swatch .sk-chip { position: relative; aspect-ratio: 1 / 1; border-radius: .5rem; overflow: hidden }
+        .sk-swatch .sk-contrast { position: absolute; right: .35rem; top: .35rem; padding: .1rem .35rem; border-radius: .25rem; background: rgba(255,255,255,.85); color: #0f172a; font-size: .65rem }
+        .sk-swatch .sk-contrast:empty { display: none }
+        .sk-swatch .sk-details { position: absolute; left: 0; right: 0; bottom: 0; padding: .45rem .5rem; background: rgba(255,255,255,.94); color: #334155; font-size: .65rem; line-height: 1.35; transform: translateY(100%); transition: transform .15s ease-out; word-break: break-all }
+        .sk-swatch .sk-details span, .sk-swatch .sk-details i { display: block; font-style: normal } .sk-swatch .sk-details i { color: #94a3b8 }
+        .sk-swatch:hover .sk-details, .sk-swatch:focus-visible .sk-details, .sk-swatch.sk-open .sk-details { transform: translateY(0) }
+        .sk-swatch:focus-visible .sk-chip { box-shadow: 0 0 0 2px #0f172a }
+        .sk-swatch .sk-name { padding: .4rem .1rem 0; font-weight: 600; color: #0f172a }
+        .sk-snapper { margin-top: 1.5rem } .sk-snap { display: flex; align-items: flex-start; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain } .sk-snap::-webkit-scrollbar { display: none }
+        .sk-strip { display: flex; gap: 1rem; overflow-x: auto; scroll-snap-type: x mandatory; padding: .25rem 0 1rem; scrollbar-width: thin } .sk-strip-item { flex: 0 0 18rem; min-width: 0; scroll-snap-align: start } .sk-strip-item figure { margin: 0 }
+        .sk-snap-item { flex: 0 0 100%; min-width: 0; scroll-snap-align: start; scroll-snap-stop: always }
+        .sk-snap-nav { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; margin: 0 0 1rem; font: 600 .8125rem/1 ui-sans-serif, system-ui, sans-serif }
+        .sk-snap-nav button { padding: .5rem .8rem; border: 1px solid #cbd5e1; border-radius: .4rem; background: #fff; color: #334155; cursor: pointer } .sk-snap-nav button[aria-selected="true"] { background: #0f172a; border-color: #0f172a; color: #fff }
+        .sk-snap-nav .sk-snap-prev, .sk-snap-nav .sk-snap-next { padding: .5rem .7rem; font-size: 1rem; line-height: 1 } .sk-snap-nav[data-count="1"] :is(.sk-snap-prev, .sk-snap-next) { display: none }
+        .sk-table { width: 100%; border-collapse: collapse } /* sample cells inherit the site's own font, size and colour */ .sk-table td { padding: .5rem .75rem; border-top: 1px solid #e2e8f0; vertical-align: baseline } .sk-table td.sk-token { font: .75rem ui-monospace, SFMono-Regular, Menlo, monospace; color: #64748b; white-space: nowrap }
+        .sk-recipe { font: .75rem/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; color: #64748b; margin: .35rem 0 1.25rem }
+        .sk-row { display: flex; flex-wrap: wrap; gap: .75rem 1rem; align-items: center; margin: .75rem 0 }
+        .sk-note { font: .8125rem/1.5 ui-sans-serif, system-ui, sans-serif; color: #64748b } #sk-body-font-name { display: block; font-size: .7rem }
+        .sk-badge { display: inline-block; padding: .1rem .45rem; border-radius: .25rem; background: #e2e8f0; color: #334155; font: 600 .65rem/1.4 ui-sans-serif, system-ui, sans-serif; text-transform: uppercase; letter-spacing: .05em; vertical-align: middle }
+        .sk-badge.sk-missing { background: #fee2e2; color: #991b1b }
+        .sk-swatch.sk-unresolved .sk-chip { background-image: repeating-linear-gradient(45deg, #fee2e2 0 8px, #fff 8px 16px) !important } .sk-swatch.sk-unresolved .sk-contrast { background: #991b1b; color: #fff; display: inline }
+        section[data-sk-block], section[data-sk-set] { scroll-margin-top: 4rem } /* clear the floating quick links */
+        .sk-tabbar { background: #fff; border-bottom: 1px solid #e2e8f0 } .sk-tabbar > [role="tablist"] { display: flex; gap: 2rem }
+        .sk-tabbar button { appearance: none; background: none; border: 0; border-bottom: 3px solid transparent; margin-bottom: -1px; padding: 1.1rem 0 .9rem; font: 600 .9375rem/1 ui-sans-serif, system-ui, sans-serif; color: #64748b; cursor: pointer; display: inline-flex; align-items: center; gap: .5rem }
+        .sk-tabbar button:hover { color: #0f172a } .sk-tabbar button[aria-selected="true"] { color: #0f172a; border-bottom-color: var(--color-primary) }
+        .sk-tabbar .sk-count { display: inline-block; min-width: 1.5rem; padding: .2rem .45rem; border-radius: 999px; background: #f1f5f9; color: #475569; font-size: .7rem; text-align: center } .sk-tabbar button[aria-selected="true"] .sk-count { background: var(--color-primary); color: #fff }
+        .sk-tocbar { position: sticky; top: 0; z-index: 30; background: rgba(255, 255, 255, .82); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px) } .sk-toc-h { font: 600 .7rem/1 ui-sans-serif, system-ui, sans-serif; letter-spacing: .06em; text-transform: uppercase; color: #64748b; padding: .7rem 0 .45rem } .sk-toc { display: flex; flex-wrap: nowrap; gap: .4rem; overflow-x: auto; scrollbar-width: none; padding: 0 0 1.25rem } .sk-toc::-webkit-scrollbar { display: none }
+        .sk-toc a { flex: 0 0 auto; font: 500 .8125rem/1 ui-sans-serif, system-ui, sans-serif; padding: calc(.4rem - 1px) calc(.65rem - 1px); border: 1px solid var(--color-primary); border-radius: .25rem; background: #fff; color: var(--color-primary); text-decoration: none; scroll-margin-inline: 1rem } .sk-toc a:hover { background: color-mix(in srgb, var(--color-primary) 8%, #fff) } .sk-toc a[aria-current] { background: var(--color-primary); color: #fff }
+        .sk-docs { font: .9rem/1.55 ui-sans-serif, system-ui, sans-serif; color: #334155; max-width: 60rem } .sk-docs h2 { font-size: .8125rem; text-transform: uppercase; letter-spacing: .06em; color: #64748b; margin: 1rem 0 .25rem } .sk-docs p, .sk-docs ul { margin: 0 0 .5rem }
+        .sk-docs.sk-none { color: #991b1b; background: #fef2f2; padding: .6rem .8rem; border-radius: .5rem; display: inline-block }
+        .sk-variant { border-top: 1px dashed #cbd5e1; padding-top: .75rem; margin-top: 1.25rem }
+        .sk-guide { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.25rem 3rem; margin-top: 1.25rem } @media (min-width: 48rem) { .sk-guide { grid-template-columns: repeat(2, minmax(0, 1fr)) } }
+        .sk-guide-col, .sk-guide-notes { font: .9rem/1.55 ui-sans-serif, system-ui, sans-serif; color: #334155 } .sk-guide-notes { margin-top: 1rem; max-width: 60rem }
+        .sk-guide-col :is(p, ul, ol), .sk-guide-notes :is(p, ul, ol) { margin: 0 0 .5rem } .sk-guide-col ul, .sk-guide-notes ul { padding-left: 1.1rem; list-style: disc } .sk-guide-col ol, .sk-guide-notes ol { padding-left: 1.1rem; list-style: decimal }
+        .sk-guide-col .sk-h, .sk-guide-notes .sk-h { margin-bottom: .4rem }
+        .sk-muted { color: #94a3b8; font-style: italic }
+        .sk-usage { margin-top: 1.25rem } .sk-usage > .sk-required { margin-top: .75rem }
+        .sk-usage > summary { display: inline-flex; align-items: center; gap: .55rem; padding: .35rem 0; list-style: none; cursor: pointer; font: 600 .8125rem/1 ui-sans-serif, system-ui, sans-serif; letter-spacing: .06em; text-transform: uppercase; color: #64748b } .sk-usage > summary::-webkit-details-marker { display: none }
+        .sk-usage > summary::before { content: ""; width: .4rem; height: .4rem; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); transition: transform .15s ease } .sk-usage[open] > summary::before { transform: rotate(45deg) translate(-2px, -2px) }
+        .sk-usage > summary:hover { color: #0f172a } .sk-usage > summary:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 3px; border-radius: .2rem }
+        .sk-changes-h { margin-top: 1.5rem } .sk-changes { border-top: 1px solid #e2e8f0; margin: 0 0 .5rem; max-width: 60rem }
+        .sk-change { display: grid; grid-template-columns: 11rem minmax(0, 1fr); gap: .35rem 1rem; padding: .65rem 0; border-bottom: 1px solid #e2e8f0; align-items: baseline }
+        .sk-change.sk-indent { padding-left: 1.25rem; grid-template-columns: calc(11rem - 1.25rem) minmax(0, 1fr); box-shadow: inset 3px 0 #e2e8f0 }
+        .sk-change-name { font: 600 .9rem/1.4 ui-sans-serif, system-ui, sans-serif; color: #0f172a }
+        .sk-change-opts { display: flex; flex-wrap: wrap; gap: .35rem; align-items: center; font: .8125rem/1.4 ui-sans-serif, system-ui, sans-serif }
+        .sk-pill { appearance: none; display: inline-block; padding: .3rem .6rem; border: 1px solid #cbd5e1; border-radius: .35rem; color: #334155; background: #fff; cursor: pointer; font: inherit; line-height: 1.2 } .sk-pill:hover { border-color: #64748b }
+        .sk-pill small { font-size: .7em; text-transform: uppercase; letter-spacing: .05em; color: #64748b; margin-left: .25rem }
+        .sk-pill[aria-pressed="true"] { background: #0f172a; border-color: #0f172a; color: #fff } .sk-pill[aria-pressed="true"] small { color: #cbd5e1 }
+        .sk-pill:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px }
+        .sk-change-note { flex-basis: 100%; color: #64748b }
+        .sk-change-group { padding: .85rem 0 .3rem; font: 600 .7rem/1 ui-sans-serif, system-ui, sans-serif; letter-spacing: .06em; text-transform: uppercase; color: #64748b }
+        .sk-changes-none { margin: 0 0 .5rem }
+        .sk-preview-h { margin-top: 1.5rem }
+        body.sk-content { background: #fafbfd } .sk-site-header { background: var(--color-white, #fff) } body.sk-content :is(.sk-tabbar, .sk-intro) { background: #fff } body.sk-content .sk-intro { border-top: 0 }
+        .sk-stage { background: var(--color-white, #fff); border-top: 1px dashed #cbd5e1; border-bottom: 1px dashed #cbd5e1; transition: opacity .15s } .sk-stage:not(.sk-stage-set) { padding-block: 0 } /* a set preview keeps the page builder's own top and bottom padding */
+        .sk-section[data-sk-kind] { padding-bottom: 0; border-top: 0 } /* the preview ends each block with its own dashed line */
+        .sk-block-title .sk-lead { margin-bottom: 0 } .sk-required { margin: .4rem 0 0; font: 600 .875rem/1.5 ui-sans-serif, system-ui, sans-serif; color: #991b1b } .sk-star { color: #dc2626; font-size: 1.1em }
+        .sk-neighbour { background: repeating-linear-gradient(135deg, #f1f5f9 0 8px, #e2e8f0 8px 16px); color: #64748b; font: 600 .7rem/1 ui-sans-serif, system-ui, sans-serif; letter-spacing: .05em; text-transform: uppercase; text-align: center; padding: .9rem 0 }
+        @media (max-width: 40rem) { .sk-change, .sk-change.sk-indent { grid-template-columns: 1fr } }
+        .sk-cp-note { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 1rem 1.5rem; align-items: center; margin-top: .25rem; max-width: 60rem }
+        .sk-cp-field { margin: 0; padding: 1rem 1.25rem; border: 1px solid #e2e8f0; border-radius: .5rem; background: #fff; box-shadow: 0 1px 2px rgba(15, 23, 42, .06); font: .9375rem/1.4 ui-sans-serif, system-ui, sans-serif; color: #0f172a; min-width: 17rem }
+        .sk-cp-label { font-weight: 600 } .sk-cp-instructions { margin-top: .25rem; font-size: .875rem; color: #475569 }
+        .sk-cp-toggle { display: flex; align-items: center; gap: .6rem; margin-top: .75rem }
+        .sk-cp-switch { position: relative; flex: 0 0 auto; width: 2.75rem; height: 1.5rem; border-radius: 999px; background: #cbd5e1; transition: background .15s } .sk-cp-switch span { position: absolute; top: 2px; left: 2px; width: 1.25rem; height: 1.25rem; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .25); transition: transform .15s }
+        .sk-cp-switch.sk-on, .sk-cp-input:checked + .sk-cp-switch { background: #2ea760 } .sk-cp-switch.sk-on span, .sk-cp-input:checked + .sk-cp-switch span { transform: translateX(1.25rem) }
+        .sk-cp-input { position: absolute; opacity: 0; width: 0; height: 0 } .sk-cp-input:focus-visible + .sk-cp-switch { outline: 2px solid var(--color-primary); outline-offset: 2px }
+        .sk-cp-text { font: .9rem/1.55 ui-sans-serif, system-ui, sans-serif; color: #334155 } .sk-cp-text p { margin: 0 }
+        @media (max-width: 40rem) { .sk-cp-note { grid-template-columns: 1fr } .sk-cp-field { min-width: 0 } }
+        .sk-title-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem } .sk-section .sk-title-row h2.sk-title { margin: 0; font-size: 1.875rem }
+        .sk-title-main { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .75rem }
+        .sk-sets-badge { display: inline-flex; align-items: center; padding: .3rem .65rem; border-radius: 999px; background: color-mix(in srgb, var(--color-primary) 10%, #fff); color: var(--color-primary); font: 600 .75rem/1.2 ui-sans-serif, system-ui, sans-serif; text-decoration: none; white-space: nowrap } .sk-sets-badge:hover { background: color-mix(in srgb, var(--color-primary) 18%, #fff) }
+        .sk-dev-btn { appearance: none; padding: .45rem .8rem; border: 1px solid #cbd5e1; border-radius: .4rem; background: #fff; color: #334155; cursor: pointer; font: 600 .8125rem/1 ui-sans-serif, system-ui, sans-serif } .sk-dev-btn:hover { border-color: #64748b; color: #0f172a }
+        .sk-dev { font: .8125rem/1.5 ui-sans-serif, system-ui, sans-serif; color: #475569 }
+        dialog.sk-dev { width: min(64rem, calc(100vw - 2rem)); max-height: calc(100vh - 2rem); padding: 1.5rem 1.75rem; border: 0; border-radius: .75rem; box-shadow: 0 20px 60px rgba(15, 23, 42, .25); background: #fff } dialog.sk-dev::backdrop { background: rgba(15, 23, 42, .45) }
+        .sk-dev-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: .5rem } .sk-dev-head h3 { margin: 0; font: 700 1.125rem/1.3 ui-sans-serif, system-ui, sans-serif; color: #0f172a }
+        .sk-dev-close { appearance: none; padding: .4rem .7rem; border: 1px solid #cbd5e1; border-radius: .4rem; background: #fff; color: #334155; cursor: pointer; font: 600 .8125rem/1 ui-sans-serif, system-ui, sans-serif }
+        .sk-dev dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: .3rem 1rem; margin: .75rem 0 } .sk-dev dt { color: #94a3b8 } .sk-dev dd { margin: 0 }
+        .sk-dev code { font: .75rem/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; background: #f1f5f9; padding: .1rem .35rem; border-radius: .25rem; color: #0f172a; word-break: break-all }
+        .sk-dev .sk-badge { vertical-align: baseline } .sk-dev-p { margin: .5rem 0 0 }
+        .sk-fields { border-collapse: collapse; width: 100%; margin: .5rem 0 } .sk-fields th, .sk-fields td { text-align: left; padding: .35rem .6rem .35rem 0; border-top: 1px solid #e2e8f0; vertical-align: top } .sk-fields th { font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; color: #94a3b8; border-top: 0 }
+        .sk-snap-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; margin: 0 0 .6rem } .sk-snap-head .sk-h { margin: 0 }
+        .sk-how-toggle { appearance: none; padding: .45rem .8rem; border: 1px solid #cbd5e1; border-radius: .4rem; background: #fff; color: #334155; cursor: pointer; font: 600 .8125rem/1 ui-sans-serif, system-ui, sans-serif } .sk-how-toggle[aria-expanded="true"] { background: var(--color-primary); border-color: var(--color-primary); color: #fff }
+        .sk-how { margin: 0 0 1rem; padding: .85rem 1.1rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: .5rem; font: .875rem/1.55 ui-sans-serif, system-ui, sans-serif; color: #334155 }
+        .sk-how-steps, .sk-steps-inline { margin: 0; padding-left: 1.25rem; list-style: decimal } .sk-how-steps li + li, .sk-steps-inline li + li { margin-top: .15rem }
+        .sk-variants-h { margin-top: 1.5rem } .sk-variant-h { font: 600 .9375rem/1.3 ui-sans-serif, system-ui, sans-serif; color: #0f172a; margin: 0 0 .35rem }
+        .sk-steps-inline { font: .8125rem/1.5 ui-sans-serif, system-ui, sans-serif; color: #64748b; margin-bottom: 1rem }
+        /* Contrast controls: always dark text on a white control, whatever the section colour. */
+        .sk-controls { font: .8125rem/1.4 ui-sans-serif, system-ui, sans-serif; color: #334155 }
+        .sk-controls label { display: inline-flex; gap: .4rem; align-items: center }
+        .sk-controls select { font: inherit; padding: .25rem 1.6rem .25rem .5rem; border: 1px solid #cbd5e1; border-radius: .25rem; background: #fff; color: #0f172a; -webkit-text-fill-color: #0f172a; color-scheme: light; max-width: 14rem }
+        .sk-controls select optgroup, .sk-controls select option { color: #0f172a; -webkit-text-fill-color: #0f172a; background: #fff }
+        .sk-controls input[type="color"] { width: 2.4rem; height: 1.8rem; padding: .1rem; border: 1px solid #cbd5e1; border-radius: .25rem; background: #fff; cursor: pointer }
+        .sk-use-bg { display: inline-block; margin-top: .35rem; font: 600 .6rem/1 ui-sans-serif, system-ui, sans-serif; letter-spacing: .04em; text-transform: uppercase; padding: .3rem .45rem; border: 0; border-radius: .25rem; background: #0f172a; color: #fff; cursor: pointer }
+        .sk-use-bg:hover { background: #334155 }
+        /* A chip that matches the section colour gets a soft drop shadow so its edge still reads. */
+        .sk-chip.sk-same-as-bg { box-shadow: 0 1px 2px rgba(15, 23, 42, .18), 0 4px 12px rgba(15, 23, 42, .14) }
+        .sk-section.sk-dark-bg .sk-chip.sk-same-as-bg { box-shadow: 0 0 0 1px rgba(255, 255, 255, .08), 0 4px 14px rgba(0, 0, 0, .55) }
+        /* Spacing section. The drawings use the site's own grid, span and stack classes; these rules only colour and label them. Hatching is space. */
+        .sk-spacing-h { margin-top: 2.25rem }
+        .sk-grid-demo { margin: .75rem 0 .5rem; background: repeating-linear-gradient(135deg, #fde68a 0 4px, #fffbeb 4px 10px) } .sk-grid-demo > div { min-height: 4.5rem }
+        .sk-grid-col { background: color-mix(in srgb, var(--color-primary) 22%, #fff) } .sk-grid-side { background: #f1f5f9 }
+        .sk-measures { display: flex; flex-wrap: wrap; gap: .5rem 2rem; margin: .5rem 0 .25rem } .sk-measures div { display: flex; gap: .5rem; align-items: baseline }
+        .sk-measures dt { font: 600 .7rem/1 ui-sans-serif, system-ui, sans-serif; letter-spacing: .06em; text-transform: uppercase; color: #64748b } .sk-measures dd { margin: 0; font: 600 .9rem/1 ui-monospace, SFMono-Regular, Menlo, monospace; color: #0f172a }
+        .sk-width-row { row-gap: .3rem; margin-top: .75rem } .sk-width-bar { padding: .45rem .6rem; background: color-mix(in srgb, var(--color-primary) 16%, #fff); border-left: 3px solid var(--color-primary); font: .75rem/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis } .sk-width-bar code { font-weight: 700 }
+        .sk-width-steps { display: flex; flex-wrap: wrap; gap: .1rem 1.25rem; font: .75rem/1.4 ui-sans-serif, system-ui, sans-serif; color: #64748b }
+        .sk-stacks { display: grid; grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); gap: 1.25rem 1rem; margin-top: .75rem; align-items: start }
+        .sk-stack { margin: 0 } .sk-stack figcaption { margin-top: .5rem; font: .75rem/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; color: #0f172a } .sk-stack figcaption .sk-note { display: block; font-size: .7rem; line-height: 1.35 }
+        .sk-stack-demo { background: repeating-linear-gradient(135deg, #fde68a 0 4px, #fffbeb 4px 10px) } .sk-stack-demo > span { display: block; height: 1.25rem; background: color-mix(in srgb, var(--color-primary) 22%, #fff) } .sk-stack-demo > span + span { margin-block-start: var(--sk-stack) }
+        .sk-section-table { margin-top: .75rem; max-width: 48rem } .sk-section-table td { font: .8125rem/1.4 ui-sans-serif, system-ui, sans-serif; color: #0f172a }
+        .sk-pages { display: grid; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); gap: 1.5rem 1.25rem; margin-top: 1.25rem; align-items: start } .sk-page-demo .sk-recipe { margin: 0 0 .4rem }
+        .sk-page { position: relative; background: repeating-linear-gradient(135deg, #fde68a 0 4px, #fffbeb 4px 10px) } .sk-page > section.fluid-grid { display: block } .sk-page > section.scheme-default { background: #fff; box-shadow: inset 0 0 0 1px #cbd5e1 }
+        .sk-page-block { padding: .6rem .5rem; text-align: center; font: 600 .7rem/1.2 ui-sans-serif, system-ui, sans-serif; letter-spacing: .05em; text-transform: uppercase; color: #475569 } .sk-page-this { color: var(--color-primary) }
+        .sk-gap { position: absolute; left: 0; right: 0; margin: 0 !important; display: flex; align-items: center; justify-content: center; overflow: visible; font: 600 .7rem/1 ui-monospace, SFMono-Regular, Menlo, monospace; color: #92400e; pointer-events: none }
+        .sk-gap.sk-gap-zero { left: auto; right: .3rem; height: auto !important; padding: .15rem .3rem; transform: translateY(-50%); background: #fffbeb; border: 1px solid #fde68a; border-radius: .2rem }
+        .sk-gap.sk-pad { justify-content: flex-start; padding-left: .4rem; color: #475569; font-weight: 500 }
+    </style>
+</head>
+<body{{ if body_class }} class="{{ body_class }}"{{ /if }}{{ if render_url }} data-sk-render="{{ render_url }}"{{ /if }}>
+    {{# The site's own header, exactly as pages render it, on its own page background. #}}
+    <div class="sk-site-header">{{ partial:layout/header }}</div>
+
+    <section class="sk-toolbar fluid-grid" aria-label="Site reference">
+        <div class="sk-inner sk-row span-content">
+            {{ partial:components/button label="Content" link_type="url" url="/{site_prefix}/content" button_colour="primary" :button_style="title == 'Content reference' ? 'solid' : 'outline'" }}
+            {{ partial:components/button label="Style" link_type="url" url="/{site_prefix}/style" button_colour="primary" :button_style="title == 'Style reference' ? 'solid' : 'outline'" }}
+            <span class="sk-note">A guide to this website's sections, elements and styles, shown with sample content</span>
+        </div>
+    </section>
+    <main>
+        {{ template_content }}
+    </main>
+<script>
+    // Live preview: the "What you can change" rows set the options; the preview re-renders from the server with them.
+    // A setting whose condition is not met is hidden, as it is in the editor, and goes back to its default.
+    (() => {
+        const url = document.body.dataset.skRender;
+        if (! url) return;
+        document.querySelectorAll('[data-sk-kind]').forEach(section => {
+            const rows = [...section.querySelectorAll('[data-sk-setting]')];
+            const stage = section.querySelector('.sk-stage');
+            if (! rows.length || ! stage) return;
+            const state = {}; rows.forEach(r => state[r.dataset.skSetting] = r.dataset.default);
+            // Requirements read handle=key (equals), handle!=key (not) or handle~=a|b (one of).
+            const met = r => (r.dataset.requires || '').split(';').filter(Boolean).every(rule => {
+                let m;
+                if ((m = rule.match(/^([^!~=]+)!=(.*)$/))) return state[m[1]] !== m[2];
+                if ((m = rule.match(/^([^!~=]+)~=(.*)$/))) return m[2].split('|').includes(state[m[1]]);
+                const [h, k] = rule.split('='); return state[h] === k;
+            });
+            const paint = () => rows.forEach(r => {
+                const ok = met(r); r.hidden = ! ok;
+                if (! ok) state[r.dataset.skSetting] = r.dataset.default;
+                r.querySelectorAll('.sk-pill').forEach(p => p.setAttribute('aria-pressed', String(p.dataset.skOption === state[r.dataset.skSetting])));
+            });
+            let seq = 0;
+            const refresh = async () => {
+                const q = new URLSearchParams({ kind: section.dataset.skKind, handle: section.dataset.skHandle });
+                rows.forEach(r => q.append('s[' + r.dataset.skSetting + ']', state[r.dataset.skSetting]));
+                const my = ++seq;
+                stage.setAttribute('aria-busy', 'true');
+                try {
+                    const res = await fetch(url + '?' + q, { headers: { 'X-Requested-With': 'fetch' } });
+                    if (! res.ok) throw new Error(res.status);
+                    const html = await res.text();
+                    if (my !== seq) return;
+                    const above = stage.querySelector(':scope > [data-sk-edge="above"]'), below = stage.querySelector(':scope > [data-sk-edge="below"]');
+                    const tpl = document.createElement('template'); tpl.innerHTML = html;
+                    if (above && below) { while (above.nextSibling && above.nextSibling !== below) above.nextSibling.remove(); below.before(tpl.content); }
+                    else stage.replaceChildren(tpl.content); // a set preview has no neighbours
+                } catch (e) {
+                    if (my === seq) stage.setAttribute('data-sk-failed', '');
+                } finally {
+                    if (my === seq) stage.removeAttribute('aria-busy');
+                }
+            };
+            rows.forEach(row => row.querySelectorAll('.sk-pill').forEach(pill => pill.addEventListener('click', () => {
+                state[row.dataset.skSetting] = pill.dataset.skOption; paint(); refresh();
+            })));
+            paint();
+        });
+    })();
+    // Developer details open in a modal from the button beside each name.
+    document.querySelectorAll('[data-sk-dev-open]').forEach(btn => btn.addEventListener('click', () => {
+        const dialog = document.getElementById(btn.dataset.skDevOpen);
+        if (! dialog) return;
+        dialog.showModal();
+        dialog.querySelector('.sk-dev-close')?.focus();
+    }));
+    document.querySelectorAll('dialog.sk-dev').forEach(dialog => {
+        dialog.querySelector('.sk-dev-close')?.addEventListener('click', () => dialog.close());
+        dialog.addEventListener('click', e => { if (e.target === dialog) dialog.close(); });
+    });
+    // Snap strips: the tab row above each strip names every panel; a tab scrolls to its panel and the
+    // panel in view highlights its tab. Used for colour schemes on the style page and block variations.
+    document.querySelectorAll('.sk-snapper').forEach(wrap => {
+        const strip = wrap.querySelector('.sk-snap');
+        const tabs = [...wrap.querySelectorAll('.sk-snap-nav [role="tab"]')];
+        const panels = [...strip.querySelectorAll(':scope > .sk-snap-item')];
+        if (! panels.length) return;
+        const go = i => panels[Math.max(0, Math.min(panels.length - 1, i))].scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
+        const current = () => Math.round(strip.scrollLeft / strip.clientWidth);
+        tabs.forEach((t, i) => t.addEventListener('click', () => go(i)));
+        wrap.querySelector('.sk-snap-prev')?.addEventListener('click', () => go(current() - 1));
+        wrap.querySelector('.sk-snap-next')?.addEventListener('click', () => go(current() + 1));
+        const steps = [...wrap.querySelectorAll('.sk-how-steps')];
+        const mark = () => { const c = current(); tabs.forEach((t, i) => t.setAttribute('aria-selected', i === c)); steps.forEach((s, i) => s.hidden = i !== c); };
+        strip.addEventListener('scroll', () => requestAnimationFrame(mark)); mark();
+        // "How to choose this variation" opens the steps for whichever panel is in view.
+        const how = wrap.querySelector('.sk-how'), toggle = wrap.querySelector('.sk-how-toggle');
+        if (how && toggle) toggle.addEventListener('click', () => { how.hidden = ! how.hidden; toggle.setAttribute('aria-expanded', String(! how.hidden)); });
+        // ?scheme=dark opens that panel on a strip declaring data-sk-param="scheme", for sharing or screenshots.
+        const want = wrap.dataset.skParam ? new URLSearchParams(location.search).get(wrap.dataset.skParam) : null;
+        const at = want ? panels.findIndex(p => p.dataset.skKey === want) : -1;
+        if (at >= 0) { strip.style.scrollBehavior = 'auto'; strip.scrollLeft = at * strip.clientWidth; mark(); }
+    });
+</script>
+</body>
+</html>

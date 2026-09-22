@@ -1,0 +1,47 @@
+{{#
+    Prose sample, rendered the way Peak renders an article: `contents stack-8` on the article, and
+    each Bard chunk as a <div> inside it. Prose rules space things inside a chunk; the stack spaces
+    the chunks. Two chunks here, so that boundary is visible, and text straight inside the article at the
+    end, the shape a block makes when it renders Bard into a prose container that stacks its children.
+#}}
+<article class="prose max-w-none contents stack-8 {{ class }}">
+    <div>
+        <h2>A second-level heading</h2>
+        <p>Body copy with <a href="#">a link</a> and <strong>bold text</strong>. A second sentence gives the paragraph enough length to wrap on most widths, so line height and measure can be judged.</p>
+        <p>A second paragraph straight after the first, so the space between paragraphs can be judged on its own, and against the space around the headings and lists below.</p>
+        <h3>A third-level heading</h3>
+        <p>A paragraph between two headings, so the spacing above and below each can be seen.</p>
+        <ul>
+            <li>A bulleted list item</li>
+            <li>An item with a nested list
+                <ul>
+                    <li>A nested bulleted item</li>
+                    <li>Another nested item, long enough to wrap onto a second line on narrower screens and show the hanging indent</li>
+                </ul>
+            </li>
+            <li>A final top-level item</li>
+        </ul>
+        <ol>
+            <li>A numbered list item</li>
+            <li>An item with a nested numbered list
+                <ol>
+                    <li>A nested numbered item</li>
+                    <li>Another nested numbered item</li>
+                </ol>
+            </li>
+            <li>A numbered item with a nested bulleted list
+                <ul>
+                    <li>Mixed nesting, bullets inside numbers</li>
+                </ul>
+            </li>
+        </ol>
+    </div>
+    <div>
+        <blockquote><p>A block quotation, to check the border and quote colour.</p></blockquote>
+        <hr>
+        <p><small>Small text</small> after a horizontal rule.</p>
+        <span class="caption">A caption span (.caption)</span>
+    </div>
+    <p>A paragraph straight inside the stacked article, with no chunk around it.</p>
+    <p>A second one after it, which sits the same distance away as the two paragraphs at the top: text keeps the prose rhythm, never the stack spacing.</p>
+</article>

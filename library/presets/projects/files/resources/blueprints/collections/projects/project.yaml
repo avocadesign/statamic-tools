@@ -1,0 +1,103 @@
+title: Project
+tabs:
+  main:
+    display: Main
+    sections:
+      -
+        display: General
+        fields:
+          -
+            handle: title
+            field:
+              type: text
+              required: true
+              localizable: true
+              listable: true
+              display: Title
+              validate:
+                - required
+          -
+            handle: summary
+            field:
+              type: textarea
+              localizable: true
+              listable: hidden
+              character_limit: 200
+              display: Summary
+              instructions: 'One or two sentences about the project, shown on its card in the Projects block.'
+          -
+            handle: featured_image
+            field: common.image
+            config:
+              display: 'Featured image'
+              instructions: 'Shown on the project''s card in the Projects block, cropped to landscape (3:2).'
+              listable: true
+      -
+        display: Hero
+        collapsible: true
+        fields:
+          -
+            import: block_hero
+      -
+        display: 'Page builder'
+        fields:
+          -
+            import: page_builder
+  seo:
+    display: SEO
+    sections:
+      -
+        display: Basic
+        instructions: 'Basic SEO settings.'
+        fields:
+          -
+            import: 'statamic-peak-seo::seo_basic'
+      -
+        display: Advanced
+        instructions: 'Advanced SEO settings.'
+        fields:
+          -
+            import: 'statamic-peak-seo::seo_advanced'
+      -
+        display: 'Open Graph'
+        instructions: 'Open Graph meta tags for social sharing.'
+        fields:
+          -
+            import: 'statamic-peak-seo::seo_open_graph'
+      -
+        display: Sitemap
+        instructions: 'Sitemap configuration.'
+        fields:
+          -
+            import: 'statamic-peak-seo::seo_sitemap'
+      -
+        display: 'JSON-ld Schema'
+        instructions: 'Custom JSON-ld schema objects.'
+        fields:
+          -
+            import: 'statamic-peak-seo::seo_jsonld'
+  sidebar:
+    display: Sidebar
+    sections:
+      -
+        display: Meta
+        fields:
+          -
+            handle: slug
+            field:
+              type: slug
+              localizable: true
+              validate:
+                - required
+              display: Slug
+          -
+            handle: date
+            field:
+              type: date
+              required: true
+              display: Date
+              instructions: 'When the project was finished. Its card shows the year.'
+              mode: single
+              time_enabled: false
+              validate:
+                - required

@@ -1,0 +1,27 @@
+name: Projects
+version: 1.0.0
+description: A Projects collection with a page for each project, built like pages, and a block that shows the latest projects or chosen ones as cards.
+page_builder:
+  - handle: projects
+    display: Projects
+    group: dynamic
+    instructions: 'Cards linking to projects from the Projects collection.'
+    icon: layout-three-columns
+article_sets: []
+permissions:
+  editor:
+    - 'view projects entries'
+    - 'edit projects entries'
+    - 'create projects entries'
+    - 'delete projects entries'
+    - 'publish projects entries'
+    - 'reorder projects entries'
+    - 'edit other authors projects entries'
+    - 'publish other authors projects entries'
+    - 'delete other authors projects entries'
+notes: |
+  Each project has a page at /projects/ followed by its slug: a page header, then the page builder, as on pages.
+  To list every project at /projects, add a page with the slug projects and put the Projects block on it. The installer adds no pages or menu items.
+  In Globals, SEO, on the Sitemap tab, add Projects to Collections, or project pages stay out of sitemap.xml. The installer doesn't change globals.
+  The collection starts with three sample projects, set to noindex. The installer adds no images: the samples use an image the site already has as their featured image, and the install output above names it, or says it was left out. Replace or delete the samples before launch.
+  Rebuild the site's CSS with npm run build, so the classes in the new templates are included.

@@ -1,0 +1,45 @@
+# Build recipe
+
+`recipe.md` is Avoca Design's build recipe: the process an AI agent follows when it builds or extends an Avoca Statamic site. It covers:
+
+- how a site is put together: the layout with its header and footer partials, the Site Details global, pages with a page header and then the page builder or a simple page, and the design tokens;
+- the order for deciding how to build something: use a block the site has, install a library item, change an existing block, and only then build a new one;
+- the conventions for new blocks, text editor sets and collections;
+- the review steps, from a plan the developer approves to the client's sign-off.
+
+## How a site uses it
+
+The recipe stays in this package. A site refers to it rather than copying it, so a change here reaches a site when the site updates the package.
+
+- The site's `CLAUDE.md` imports it, so Claude Code loads it in every session. The import is a line of its own, outside any code span or code block:
+
+      @vendor/avocadesign/statamic-tools/recipe/recipe.md
+
+- The site's `AGENTS.md` can't import files, so it points agents to the same path.
+- The starter kit's exported `CLAUDE.md` and `AGENTS.md` carry both, so every new site has them. For a site made before that, add them by hand.
+- The path exists only once the site has this package installed with Composer. Until then the import loads nothing and the pointer leads nowhere.
+
+## What it points to instead of naming blocks
+
+The recipe never names blocks or sets, because every site has its own. It sends agents to:
+
+- `resources/site/catalogue.md` and `/site/content`, for what the site already has;
+- `php please avoca:library --json`, for what the library can install;
+- `resources/site/collections/<handle>.md`, for the decisions behind each collection.
+
+Keep it that way when you edit it.
+
+## Sections still to write
+
+Two sections are placeholders, each marked with a `recipe-placeholder` comment:
+
+- Static generation rules.
+- Hosting: what a builder needs to know about how a site is served.
+
+Replace the placeholder text when the findings are in, and remove the comment.
+
+## Editing the recipe
+
+- Write instructions an agent follows, in plain British English, with no em dashes.
+- When a command, path or convention the recipe describes changes in the addon or the kit, change the recipe in the same pull request.
+- Decisions for one site belong in that site's `resources/site/` files, not here.

@@ -1,0 +1,89 @@
+{{#
+    @name Testimonials
+    @desc The Testimonials page builder block: quotes from the Testimonials collection, in a grid or as one featured quote.
+    @set page.page_builder.testimonials
+#}}
+
+<!-- /page_builder/_testimonials.antlers.html -->
+{{ partial:page_builder/block class="gap-y-8" :colour_scheme="block:colour_scheme" :block_margins="block:block_margins" }}
+    {{# There is no random order: on a static site it would be fixed when the site is built.
+        Chosen testimonials keep the order they were chosen in. All, or Chosen with none chosen, lists the collection. #}}
+    {{ testimonial_featured = block:layout == 'featured' }}
+    {{ testimonial_sort = block:sort == 'newest' ? 'date:desc' : 'order:asc' }}
+    {{ testimonial_limit = testimonial_featured ? 1 : (block:limit == 'all' ? 0 : (block:limit ?? 3)) }}
+    {{ testimonial_entries = block:source == 'chosen' && (block:testimonials | count) > 0
+        ? block:testimonials
+        : { collection:testimonials :sort="testimonial_sort" :limit="testimonial_limit" }
+    }}
+
+    {{# heading #}}
+    {{ if block:heading }}
+        <header class="span-content flex flex-col gap-2 {{ testimonial_featured ?= 'items-center text-center' }}">
+            <h2>{{ block:heading | nl2br }}</h2>
+            {{ if block:sub_heading }}
+                <h3 class="subheading">{{ block:sub_heading | nl2br }}</h3>
+            {{ /if }}
+        </header>
+    {{ /if }}
+
+    {{ if testimonial_featured }}
+        {{# featured quote: one quote, larger and centred in the middle eight columns #}}
+        {{ testimonial_entries limit="1" }}
+            <figure class="span-content md:col-start-[col-3] md:col-span-8 flex flex-col items-center gap-8 text-center">
+                <blockquote class="lede font-medium">
+                    <p>&ldquo;{{ quote | widont | nl2br }}&rdquo;</p>
+                </blockquote>
+                <figcaption class="flex flex-col items-center gap-4">
+                    {{ if image }}
+                        {{ if image_type == 'logo' }}
+                            {{ partial:components/utilities/figure :image="image" crop="none" link_type="none" class="w-28" sizes="112px" }}
+                        {{ else }}
+                            {{ partial:components/utilities/figure :image="image" crop="square" link_type="none" class="size-16 overflow-clip rounded-full" sizes="64px" }}
+                        {{ /if }}
+                    {{ /if }}
+                    <span class="flex flex-col">
+                        <span class="font-bold">{{ name }}</span>
+                        {{ if role || organisation }}
+                            <span class="text-sm">{{ role }}{{ if role && organisation }}, {{ /if }}{{ organisation }}</span>
+                        {{ /if }}
+                    </span>
+                </figcaption>
+            </figure>
+        {{ /testimonial_entries }}
+    {{ else }}
+        {{# grid: columns as in the Cards block, with the person level at the foot of each quote #}}
+        <ul class="span-content grid md:grid-cols-12 gap-fluid-grid-gap gap-y-12">
+            {{ testimonial_entries }}
+                <li
+                    class="
+                        {{# One item is centred and wide, two or four sit half width, anything else takes a third. #}}
+                        {{ if total_results == 1 }}md:col-span-8 md:col-start-3{{ elseif total_results == 2 || total_results == 4 }}md:col-span-6{{ else }}md:col-span-4{{ /if }}
+                    "
+                >
+                    <figure class="h-full flex flex-col gap-6">
+                        <blockquote>
+                            <p>&ldquo;{{ quote | widont | nl2br }}&rdquo;</p>
+                        </blockquote>
+                        {{# The person sits at the foot of the quote, level across a row whatever the quote's length. #}}
+                        <figcaption class="mt-auto flex items-center gap-4">
+                            {{ if image }}
+                                {{ if image_type == 'logo' }}
+                                    {{ partial:components/utilities/figure :image="image" crop="none" link_type="none" class="w-20 shrink-0" sizes="80px" }}
+                                {{ else }}
+                                    {{ partial:components/utilities/figure :image="image" crop="square" link_type="none" class="size-14 shrink-0 overflow-clip rounded-full" sizes="56px" }}
+                                {{ /if }}
+                            {{ /if }}
+                            <span class="flex flex-col">
+                                <span class="font-bold">{{ name }}</span>
+                                {{ if role || organisation }}
+                                    <span class="text-sm">{{ role }}{{ if role && organisation }}, {{ /if }}{{ organisation }}</span>
+                                {{ /if }}
+                            </span>
+                        </figcaption>
+                    </figure>
+                </li>
+            {{ /testimonial_entries }}
+        </ul>
+    {{ /if }}
+{{ /partial:page_builder/block }}
+<!-- End: /page_builder/_testimonials.antlers.html -->

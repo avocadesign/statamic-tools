@@ -1,0 +1,27 @@
+title: Question
+tabs:
+  main:
+    display: Main
+    sections:
+      -
+        display: Question
+        fields:
+          -
+            handle: title
+            field:
+              type: text
+              required: true
+              localizable: true
+              listable: true
+              display: Question
+              instructions: 'Write it the way a customer would ask it.'
+              validate:
+                - required
+          -
+            handle: answer
+            field: common.text_basic
+            config:
+              display: Answer
+              instructions: 'A short paragraph or a short list is usually enough.'
+              validate:
+                - required

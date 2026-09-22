@@ -1,0 +1,4 @@
+# Keep the Composer package to what a site runs. These stay in the repository.
+/tests export-ignore
+/phpunit.xml export-ignore
+/.gitattributes export-ignore

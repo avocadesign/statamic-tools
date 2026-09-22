@@ -1,0 +1,90 @@
+<div x-data="{ tab: window.location.hash === '#sets' ? 'sets' : 'blocks' }">
+    <div class="sk-tabbar fluid-grid" aria-label="Content reference">
+        <div class="span-content" role="tablist">
+            <button type="button" role="tab" :aria-selected="tab === 'blocks'" @click="tab = 'blocks'; history.replaceState(null, '', '#blocks'); window.scrollTo(0, 0)">Page builder <span class="sk-count">{{ blocks | length }}</span></button>
+            <button type="button" role="tab" :aria-selected="tab === 'sets'" @click="tab = 'sets'; history.replaceState(null, '', '#sets'); window.scrollTo(0, 0)">Text editor <span class="sk-count">{{ sets | length }}</span></button>
+        </div>
+    </div>
+
+    {{# Page builder blocks #}}
+    <div x-show="tab === 'blocks'" data-sk-tab="blocks">
+        <section class="sk-section sk-intro fluid-grid"><div class="sk-inner span-content">
+            <h2 class="sk-title">Page builder blocks</h2>
+            {{ if help:page_builder:url }}<p class="sk-help"><a href="{{ help:page_builder:url }}" target="_blank" rel="noopener">{{ help:page_builder:label }} ↗</a></p>{{ /if }}
+            <p class="sk-lead">These are the sections you can add to a page. Under each one, every setting is listed with its options, named as the editor names them and with the default marked. Choose an option and the preview below changes to match.</p>
+            {{ if revealer }}
+            <div class="sk-cp-note">
+                <figure class="sk-cp-field" aria-hidden="true">
+                    <div class="sk-cp-label">{{ revealer:display }}</div>
+                    {{ if revealer:instructions }}<div class="sk-cp-instructions">{{ revealer:instructions }}</div>{{ /if }}
+                    <div class="sk-cp-toggle"><span class="sk-cp-switch sk-on"><span></span></span>{{ revealer:input_label }}</div>
+                </figure>
+                <div class="sk-cp-text">
+                    <p><strong>Where the settings live.</strong> Most blocks ({{ revealer:count }} of the {{ blocks | length }}) keep their options under <strong>{{ revealer:display }}</strong>, towards the bottom of the block. Switch on <strong>{{ revealer:input_label }}</strong> to see them.</p>
+                </div>
+            </div>
+            {{ /if }}
+        </div></section>
+        <div class="sk-tocbar fluid-grid"><div class="span-content sk-toc-h" id="block-types">Block types</div><nav class="span-content sk-toc" data-toc="block" aria-labelledby="block-types">{{ blocks }}<a href="#block-{{ handle }}">{{ display }}</a>{{ /blocks }}</nav></div>
+
+        {{ blocks }}
+            <section class="sk-section" id="block-{{ handle }}" data-sk-block="{{ handle }}" data-sk-kind="block" data-sk-handle="{{ handle }}">
+                <div class="fluid-grid"><div class="sk-inner span-content">
+                    {{ partial:statamic-tools::site._guide kind="block" }}
+                    {{ partial:statamic-tools::site._changes kind="block" }}
+                    <h3 class="sk-h sk-preview-h">{{ display }} block preview</h3>
+                </div></div>
+                {{# Spaced by the page template's own section stack, so the gaps match a real page. #}}
+                <div class="{{ section_stack }} sk-stage">
+                    {{ partial:page_builder/block data_attrs='data-sk-edge="above"' }}<div class="span-content sk-neighbour">A block above</div>{{ /partial:page_builder/block }}
+                    {{ preview:items scope="block" }}{{ partial src="page_builder/{type}" }}{{ /preview:items }}
+                    {{ partial:page_builder/block data_attrs='data-sk-edge="below"' }}<div class="span-content sk-neighbour">A block below</div>{{ /partial:page_builder/block }}
+                </div>
+                {{ partial:statamic-tools::site._dev kind="block" }}
+            </section>
+        {{ /blocks }}
+    </div>
+
+    {{# Text editor sets #}}
+    <div x-show="tab === 'sets'" data-sk-tab="sets">
+        <section class="sk-section sk-intro fluid-grid"><div class="sk-inner span-content">
+            <h2 class="sk-title">Text editor sets</h2>
+            {{ if help:text_editor:url }}<p class="sk-help"><a href="{{ help:text_editor:url }}" target="_blank" rel="noopener">{{ help:text_editor:label }} ↗</a></p>{{ /if }}
+            <p class="sk-lead">These are the extra elements you can place inside the text editor, the editor you use for body copy. Under each one, every setting is listed with its options, named as the editor names them and with the default marked. Choose an option and the preview below changes to match.</p>
+        </div></section>
+        <div class="sk-tocbar fluid-grid"><div class="span-content sk-toc-h" id="set-types">Set types</div><nav class="span-content sk-toc" data-toc="set" aria-labelledby="set-types">{{ sets }}<a href="#set-{{ handle }}">{{ display }}</a>{{ /sets }}</nav></div>
+
+        {{ sets }}
+            <section class="sk-section" id="set-{{ handle }}" data-sk-set="{{ handle }}" data-sk-kind="set" data-sk-handle="{{ handle }}">
+                <div class="fluid-grid"><div class="sk-inner span-content">
+                    {{ partial:statamic-tools::site._guide kind="set" }}
+                    {{ partial:statamic-tools::site._changes kind="set" }}
+                    <h3 class="sk-h sk-preview-h">{{ display }} set preview</h3>
+                </div></div>
+                <div class="page-builder sk-stage sk-stage-set">
+                    {{ partial:page_builder/block }}
+                        <article class="prose max-w-none contents stack-8">{{ preview:bard }}{{ partial src="components/{type}" }}{{ /preview:bard }}</article>
+                    {{ /partial:page_builder/block }}
+                </div>
+                {{ partial:statamic-tools::site._dev kind="set" }}
+            </section>
+        {{ /sets }}
+    </div>
+</div>
+<script>
+// Highlight the block or set currently on screen in the floating quick links, and keep its link in view.
+(function () {
+    const links = {};
+    document.querySelectorAll('.sk-toc a').forEach(a => links[a.getAttribute('href').slice(1)] = a);
+    const seen = new Map();
+    const io = new IntersectionObserver(entries => {
+        entries.forEach(e => seen.set(e.target.id, e.isIntersecting ? e.boundingClientRect.top : null));
+        let best = null;
+        seen.forEach((top, id) => { if (top !== null && (best === null || top < seen.get(best))) best = id; });
+        if (!best) return;
+        Object.entries(links).forEach(([id, a]) => a.toggleAttribute('aria-current', id === best));
+        const a = links[best]; if (a) a.scrollIntoView({ inline: 'nearest', block: 'nearest' });
+    }, { rootMargin: '-25% 0px -60% 0px', threshold: 0 });
+    document.querySelectorAll('section[data-sk-block], section[data-sk-set]').forEach(sec => io.observe(sec));
+})();
+</script>

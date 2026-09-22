@@ -1,0 +1,12 @@
+title: Testimonials
+revisions: false
+slugs: false
+title_format: '{name}'
+date: true
+sort_dir: desc
+date_behavior:
+  past: public
+  future: public
+structure:
+  root: false
+  max_depth: 1

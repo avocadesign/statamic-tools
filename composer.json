@@ -1,0 +1,39 @@
+{
+    "name": "avocadesign/statamic-tools",
+    "description": "The machinery Avoca Design sites share: reference pages, checks and generated files.",
+    "license": "proprietary",
+    "autoload": {
+        "psr-4": {
+            "Avocadesign\\StatamicTools\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Avocadesign\\StatamicTools\\Tests\\": "tests"
+        }
+    },
+    "require": {
+        "statamic/cms": "^6.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^10.8"
+    },
+    "config": {
+        "allow-plugins": {
+            "pixelfear/composer-dist-plugin": true
+        }
+    },
+    "extra": {
+        "statamic": {
+            "name": "Avoca Tools",
+            "description": "Avoca Tools addon"
+        },
+        "laravel": {
+            "providers": [
+                "Avocadesign\\StatamicTools\\ServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}

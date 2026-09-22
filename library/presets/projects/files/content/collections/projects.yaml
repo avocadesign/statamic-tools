@@ -1,0 +1,15 @@
+title: Projects
+template: projects/show
+layout: layout
+revisions: false
+route: '/projects/{slug}'
+date: true
+sort_dir: desc
+date_behavior:
+  past: public
+  future: public
+preview_targets:
+  -
+    label: Entry
+    url: '{permalink}'
+    refresh: false

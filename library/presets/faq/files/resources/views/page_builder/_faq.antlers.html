@@ -1,0 +1,77 @@
+{{#
+    @name FAQ
+    @desc The FAQ page builder block: questions from the FAQs collection as an accordion, with FAQPage structured data.
+    @set page.page_builder.faq
+#}}
+
+<!-- /page_builder/_faq.antlers.html -->
+{{ partial:page_builder/block :colour_scheme="block:colour_scheme" :block_margins="block:block_margins" }}
+    {{# Chosen questions keep the order they were chosen in. All questions, or Chosen with none chosen, lists the whole collection. #}}
+    {{ faq_sort = block:sort == 'title' ? 'title:asc' : 'order:asc' }}
+    {{ faq_questions = block:source == 'chosen' && (block:questions | count) > 0
+        ? block:questions
+        : { collection:faq :sort="faq_sort" }
+    }}
+
+    {{# content wrapper: the heading and the questions, eight of the twelve columns wide from md up #}}
+    <div class="span-content grid md:grid-cols-12 gap-fluid-grid-gap gap-y-8">
+        {{ if block:heading }}
+            <header class="col-span-12 md:col-span-8 flex flex-col gap-2">
+                <h2>{{ block:heading | nl2br }}</h2>
+                {{ if block:sub_heading }}
+                    <h3 class="subheading">{{ block:sub_heading | nl2br }}</h3>
+                {{ /if }}
+            </header>
+        {{ /if }}
+
+        {{# The WAI-ARIA accordion pattern: each question is a heading holding a button that shows and hides its answer.
+            The dividers are the body text colour at 15%, read from --body-color, which each colour scheme sets, so they show on every scheme.
+            A link ending #the-question-slug opens that answer. #}}
+        <div class="col-span-12 md:col-span-8 border-t border-(--body-color)/15">
+            {{ faq_questions }}
+                <div
+                    id="{{ title | slugify }}"
+                    class="border-b border-(--body-color)/15"
+                    x-data="{ open: window.location.hash === '#{{ title | slugify }}' }"
+                    x-id="['faq-answer']"
+                    @hashchange.window="if (window.location.hash === '#{{ title | slugify }}') open = true"
+                >
+                    <h3 class="heading-size-4">
+                        <button
+                            type="button"
+                            class="w-full flex items-center justify-between gap-6 py-5 text-left"
+                            :aria-expanded="open"
+                            :aria-controls="$id('faq-answer')"
+                            @click="open = ! open"
+                        >
+                            <span>{{ title }}</span>
+                            <span class="shrink-0 motion-safe:transition-transform" :class="open && 'rotate-180'" aria-hidden="true">
+                                {{ svg:chevron_down attr:class="block w-3.5 overflow-visible stroke-current" }}
+                            </span>
+                        </button>
+                    </h3>
+                    <div :id="$id('faq-answer')" x-show="open" x-collapse x-cloak data-faq-answer>
+                        <div class="prose max-w-none pb-6">
+                            <div>{{ answer }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                {{ push:faq_schema }}{"@type": "Question", "name": {{ title | to_json }}, "acceptedAnswer": {"@type": "Answer", "text": {{ answer | bard_text | to_json }}}}{{ /push:faq_schema }}
+            {{ /faq_questions }}
+        </div>
+    </div>
+
+    {{# One FAQPage for the whole page, holding the questions of every FAQ block on it. The first FAQ block in the page's
+        page builder writes it. Antlers' once tag isn't used: with three FAQ blocks on a page it wrote the script twice
+        (Statamic 6.32). A block that isn't in the page's page builder, such as a preview, writes its own.
+        Without JavaScript the accordion can't open, so every answer shows. The rule sits in the base layer to outrank Peak's [x-cloak] rule. #}}
+    {{ faq_first_block = page:page_builder | where('type', 'faq') | first }}
+    {{ if ! faq_first_block || faq_first_block:id == block:id }}
+        {{ if (faq_questions | count) > 0 }}
+            <script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{{ stack:faq_schema }}{{ value }}{{ unless last }}, {{ /unless }}{{ /stack:faq_schema }}]}</script>
+        {{ /if }}
+        {{ push:head }}<noscript><style>@layer base { [data-faq-answer][x-cloak] { display: block !important; } }</style></noscript>{{ /push:head }}
+    {{ /if }}
+{{ /partial:page_builder/block }}
+<!-- End: /page_builder/_faq.antlers.html -->

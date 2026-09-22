@@ -1,0 +1,24 @@
+name: FAQ
+version: 1.0.0
+description: An FAQs collection with no pages of its own, and a block that shows every question or chosen ones as an accordion, with FAQPage structured data.
+page_builder:
+  - handle: faq
+    display: FAQ
+    group: dynamic
+    instructions: 'Questions and answers from the FAQs collection, in an accordion.'
+    icon: support
+article_sets: []
+permissions:
+  editor:
+    - 'view faq entries'
+    - 'edit faq entries'
+    - 'create faq entries'
+    - 'delete faq entries'
+    - 'publish faq entries'
+    - 'reorder faq entries'
+    - 'edit other authors faq entries'
+    - 'publish other authors faq entries'
+    - 'delete other authors faq entries'
+notes: |
+  The FAQs collection starts with four sample questions about the block itself. Replace or delete them before launch.
+  Rebuild the site's CSS with npm run build, so the classes in the new block are included.

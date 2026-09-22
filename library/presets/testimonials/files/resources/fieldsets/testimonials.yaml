@@ -1,0 +1,108 @@
+title: 'Block: Testimonials'
+fields:
+  -
+    handle: heading
+    field:
+      type: text
+      display: Heading
+  -
+    handle: sub_heading
+    field:
+      type: text
+      display: 'Sub heading'
+  -
+    handle: source
+    field:
+      options:
+        -
+          key: all
+          value: 'All testimonials'
+        -
+          key: chosen
+          value: 'Chosen testimonials'
+      default: all
+      type: button_group
+      display: 'Testimonials to show'
+      instructions: 'All testimonials lists testimonials from the Testimonials collection, in the order set here.'
+      width: 50
+  -
+    handle: sort
+    field:
+      options:
+        -
+          key: order
+          value: 'Collection order'
+        -
+          key: newest
+          value: 'Newest first'
+      default: order
+      type: button_group
+      display: Order
+      instructions: 'Collection order is the order the testimonials are arranged in, in the Testimonials collection.'
+      width: 50
+      if:
+        source: 'equals all'
+  -
+    handle: testimonials
+    field:
+      type: entries
+      collections:
+        - testimonials
+      mode: default
+      create: true
+      display: Testimonials
+      instructions: 'Choose the testimonials for this block, in the order they should appear. With none chosen, testimonials show in collection order.'
+      if:
+        source: 'equals chosen'
+  -
+    handle: limit
+    field:
+      options:
+        -
+          key: '3'
+          value: '3'
+        -
+          key: '6'
+          value: '6'
+        -
+          key: '9'
+          value: '9'
+        -
+          key: all
+          value: All
+      default: '3'
+      type: button_group
+      display: 'Number to show'
+      width: 50
+      if:
+        source: 'equals all'
+        layout: 'equals grid'
+  -
+    handle: display_settings
+    field:
+      mode: toggle
+      input_label: 'Show settings'
+      type: revealer
+      display: 'Display settings'
+      instructions: 'Change how this block looks: its layout, colour scheme and spacing.'
+  -
+    handle: layout
+    field:
+      options:
+        -
+          key: grid
+          value: Grid
+        -
+          key: featured
+          value: 'Featured quote'
+      default: grid
+      type: button_group
+      display: Layout
+      instructions: 'Featured quote shows only the first testimonial, larger and centred.'
+      instructions_position: below
+      width: 50
+      replicator_preview: false
+      if:
+        display_settings: 'equals true'
+  -
+    import: colour_scheme

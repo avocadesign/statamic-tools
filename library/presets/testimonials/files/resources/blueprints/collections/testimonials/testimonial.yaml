@@ -1,0 +1,84 @@
+title: Testimonial
+tabs:
+  main:
+    display: Main
+    sections:
+      -
+        display: Testimonial
+        fields:
+          -
+            handle: title
+            field:
+              type: hidden
+              display: Title
+          -
+            handle: quote
+            field:
+              type: textarea
+              character_limit: 400
+              display: Quote
+              instructions: 'The person''s own words, used with their permission. Leave out quotation marks: the block adds them.'
+              validate:
+                - required
+          -
+            handle: name
+            field:
+              type: text
+              listable: true
+              display: Name
+              width: 33
+              validate:
+                - required
+          -
+            handle: role
+            field:
+              type: text
+              listable: true
+              display: Role
+              instructions: 'Such as Owner or Head of Marketing.'
+              width: 33
+          -
+            handle: organisation
+            field:
+              type: text
+              listable: true
+              display: Organisation
+              width: 33
+          -
+            handle: image
+            field: common.image
+            config:
+              display: 'Photo or logo'
+              instructions: 'Optional. A photo shows as a small circle, so crop it square around the face. A logo keeps its shape.'
+              width: 66
+          -
+            handle: image_type
+            field:
+              options:
+                -
+                  key: photo
+                  value: Photo
+                -
+                  key: logo
+                  value: Logo
+              default: photo
+              type: button_group
+              display: 'Image type'
+              width: 33
+  sidebar:
+    display: Sidebar
+    sections:
+      -
+        display: Meta
+        fields:
+          -
+            handle: date
+            field:
+              type: date
+              required: true
+              display: Date
+              instructions: 'When the testimonial was given. The Testimonials block can show the newest first.'
+              mode: single
+              time_enabled: false
+              validate:
+                - required

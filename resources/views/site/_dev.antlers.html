@@ -1,0 +1,16 @@
+{{# Developer details for a block or set, in a modal opened from the button beside its name. Expects the block/set data in scope and `kind`. #}}
+<dialog class="sk-dev" id="dev-{{ kind }}-{{ handle }}" aria-labelledby="dev-{{ kind }}-{{ handle }}-title">
+    <div class="sk-dev-head"><h3 id="dev-{{ kind }}-{{ handle }}-title">{{ display }}: developer details</h3><button type="button" class="sk-dev-close">Close</button></div>
+    <dl>
+        <dt>Handle</dt><dd><code>{{ handle }}</code>{{ if group }} in the {{ group }} group{{ /if }}{{ if icon }} · icon <code>{{ icon }}</code>{{ /if }}</dd>
+        <dt>Template</dt><dd>{{ if partial_path }}<code>{{ partial_path }}</code> <span class="sk-badge">{{ origin }}</span>{{ else }}<span class="sk-badge sk-missing">missing</span> no partial found for this {{ kind }}{{ /if }}</dd>
+        <dt>Fieldset</dt><dd>{{ if imports }}{{ imports }}<code>{{ value }}</code> {{ /imports }}{{ else }}fields written inline in the {{ if kind == 'block' }}page builder{{ else }}article{{ /if }} fieldset{{ /if }}</dd>
+        <dt>Guidance</dt><dd>{{ if docs:exists }}<code>{{ docs:path }}</code>{{ else }}<span class="sk-badge sk-missing">missing</span> add <code>{{ docs:path }}</code>, or run <code>php please avoca:site:check --stubs</code> to start it{{ /if }}</dd>
+        <dt>Preview image</dt><dd>{{ if preview_image:url }}<code>{{ preview_image:file }}</code>{{ elseif preview_image:missing }}<span class="sk-badge sk-missing">missing</span> the set names <code>{{ preview_image:file }}</code> but no such asset exists{{ elseif preview_image:candidate }}<span class="sk-badge sk-missing">not added</span> <code>{{ preview_image:candidate }}</code> is in the container but the set has no <code>image:</code> key{{ elseif preview_image:configured }}<span class="sk-badge sk-missing">not added</span> add <code>image: &lt;file&gt;</code> to the set and put the file in the set preview container{{ else }}<span class="sk-badge sk-missing">not added</span> <code>statamic.assets.set_preview_images</code> is not configured{{ /if }}</dd>
+    </dl>
+    <table class="sk-fields">
+        <thead><tr><th>Field</th><th>Label</th><th>Type</th><th>Shown when</th></tr></thead>
+        <tbody>{{ field_rows }}<tr><td><code>{{ handle }}</code></td><td>{{ display }}</td><td>{{ type }}</td><td>{{ condition }}</td></tr>{{ /field_rows }}</tbody>
+    </table>
+    {{ if setting_rows }}<p class="sk-dev-p">Settings that produce variations: {{ setting_rows }}<strong>{{ display }}</strong> ({{ options }}){{ unless last }}; {{ /unless }}{{ /setting_rows }}.</p>{{ else }}<p class="sk-dev-p">No settings produce variations, so only the defaults are shown.</p>{{ /if }}
+</dialog>

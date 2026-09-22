@@ -1,0 +1,8 @@
+{{# One setting row: its options as the editor names them, the default marked. Expects a setting in scope. #}}
+<div class="sk-change{{ if indent }} sk-indent{{ /if }}" data-sk-setting="{{ handle }}" data-label="{{ display }}" data-default="{{ default_key }}" data-requires="{{ requires_pairs }}" data-how="{{ how }}" data-editor="{{ editor }}"{{ if under }} data-under{{ /if }}>
+    <span class="sk-change-name">{{ display }}</span>
+    <span class="sk-change-opts" role="group" aria-label="{{ display }}">
+        {{ options }}<button type="button" class="sk-pill" data-sk-option="{{ option_key }}" data-sk-label="{{ label }}" aria-pressed="{{ if is_default }}true{{ else }}false{{ /if }}">{{ label }}{{ if is_default }} <small>default</small>{{ /if }}</button>{{ /options }}
+        {{ if requires_note }}<span class="sk-change-note">{{ requires_note }}</span>{{ /if }}
+    </span>
+</div>

@@ -1,0 +1,22 @@
+{{#
+    @name Project
+    @desc The project page: the page header, then the page builder, laid out like the default page template.
+#}}
+
+<!-- /projects/show.antlers.html -->
+<main
+        x-data
+        x-init="
+            const lastSection = document.querySelector('main section:last-of-type');
+            if (lastSection?.classList.contains('no-space-b')) {
+                $el.classList.remove('pb-12', 'md:pb-16', 'lg:pb-24');
+            }
+        "
+        class="pb-12 md:pb-16 lg:pb-24 stack-12 md:stack-16 lg:stack-18"
+        id="content">
+    {{ partial src="layout/page_header" }}
+    {{ page_builder scope="block" }}
+        {{ partial src="page_builder/{type}" }}
+    {{ /page_builder }}
+</main>
+<!-- End: /projects/show.antlers.html -->

@@ -1,0 +1,7 @@
+{{# "Display settings": one row per setting in editor order, every option named as the editor names it. The rows drive the preview below. A block or set with no settings shows nothing here. Expects settings and kind in scope. #}}
+{{ if settings }}
+<h3 class="sk-h sk-changes-h">Display settings</h3>
+<div class="sk-changes">
+    {{ settings }}{{ partial:statamic-tools::site._change_row }}{{ /settings }}
+</div>
+{{ /if }}

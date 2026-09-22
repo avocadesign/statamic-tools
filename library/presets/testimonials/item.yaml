@@ -1,0 +1,24 @@
+name: Testimonials
+version: 1.0.0
+description: A Testimonials collection with no pages of its own, and a block that shows every testimonial or chosen ones, in a grid or as one featured quote.
+page_builder:
+  - handle: testimonials
+    display: Testimonials
+    group: dynamic
+    instructions: 'Quotes from the Testimonials collection, in a grid or as one featured quote.'
+    icon: quote
+article_sets: []
+permissions:
+  editor:
+    - 'view testimonials entries'
+    - 'edit testimonials entries'
+    - 'create testimonials entries'
+    - 'delete testimonials entries'
+    - 'publish testimonials entries'
+    - 'reorder testimonials entries'
+    - 'edit other authors testimonials entries'
+    - 'publish other authors testimonials entries'
+    - 'delete other authors testimonials entries'
+notes: |
+  The Testimonials collection starts with three sample testimonials. The installer adds no images: the samples use an image the site already has as their photo, and the install output above names it, or says it was left out. Delete the samples before launch, and only publish real quotes from people who have agreed to be quoted.
+  Rebuild the site's CSS with npm run build, so the classes in the new block are included.

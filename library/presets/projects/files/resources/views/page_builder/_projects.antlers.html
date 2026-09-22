@@ -1,0 +1,70 @@
+{{#
+    @name Projects
+    @desc The Projects page builder block: cards linking to projects from the Projects collection, laid out like the Cards block.
+    @set page.page_builder.projects
+#}}
+
+<!-- /page_builder/_projects.antlers.html -->
+{{ partial:page_builder/block class="gap-y-8" :colour_scheme="block:colour_scheme" :block_margins="block:block_margins" }}
+    {{# Chosen projects keep the order they were chosen in. All projects, or Chosen with none chosen, lists the collection. #}}
+    {{ project_sort = switch(
+        (block:sort == 'oldest') => 'date:asc',
+        (block:sort == 'title') => 'title:asc',
+        () => 'date:desc'
+    ) }}
+    {{ project_limit = block:limit == 'all' ? 0 : (block:limit ?? 3) }}
+    {{ project_entries = block:source == 'chosen' && (block:projects | count) > 0
+        ? block:projects
+        : { collection:projects :sort="project_sort" :limit="project_limit" }
+    }}
+
+    {{# heading #}}
+    {{ if block:heading }}
+        <header class="span-content flex flex-col gap-2">
+            <h2>{{ block:heading | nl2br }}</h2>
+            {{ if block:sub_heading }}
+                <h3 class="subheading">{{ block:sub_heading | nl2br }}</h3>
+            {{ /if }}
+        </header>
+    {{ /if }}
+
+    {{# cards: columns as in the Cards block. Rows sit further apart than columns, so stacked cards on a phone stay distinct. #}}
+    <ul class="span-content grid md:grid-cols-12 gap-fluid-grid-gap gap-y-12">
+        {{ project_entries }}
+            <li
+                class="
+                    relative group flex flex-col items-start
+                    {{# One item is centred and wide, two or four sit half width, anything else takes a third. #}}
+                    {{ if total_results == 1 }}md:col-span-8 md:col-start-3{{ elseif total_results == 2 || total_results == 4 }}md:col-span-6{{ else }}md:col-span-4{{ /if }}
+                "
+            >
+                <div class="w-full stack-6">
+                    {{ if featured_image }}
+                        {{
+                            partial:components/utilities/figure
+                            :image="featured_image"
+                            crop="landscape"
+                            sizes="(min-width: 1280px) 400px, (min-width: 768px) 33vw, 100vw"
+                        }}
+                    {{ /if }}
+
+                    <div class="stack-4">
+                        <div class="stack-1">
+                            {{# The title link covers the whole card (clickable-parent.css). #}}
+                            <h3 class="card-heading mb-0">
+                                <a href="{{ url }}" class="clickable-parent">{{ title }}</a>
+                            </h3>
+                            {{ if date }}
+                                <p class="text-sm"><time datetime="{{ date | format('Y-m-d') }}">{{ date | format('Y') }}</time></p>
+                            {{ /if }}
+                        </div>
+                        {{ if summary }}
+                            <p>{{ summary }}</p>
+                        {{ /if }}
+                    </div>
+                </div>
+            </li>
+        {{ /project_entries }}
+    </ul>
+{{ /partial:page_builder/block }}
+<!-- End: /page_builder/_projects.antlers.html -->

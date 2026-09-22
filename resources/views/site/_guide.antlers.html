@@ -1,0 +1,26 @@
+{{# Shared by page builder blocks and text editor sets. Expects the block/set data in scope and `kind` ("block" or "set"). #}}
+<div class="sk-block-title">
+    <div class="sk-title-row">
+        <div class="sk-title-main">
+            <h2 class="sk-title">{{ display }}</h2>
+            {{ if uses_sets }}<a class="sk-sets-badge" href="#sets" @click.prevent="tab = 'sets'; history.replaceState(null, '', '#sets'); window.scrollTo(0, 0)">Can include text editor sets</a>{{ /if }}
+        </div>
+        <button type="button" class="sk-dev-btn" data-sk-dev-open="dev-{{ kind }}-{{ handle }}">Developer details</button>
+    </div>
+    {{ if docs:description }}<p class="sk-lead">{{ docs:description }}</p>{{ elseif instructions }}<p class="sk-lead">{{ instructions }}</p>{{ /if }}
+    <details class="sk-usage">
+        <summary>Usage guidelines</summary>
+        {{ if required_note }}<p class="sk-required"><span class="sk-star" aria-hidden="true">*</span> Required fields: {{ required_note }}</p>{{ /if }}
+        <div class="sk-guide">
+            <div class="sk-guide-col">
+                <h3 class="sk-h">When to use</h3>
+                {{ if docs:sections:when_to_use }}{{ docs:sections:when_to_use }}{{ else }}<p class="sk-muted">Not written yet.</p>{{ /if }}
+            </div>
+            <div class="sk-guide-col">
+                <h3 class="sk-h">When not to use</h3>
+                {{ if docs:sections:when_not_to_use }}{{ docs:sections:when_not_to_use }}{{ else }}<p class="sk-muted">Not written yet.</p>{{ /if }}
+            </div>
+        </div>
+        {{ if docs:sections:other }}<div class="sk-guide-notes sk-docs">{{ docs:sections:other }}</div>{{ /if }}
+    </details>
+</div>
