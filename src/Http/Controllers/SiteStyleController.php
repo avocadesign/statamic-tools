@@ -38,7 +38,7 @@ class SiteStyleController extends SiteController
                 },
             ], $cfg['typography_classes']),
             'schemes' => $this->choices($cfg['scheme_fieldset'], 'colour_scheme'),
-            'margins' => $this->choices($cfg['scheme_fieldset'], 'block_margins'),
+            'margins' => $this->choices($cfg['margins_fieldset'] ?? $cfg['scheme_fieldset'], 'block_margins'),
             'spacing' => $this->spacing($tokens, $cfg),
             'buttons' => $buttons = $this->buttons($cfg['button_fieldset']),
             // The matrix also shows the open-in-new-tab treatment, once for a button and once inline.

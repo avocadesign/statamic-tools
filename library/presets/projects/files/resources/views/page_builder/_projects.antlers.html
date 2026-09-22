@@ -5,7 +5,7 @@
 #}}
 
 <!-- /page_builder/_projects.antlers.html -->
-{{ partial:page_builder/block class="gap-y-8" :colour_scheme="block:colour_scheme" :block_margins="block:block_margins" }}
+{{ partial:page_builder/block class="gap-y-8" :colour_scheme="block:colour_scheme" :block_margins="block:block_margins" :custom_class="block:custom_class" }}
     {{# Chosen projects keep the order they were chosen in. All projects, or Chosen with none chosen, lists the collection. #}}
     {{ project_sort = switch(
         (block:sort == 'oldest') => 'date:asc',

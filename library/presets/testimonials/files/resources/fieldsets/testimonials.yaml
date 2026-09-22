@@ -106,3 +106,7 @@ fields:
         display_settings: 'equals true'
   -
     import: colour_scheme
+  -
+    import: block_margins
+  -
+    import: custom_class

@@ -179,9 +179,13 @@ final class CollectionFiles
             'instructions' => "Choose the {$plural} for this block, in the order they should appear. With none chosen, ".($spec->dated ? 'the three newest show.' : "all {$plural} show."),
             'if' => ['source' => 'equals chosen'],
         ]];
-        if ($site['scheme_fieldset'] !== null) {
+        if ($site['scheme_fieldset'] !== null || ($site['margins_fieldset'] ?? null) !== null) {
             $fields[] = ['handle' => 'display_settings', 'field' => ['mode' => 'toggle', 'input_label' => 'Show settings', 'type' => 'revealer', 'display' => 'Display settings', 'instructions' => 'Change how this block looks: its layout, colour scheme and spacing.']];
-            $fields[] = ['import' => $site['scheme_fieldset']];
+            foreach ([$site['scheme_fieldset'] ?? null, $site['margins_fieldset'] ?? null, $site['class_fieldset'] ?? null] as $fieldset) {
+                if ($fieldset !== null) {
+                    $fields[] = ['import' => $fieldset];
+                }
+            }
         }
 
         return ['title' => "Block: {$spec->title}", 'fields' => $fields];

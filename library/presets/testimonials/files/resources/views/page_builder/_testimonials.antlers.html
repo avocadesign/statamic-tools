@@ -5,7 +5,7 @@
 #}}
 
 <!-- /page_builder/_testimonials.antlers.html -->
-{{ partial:page_builder/block class="gap-y-8" :colour_scheme="block:colour_scheme" :block_margins="block:block_margins" }}
+{{ partial:page_builder/block class="gap-y-8" :colour_scheme="block:colour_scheme" :block_margins="block:block_margins" :custom_class="block:custom_class" }}
     {{# There is no random order: on a static site it would be fixed when the site is built.
         Chosen testimonials keep the order they were chosen in. All, or Chosen with none chosen, lists the collection. #}}
     {{ testimonial_featured = block:layout == 'featured' }}

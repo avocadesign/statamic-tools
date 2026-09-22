@@ -5,7 +5,7 @@
 #}}
 
 <!-- /page_builder/_faq.antlers.html -->
-{{ partial:page_builder/block :colour_scheme="block:colour_scheme" :block_margins="block:block_margins" }}
+{{ partial:page_builder/block :colour_scheme="block:colour_scheme" :block_margins="block:block_margins" :custom_class="block:custom_class" }}
     {{# Chosen questions keep the order they were chosen in. All questions, or Chosen with none chosen, lists the whole collection. #}}
     {{ faq_sort = block:sort == 'title' ? 'title:asc' : 'order:asc' }}
     {{ faq_questions = block:source == 'chosen' && (block:questions | count) > 0

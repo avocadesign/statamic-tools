@@ -43,6 +43,8 @@ final class CollectionMaker
     {
         $root = $this->root();
         $scheme = (string) ($this->config['scheme_fieldset'] ?? 'colour_scheme');
+        $margins = (string) ($this->config['margins_fieldset'] ?? 'block_margins');
+        $class = (string) ($this->config['class_fieldset'] ?? 'custom_class');
         $containers = [];
         foreach (glob("{$root}/content/assets/*.yaml") ?: [] as $file) {
             $containers[basename($file, '.yaml')] = (string) (((array) YAML::parse((string) file_get_contents($file)))['title'] ?? basename($file, '.yaml'));
@@ -54,6 +56,8 @@ final class CollectionMaker
             'docs_path' => trim((string) ($this->config['docs_path'] ?? 'resources/site'), '/'),
             'catalogue_path' => trim((string) ($this->config['catalogue_path'] ?? 'resources/site/catalogue.md'), '/'),
             'scheme_fieldset' => is_file("{$root}/resources/fieldsets/{$scheme}.yaml") ? $scheme : null,
+            'margins_fieldset' => is_file("{$root}/resources/fieldsets/{$margins}.yaml") ? $margins : null,
+            'class_fieldset' => is_file("{$root}/resources/fieldsets/{$class}.yaml") ? $class : null,
             'hero_fieldset' => is_file("{$root}/resources/fieldsets/block_hero.yaml") ? 'block_hero' : null,
             'common_fieldset' => is_file("{$root}/resources/fieldsets/common.yaml"),
             'containers' => $containers,

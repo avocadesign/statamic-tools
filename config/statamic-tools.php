@@ -29,6 +29,9 @@ return [
 
         // Fieldsets that hold the scheme and button options.
         'scheme_fieldset' => 'colour_scheme',
+        'margins_fieldset' => 'block_margins',
+        // Imported last by every block, so a site's own class wins over the block's layout classes.
+        'class_fieldset' => 'custom_class',
         'button_fieldset' => 'button',
 
         // Knowledge-base articles linked from the top of each tab on /site/content.

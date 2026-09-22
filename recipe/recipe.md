@@ -135,7 +135,10 @@ A new block is six things, and all six go in one pull request: the fieldset, the
 2. The rest of the content. Reuse what the site has before defining a field: `import: article` for the text editor with its sets, the fields in `resources/fieldsets/common.yaml` (such as `common.text_basic` and `common.text_plain`), `import: common_image` inside a group for an image with its caption, crop and link, and the same buttons import the existing blocks use. Text editor fields use `remove_empty_nodes: trim`. Give required content fields `validate` with `required`.
 3. The Display settings revealer, exactly as the site's other blocks have it.
 4. Layout options, each shown only when Display settings is on (`if: display_settings: 'equals true'`), each with a `default`, a `width` and `replicator_preview: false`. Explain a choice in `instructions`, with `instructions_position: below`.
-5. Last, `import: colour_scheme`. It adds Colour Scheme and Block Margins behind Display settings, so don't add your own scheme or margin fields. A block that needs a scheme for an inner panel gives that field a different handle, because the block wrapper applies `colour_scheme` to the whole section.
+5. Then the three shared imports, in this order and nothing after them: `import: colour_scheme`, `import: block_margins`, `import: custom_class`. Between them they add Colour Scheme, Block Margins and CSS class behind Display settings, so don't write your own scheme, margin or class fields. A block that needs a scheme for an inner panel gives that field a different handle, because the block wrapper applies `colour_scheme` to the whole section.
+6. `import: custom_class` goes last in every block, because it is the field a site reaches for when a block needs one-off design work, and the class it adds is rendered after the block's own classes so it can win. Adding a display setting later means adding it above those three imports, never below.
+
+The CSS class field is an escape hatch, and escape hatches accumulate. Use it for a genuine one-off. Anything you would want twice is a display option on the block or a design token, and the class has to be defined in the site's own CSS, in `resources/css/components/`, and committed. A Tailwind utility typed into that field only exists after the site is rebuilt, so one typed on a live site does nothing at all.
 
 ```yaml
 title: 'Block: <Name>'
@@ -196,7 +199,7 @@ Write every `display` and `instructions` in the client's words, in British Engli
 <!-- End: /page_builder/_<handle>.antlers.html -->
 ```
 
-- Wrap everything in `partial:page_builder/block`. It renders the `<section>` on the fluid grid and turns Colour Scheme and Block Margins into classes, so don't handle those fields in the block. Pass extra section classes with `class="..."`.
+- Wrap everything in `partial:page_builder/block`, passing `:colour_scheme="block:colour_scheme"`, `:block_margins="block:block_margins"` and `:custom_class="block:custom_class"`. It renders the `<section>` on the fluid grid and turns those into classes, so don't handle the fields in the block. Pass the block's own layout classes with `class="..."`: the site's custom class is rendered after them, so it can override them.
 - Place children on the grid with `span-content`, with `span-full` for edge to edge, or with `grid-cols-subgrid` to hand the grid down. Mark each element placed on the grid with an Antlers comment, such as `{{# content wrapper #}}`.
 - Read the block's fields through the `block:` scope, such as `{{ block:heading }}`, so they never clash with page or global fields of the same name.
 - The block heading is an `<h2>` and its subheading an `<h3 class="subheading">`. Size any other heading or heading-like text with `heading-size-1` to `heading-size-6`, never with `text-*` or `leading-*` utilities, which bring their own line height. `/site/style` lists the typography classes.

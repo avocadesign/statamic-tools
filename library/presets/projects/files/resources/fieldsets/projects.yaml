@@ -91,3 +91,7 @@ fields:
       instructions: 'Change how this block looks: its layout, colour scheme and spacing.'
   -
     import: colour_scheme
+  -
+    import: block_margins
+  -
+    import: custom_class

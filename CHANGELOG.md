@@ -2,6 +2,15 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.10 (22 September 2026)
+
+Every page builder block can take a CSS class for one-off design work, and block margins are their own fieldset so every block can have them.
+
+- The library's FAQ, Projects and Testimonials blocks import `block_margins` and `custom_class`, and pass the class to the wrapper. A site needs the matching starter kit change for those fieldsets to exist.
+- Scaffolding a collection writes all three imports into its listing block, in the same order: scheme, margins, class.
+- `/site/style` reads the margin options from their own fieldset, through the new `margins_fieldset` config key, with `class_fieldset` beside it.
+- `/site/content` leaves the class field empty in its previews. A sample sentence in a class attribute is worse than no class.
+
 ## v0.1.9 (22 September 2026)
 
 - `php please avoca:site:urls` says which pages a check should render, because listing them by hand does not survive a site with two thousand of them. It takes the pages the site names in `resources/site/updates.yaml`, every page a collection is mounted on, one entry from each collection so each collection's own template runs, and then whichever pages add blocks and blueprints nothing chosen already has. `--sample` sets how many of those last it adds.

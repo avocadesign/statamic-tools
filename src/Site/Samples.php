@@ -44,6 +44,8 @@ final class Samples
             'link_url' => '#',
             'target_blank' => false,
             'colour_scheme', 'block_margins' => 'default',
+            // A sample sentence in a class attribute is worse than no class at all.
+            'custom_class' => '',
             'display_settings' => true,
             default => self::byType($field, $handle, $field->type(), $context, $textVariant, $item),
         };
