@@ -84,7 +84,7 @@ fields:
       input_label: 'Show settings'
       type: revealer
       display: 'Display settings'
-      instructions: 'Change how this block looks: its layout, colour scheme and spacing.'
+      instructions: 'Change how this block looks'
   -
     handle: layout
     field:

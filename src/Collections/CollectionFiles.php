@@ -180,7 +180,7 @@ final class CollectionFiles
             'if' => ['source' => 'equals chosen'],
         ]];
         if ($site['scheme_fieldset'] !== null || ($site['margins_fieldset'] ?? null) !== null) {
-            $fields[] = ['handle' => 'display_settings', 'field' => ['mode' => 'toggle', 'input_label' => 'Show settings', 'type' => 'revealer', 'display' => 'Display settings', 'instructions' => 'Change how this block looks: its layout, colour scheme and spacing.']];
+            $fields[] = ['handle' => 'display_settings', 'field' => ['mode' => 'toggle', 'input_label' => 'Show settings', 'type' => 'revealer', 'display' => 'Display settings', 'instructions' => 'Change how this block looks']];
             foreach ([$site['scheme_fieldset'] ?? null, $site['margins_fieldset'] ?? null, $site['class_fieldset'] ?? null] as $fieldset) {
                 if ($fieldset !== null) {
                     $fields[] = ['import' => $fieldset];

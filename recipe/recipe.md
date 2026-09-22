@@ -138,6 +138,8 @@ A new block is six things, and all six go in one pull request: the fieldset, the
 5. Then the three shared imports, in this order and nothing after them: `import: colour_scheme`, `import: block_margins`, `import: custom_class`. Between them they add Colour Scheme, Block Margins and CSS class behind Display settings, so don't write your own scheme, margin or class fields. A block that needs a scheme for an inner panel gives that field a different handle, because the block wrapper applies `colour_scheme` to the whole section.
 6. `import: custom_class` goes last in every block, because it is the field a site reaches for when a block needs one-off design work, and the class it adds is rendered after the block's own classes so it can win. Adding a display setting later means adding it above those three imports, never below.
 
+Help text is one short line. Five or six words, no full stop, saying what the field does and nothing else: "Set the block's colour scheme", "A class the site's CSS defines". An editor reads it while deciding, not to learn the system, and a paragraph under every field makes a form look harder than it is. What a field is for, when to use it and what it does to the page belong in the block's guidance, which is where `/site/content` and the catalogue show them.
+
 The CSS class field is an escape hatch, and escape hatches accumulate. Use it for a genuine one-off. Anything you would want twice is a display option on the block or a design token, and the class has to be defined in the site's own CSS, in `resources/css/components/`, and committed. A Tailwind utility typed into that field only exists after the site is rebuilt, so one typed on a live site does nothing at all.
 
 ```yaml
