@@ -2,6 +2,13 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.8 (22 September 2026)
+
+Groundwork for updating dependencies automatically. Nothing runs on its own yet: this is what a site has to offer the runner that will.
+
+- `scripts/check-site.sh`: installs from the lock files, builds, refreshes, runs `avoca:site:check --strict`, serves the site and renders the pages a site lists. It writes `.env.check` and runs with `APP_ENV=check` and Statamic Pro off, so it never touches the site's `.env` and needs no licence key. Exit 0 renders, 1 doesn't, 2 couldn't run. A database is only made and migrated when the site has actually moved a driver to it: flat file sites don't get one.
+- The recipe has an Updates section: what a site owes the process, and the rules the runner works to, which are patch and minor only, nothing younger than three days, canary sites before the fleet, fast forward before pushing and stop if it can't, and no pull request without a green check.
+
 ## v0.1.7 (22 September 2026)
 
 - The reference pages render with the images a site already has, rather than generating nine grey placeholders into `images/site/` and leaving them in the client's asset library. They take what the images container holds, preferring files with "placeholder" in the name, then the biggest over 1200 pixels on the long side, which is how installing a library item already chose an image. A gallery walks that list instead of showing one image six times, and nothing is ever written to the container.

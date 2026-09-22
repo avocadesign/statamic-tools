@@ -334,6 +334,43 @@ On a site whose content is edited on the server:
 - Change code in the repository, never on the server.
 - Commits ending in `[BOT]` come from the server pushing content it saved. Never put `[BOT]` in your own commit messages.
 
+## Updates
+
+Dependencies are updated by a runner of Avoca's own, on its own machine, weekly. Nothing about it runs
+inside a site. What a site owes the process is small, and it is all in the repository:
+
+- **Lock files committed**, and a `composer.json` and `package.json` that say what the site can take.
+- **`.nvmrc` and `engines.node`**, so the server and the runner build on the same Node. `.npmrc` sets
+  `engine-strict=true`, which turns a silent build on the wrong major into a failed one.
+- **`resources/site/updates.yaml`**, which says whether the site is enrolled, whether it is a canary or
+  part of the fleet, the branch to work on, and the pages the check has to render.
+- **The check itself**, which comes with this addon, so it improves in one place rather than in a
+  hundred repositories:
+
+```bash
+bash vendor/avocadesign/statamic-tools/scripts/check-site.sh
+```
+
+It installs from the lock files, builds the assets, refreshes the Stache, runs `avoca:site:check
+--strict`, serves the site and renders every page in `updates.yaml`. It writes `.env.check` and runs
+with `APP_ENV=check` and Statamic Pro off, so it never touches the site's own `.env` and needs no
+licence key. It exits 0 when the site renders, 1 when it doesn't, 2 when it couldn't run at all. Run it
+by hand before pushing a dependency change; that is the same thing the runner will do.
+
+The rules the runner works to, written down here because they are the point of the exercise:
+
+- **Patch and minor only, unattended.** A major gets a pull request of its own that a person merges,
+  because a major is a decision.
+- **Nothing younger than three days.** A release that was published this morning has not been looked at
+  by anybody yet, and that is when a compromised package is at its most dangerous.
+- **Canary sites first, the fleet a few days later.** A bad release should be found on a site we are
+  watching, not on a hundred we are not.
+- **Fast forward before anything else, and stop if it can't.** On a site whose content is edited on the
+  server, the branch moves without us: the server commits and pushes what the client saved. An update
+  that cannot take those commits first has no business pushing its own.
+- **A green check before a pull request exists.** An update nobody verified is worse than no update,
+  because it looks like it was checked.
+
 ## Review steps
 
 Every change goes through these five steps, in order.
