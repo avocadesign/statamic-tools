@@ -2,6 +2,7 @@
 
 namespace Avocadesign\StatamicTools;
 
+use Avocadesign\StatamicTools\Library\SampleImages;
 use Avocadesign\StatamicTools\Console\CheckName;
 use Avocadesign\StatamicTools\Console\SiteCatalogue;
 use Avocadesign\StatamicTools\Console\SiteCheck;
@@ -46,6 +47,10 @@ class ServiceProvider extends AddonServiceProvider
 
     public function bootAddon()
     {
+        // Resolved rather than constructed, so the reference pages, the library installer and the tests
+        // all read the same container, and a test can point it at a folder of its own.
+        $this->app->bindIf(SampleImages::class, fn () => SampleImages::make());
+
         $this->mergeConfigFrom(__DIR__.'/../config/statamic-tools.php', 'statamic-tools');
 
         // The /site pages must never be served from the static cache.

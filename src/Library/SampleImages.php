@@ -117,6 +117,41 @@ final class SampleImages
         return $this->chosen ?: null;
     }
 
+    /**
+     * Every image worth showing, best first: those named placeholder, biggest first, then the rest that are
+     * big enough. choose() takes the first of these; the reference pages walk the list when they need several.
+     *
+     * @return array<int, string>
+     */
+    public function choices(): array
+    {
+        $named = $others = [];
+        foreach ($this->images() as $path) {
+            if (stripos(basename($path), 'placeholder') !== false) {
+                $named[] = $path;
+            } else {
+                $others[] = $path;
+            }
+        }
+
+        return [...$this->biggestFirst($named, 0), ...$this->biggestFirst($others, self::MIN_LONG_SIDE)];
+    }
+
+    /** @return array<int, string> the given paths that are big enough, most pixels first */
+    private function biggestFirst(array $paths, int $minimum): array
+    {
+        $sized = [];
+        foreach ($paths as $path) {
+            [$width, $height] = $this->dimensions($path) ?? [0, 0];
+            if (max($width, $height) >= max($minimum, 1)) {
+                $sized[] = ['path' => $path, 'pixels' => $width * $height];
+            }
+        }
+        usort($sized, fn (array $a, array $b) => $b['pixels'] <=> $a['pixels']);
+
+        return array_column($sized, 'path');
+    }
+
     /** What the plan says: the fields and the image they use, or why they are left out. */
     private function detail(array $fields, ?array $image): string
     {

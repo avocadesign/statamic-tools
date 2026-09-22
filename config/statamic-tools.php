@@ -54,9 +54,6 @@ return [
         // Repeating fields that sample a single item: a block's buttons read as one call to action.
         'sample_single' => ['buttons'],
         'margins_field' => 'block_margins', // its options render between two neighbouring blocks so the gap is visible
-
-        // Folder inside the images container for generated placeholders.
-        'placeholder_dir' => 'site',
     ],
 
     // Avoca's library of ready-made blocks, sets and presets. The addon's own library/ folder is always searched

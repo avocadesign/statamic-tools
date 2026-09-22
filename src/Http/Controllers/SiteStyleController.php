@@ -268,9 +268,9 @@ class SiteStyleController extends SiteController
         $out = [];
         foreach ($variants as $variant) {
             $values = $variant['values'];
-            $orientation = match ($values['crop'] ?? null) { 'portrait' => 'portrait', 'square' => 'square', default => 'landscape' };
-            $path = Samples::placeholder($orientation);
-            $out[] = [...$values, 'image' => Asset::find("images::{$path}") ?? $path, 'recipe' => $variant['recipe']];
+            // One real image through every variant, so what changes between them is the crop, not the source.
+            $path = Samples::placeholder();
+            $out[] = [...$values, 'image' => $path ? (Asset::find("images::{$path}") ?? $path) : null, 'recipe' => $variant['recipe']];
         }
 
         return $out;

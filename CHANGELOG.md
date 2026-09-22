@@ -2,6 +2,14 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.7 (22 September 2026)
+
+- The reference pages render with the images a site already has, rather than generating nine grey placeholders into `images/site/` and leaving them in the client's asset library. They take what the images container holds, preferring files with "placeholder" in the name, then the biggest over 1200 pixels on the long side, which is how installing a library item already chose an image. A gallery walks that list instead of showing one image six times, and nothing is ever written to the container.
+- `avoca:site:install` writes nothing now. It says which images the pages will use, and warns when the container holds none.
+- The crop settings on `/site/style` show one real image through every crop, instead of a generated image already cut to that shape, so the crop is what changes between them.
+- `statamic-tools.site.placeholder_dir` is gone, as nothing is generated.
+- A site that ran an earlier version can delete `public/images/site/` and its `.meta` folder once nothing in its content points at them.
+
 ## v0.1.6 (22 September 2026)
 
 - The readme's installing section drops the repository entry sites needed while the package was private. It comes from Packagist now, so Composer needs no repository and no credentials anywhere.

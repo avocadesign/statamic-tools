@@ -2,6 +2,7 @@
 
 namespace Avocadesign\StatamicTools\Site;
 
+use Avocadesign\StatamicTools\Library\SampleImages;
 use Illuminate\Support\Str;
 use Statamic\Facades\Form;
 use Statamic\Fields\Field;
@@ -10,6 +11,9 @@ use Statamic\Fields\Fields;
 /** Sample values for any field, so every block and set can be rendered without authored content. */
 final class Samples
 {
+    /** @var array<int, string>|null the images the reference pages render with, looked up once */
+    private static ?array $sampleImages = null;
+
     /** @param ?string $context names the block or set ("Text block"); its top-level heading samples as "<context> preview". */
     public static function forFields(Fields $fields, array $overrides = [], ?string $context = null, ?int $textVariant = null, ?int $item = null): array
     {
@@ -241,59 +245,42 @@ final class Samples
         return collect((new Fields($field->get('fields', [])))->all())->contains(fn (Field $inner) => $inner->type() === 'bard');
     }
 
-    /**
-     * A generated placeholder image in the images container, published on first use.
-     * Returns the container-relative path (e.g. site/landscape.jpg).
-     */
-    /** One image for a single-image field; several numbered images in mixed shapes for a gallery, within the field's limits. */
+    /** One image for a single-image field, several for a gallery, taken from what the images container holds. */
     private static function assets(Field $field): string|array
     {
         $max = (int) $field->get('max_files');
         if ($max === 1) {
-            return self::placeholder();
+            return self::placeholder() ?? '';
         }
         $count = max((int) $field->get('min_files'), $max > 1 ? min($max, 6) : 6);
-        $shapes = ['landscape', 'portrait', 'square', 'portrait', 'landscape', 'square'];
+        $images = array_filter(array_map(fn (int $i) => self::placeholder($i + 1), range(0, $count - 1)));
 
-        return array_map(fn (int $i) => self::placeholder($shapes[$i % count($shapes)], $i + 1), range(0, $count - 1));
+        return array_values($images);
     }
 
-    public static function placeholder(string $orientation = 'landscape', ?int $number = null): string
+    /**
+     * An image for the reference pages to render, from the images container: the ones named placeholder first,
+     * biggest first, then any other image big enough, as installing a library item chooses them. Nothing is
+     * generated and nothing is written to the container, so a site's asset library keeps only its own files.
+     * Ask for a number to walk the list, so a gallery shows different images rather than the same one six times.
+     *
+     * Returns the container-relative path, such as temp/a-peak.jpg, or null when the container holds nothing
+     * worth showing.
+     */
+    public static function placeholder(?int $number = null): ?string
     {
-        $dir = config('statamic-tools.site.placeholder_dir', 'site');
-        $sizes = ['landscape' => [1200, 800], 'portrait' => [800, 1200], 'square' => [1000, 1000]];
-        [$w, $h] = $sizes[$orientation] ?? $sizes['landscape'];
-        $relative = $number ? "{$dir}/{$orientation}-{$number}.jpg" : "{$dir}/{$orientation}.jpg";
-        $absolute = public_path("images/{$relative}");
+        self::$sampleImages ??= app(SampleImages::class)->choices();
 
-        if (! is_file($absolute) && function_exists('imagecreatetruecolor')) {
-            if (! is_dir(dirname($absolute))) {
-                mkdir(dirname($absolute), 0755, true);
-            }
-            $image = imagecreatetruecolor($w, $h);
-            $bg = imagecolorallocate($image, 226, 232, 240);
-            $fg = imagecolorallocate($image, 148, 163, 184);
-            imagefill($image, 0, 0, $bg);
-            imagesetthickness($image, 6);
-            imageline($image, 0, 0, $w, $h, $fg);
-            imageline($image, $w, 0, 0, $h, $fg);
-            imagestring($image, 5, 24, 24, ($number ? "IMAGE {$number} - " : '').strtoupper($orientation)." {$w} x {$h}", $fg);
-            if ($number) {
-                // A large number in the middle, drawn small and scaled up, so each tile reads at thumbnail size.
-                $label = (string) $number;
-                $tw = imagefontwidth(5) * strlen($label);
-                $th = imagefontheight(5);
-                $small = imagecreatetruecolor($tw, $th);
-                imagefill($small, 0, 0, imagecolorallocate($small, 226, 232, 240));
-                imagestring($small, 5, 0, 0, $label, imagecolorallocate($small, 100, 116, 139));
-                $scale = max(1, intdiv(min($w, $h), 4 * $th));
-                imagecopyresized($image, $small, intdiv($w - $tw * $scale, 2), intdiv($h - $th * $scale, 2), 0, 0, $tw * $scale, $th * $scale, $tw, $th);
-                imagedestroy($small);
-            }
-            imagejpeg($image, $absolute, 85);
-            imagedestroy($image);
+        if (self::$sampleImages === []) {
+            return null;
         }
 
-        return $relative;
+        return self::$sampleImages[(max(1, (int) $number) - 1) % count(self::$sampleImages)];
+    }
+
+    /** The container is read once a page, not once a block. Long running workers and tests start again from here. */
+    public static function forgetSampleImages(): void
+    {
+        self::$sampleImages = null;
     }
 }

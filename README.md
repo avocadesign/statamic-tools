@@ -6,7 +6,7 @@ The machinery Avoca Design sites share: reference pages for clients, plus the ch
 
 - `/site/content`: every page builder block and text editor set, with its guidance, required fields, display settings and a live preview.
 - `/site/style`: colours, typography, spacing, buttons, colour schemes and image output, read from the site's CSS and templates.
-- `php please avoca:site:install`: writes the placeholder images the reference pages use.
+- `php please avoca:site:install`: says which images from the images container the reference pages will use.
 - `php please avoca:site:catalogue`: writes the site's AI block catalogue.
 - `php please avoca:make:collection`: makes a collection with a page builder or custom blueprint, a listing block, editor access and a record an AI agent finishes it from.
 - `php please avoca:site:permissions`: gives the editor role the permissions for every collection, taxonomy, navigation, global set and asset container that isn't opted out. `--dry-run` lists what it would add.

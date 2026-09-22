@@ -6,6 +6,7 @@ use Avocadesign\StatamicTools\Library\Installer;
 use Avocadesign\StatamicTools\Library\Item;
 use Avocadesign\StatamicTools\Library\Library;
 use Avocadesign\StatamicTools\Library\SampleImages;
+use Avocadesign\StatamicTools\Site\Samples;
 use Avocadesign\StatamicTools\Tests\TestCase;
 use Statamic\Facades\YAML;
 
@@ -297,5 +298,75 @@ class LibraryTest extends TestCase
             ['action' => 'copy', 'target' => 'content/collections/projects/a-sample-project.md', 'status' => 'error', 'detail' => 'a sample image marker must be the whole value of a field or list item, on its own line'],
             $this->entryStep($this->installer()->plan($projects)),
         );
+    }
+
+    public function test_sample_images_are_offered_placeholders_first_then_the_biggest(): void
+    {
+        $this->image('temp/a-peak.jpg', 3696, 2448);
+        $this->image('temp/placeholder-wepb-image.webp', 2070, 1563);
+        $this->image('photos/small.jpg', 400, 300);
+        $this->image('photos/big.jpg', 2400, 1600);
+
+        $this->assertSame([
+            'temp/placeholder-wepb-image.webp',
+            'temp/a-peak.jpg',
+            'photos/big.jpg',
+        ], (new SampleImages($this->images))->choices(), 'named placeholder first, then the biggest that are large enough');
+    }
+
+    public function test_a_gallery_walks_the_images_instead_of_repeating_one(): void
+    {
+        $this->image('temp/a-peak.jpg', 3696, 2448);
+        $this->image('temp/placeholder-wepb-image.webp', 2070, 1563);
+        $this->useTestContainer();
+
+        $walked = array_map(fn (int $i) => Samples::placeholder($i), [1, 2, 3, 4]);
+
+        $this->assertSame([
+            'temp/placeholder-wepb-image.webp',
+            'temp/a-peak.jpg',
+            'temp/placeholder-wepb-image.webp',
+            'temp/a-peak.jpg',
+        ], $walked, 'the list repeats once it runs out, rather than showing the same image every time');
+        $this->assertSame('temp/placeholder-wepb-image.webp', Samples::placeholder(), 'no number means the first');
+    }
+
+    public function test_no_image_worth_showing_leaves_the_pages_without_one(): void
+    {
+        $this->image('photos/small.jpg', 400, 300);
+        $this->useTestContainer();
+
+        $this->assertSame([], (new SampleImages($this->images))->choices());
+        $this->assertNull(Samples::placeholder(), 'nothing is generated to fill the gap');
+    }
+
+    public function test_choosing_images_writes_nothing_to_the_container(): void
+    {
+        $this->image('temp/a-peak.jpg', 3696, 2448);
+        $before = $this->containerFiles();
+        $this->useTestContainer();
+        Samples::placeholder();
+
+        $this->assertSame($before, $this->containerFiles(), 'the reference pages read the container and never add to it');
+    }
+
+    /** @return array<int, string> */
+    private function containerFiles(): array
+    {
+        $found = [];
+        $dir = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($this->images, \FilesystemIterator::SKIP_DOTS));
+        foreach ($dir as $file) {
+            $found[] = $file->getPathname();
+        }
+        sort($found);
+
+        return $found;
+    }
+
+    /** Point the bound chooser at this test's images folder, and clear what Samples looked up before. */
+    private function useTestContainer(): void
+    {
+        Samples::forgetSampleImages();
+        $this->app->bind(SampleImages::class, fn () => new SampleImages($this->images));
     }
 }
