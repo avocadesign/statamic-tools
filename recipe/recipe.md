@@ -309,6 +309,18 @@ Collections hold related items, such as people, projects and testimonials. Each 
 
 `/site/content` gives an entries field no sample entries, so a collection block previews only the entries the site has. Add a few realistic entries before the visual review, or use the client's real ones, and say in the pull request which entries are samples.
 
+### What a site tells language models
+
+`llms.txt` comes from the Bots global, LLMs tab, and the starter kit ships a template that lists the site's pages
+by itself and leaves the rest to you. Nothing updates it when a site grows, so:
+
+- A collection with a route needs its own section, the way Pages has one. `avoca:site:check` warns for any routed
+  collection the file never mentions, and for the placeholders the kit ships, so an unfinished file is visible
+  rather than quietly wrong.
+- Write it as you would for a person who has to summarise the site in a sentence: what the organisation is, who it
+  serves, and where. The entries come from the collection tags; the framing around them is the part worth writing.
+- The field takes Antlers, so nothing in it goes stale: the file is rendered per request.
+
 ## Static generation rules
 
 A statically generated site is served as plain files made by Statamic's static site generator, `php please ssg:generate`, with no PHP behind them. Every page is rendered once, at build time, for an anonymous visitor. Build every feature so it still works that way, or stop and ask the developer. Keeping to these rules on every site lets one move to static hosting later without its features being rebuilt. The kit doesn't ship static generation yet, so ask the developer what a site needs before relying on it.

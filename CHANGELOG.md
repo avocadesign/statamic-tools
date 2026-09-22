@@ -2,6 +2,11 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.13 (22 September 2026)
+
+- `avoca:site:check` warns when `llms.txt` doesn't mention a collection that has a route, and when the starter kit's placeholder text is still in it. A site that gains a collection stops describing itself accurately, and nothing was saying so. Warnings only: the site works either way.
+- The recipe says how `llms.txt` is put together and what it needs when a site grows.
+
 ## v0.1.12 (22 September 2026)
 
 - `/site/style` and `/site/content` read the space between blocks from `--block-space` tokens when the page template names a rhythm rather than numbers, such as the starter kit's new `stack-block`. A template that still carries `stack-12 md:stack-16` is read as before.

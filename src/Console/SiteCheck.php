@@ -7,8 +7,11 @@ use Avocadesign\StatamicTools\Permissions\EditorAccess;
 use Avocadesign\StatamicTools\Permissions\PermissionSets;
 use Avocadesign\StatamicTools\Site\Blocks;
 use Avocadesign\StatamicTools\Site\Catalogue;
+use Avocadesign\StatamicTools\Site\Llms;
 use Avocadesign\StatamicTools\Site\Docs;
 use Illuminate\Console\Command;
+use Statamic\Facades\Collection;
+use Statamic\Facades\GlobalSet;
 use Illuminate\Http\Request;
 
 /**
@@ -93,6 +96,19 @@ class SiteCheck extends Command
         // Always a warning: the site works as it is.
         foreach (Names::make()->siteClashes() as $clash) {
             $this->line('  <fg=yellow>!</> '.Names::describeSiteClash($clash));
+            $warnings++;
+        }
+
+        // llms.txt tells a language model what the site is. The kit lists the site's pages by itself and leaves the
+        // rest to the developer, so a routed collection added later goes unmentioned. Always a warning: the site works.
+        $llms = GlobalSet::findByHandle((string) config('statamic-tools.site.llms_global', 'bots'))
+            ?->inDefaultSite()?->get((string) config('statamic-tools.site.llms_field', 'llms_content'));
+        $routed = Collection::all()
+            ->filter(fn ($collection) => $collection->routes()->filter()->isNotEmpty())
+            ->map(fn ($collection) => $collection->handle())
+            ->values()->all();
+        foreach (Llms::problems(is_string($llms) ? $llms : null, $routed) as $problem) {
+            $this->line('  <fg=yellow>!</> '.$problem);
             $warnings++;
         }
 

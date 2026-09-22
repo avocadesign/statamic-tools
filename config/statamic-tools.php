@@ -28,6 +28,9 @@ return [
         'page_template' => 'default',
 
         // Fieldsets that hold the scheme and button options.
+        // llms.txt: the global and field holding what the site tells language models about itself.
+        'llms_global' => 'bots',
+        'llms_field' => 'llms_content',
         'scheme_fieldset' => 'colour_scheme',
         'margins_fieldset' => 'block_margins',
         // Imported last by every block, so a site's own class wins over the block's layout classes.
