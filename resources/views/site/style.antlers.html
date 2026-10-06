@@ -35,6 +35,7 @@
         <label><input type="checkbox" id="sk-contrast-toggle"> Show contrast ratios</label>
         <label>against
             <select id="sk-contrast-bg">
+                <option value="page">page background</option>
                 {{ colour_groups }}<optgroup label="{{ title }}">{{ tokens }}<option value="var(--{{ name }})">{{ label }}</option>{{ /tokens }}</optgroup>{{ /colour_groups }}
                 <optgroup label="Custom"><option value="custom">custom colour…</option></optgroup>
             </select>
@@ -270,14 +271,24 @@
     const probe = document.createElement('div'); probe.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden'; document.body.appendChild(probe);
     const section = document.getElementById('sk-colours');
     const custom = document.getElementById('sk-contrast-custom');
-    const whiteOption = [...select.options].find(o => o.text === 'white');
-    if (whiteOption) select.value = whiteOption.value;
-    const currentBg = () => select.value === 'custom' ? custom.value : select.value;
+    // The colours start on the page's own background. Any other choice paints the section, and its text and lines
+    // follow that colour rather than the page's.
+    select.value = 'page';
+    const currentBg = () => select.value === 'custom' ? custom.value : select.value === 'page' ? 'var(--sk-ground)' : select.value;
     const run = () => {
+        const onPage = select.value === 'page';
         probe.style.backgroundColor = currentBg();
         const bg = rgb(probe);
-        section.style.backgroundColor = currentBg();
-        section.classList.toggle('sk-dark-bg', bg !== null && bg < 0.35);
+        const dark = bg !== null && bg < .179;
+        section.style.backgroundColor = onPage ? '' : currentBg();
+        section.classList.toggle('sk-dark-bg', dark);
+        section.classList.toggle('sk-retheme', ! onPage);
+        ['--sk-ink', '--sk-ground', '--sk-site-extreme'].forEach(p => section.style.removeProperty(p));
+        if (! onPage) {
+            section.style.setProperty('--sk-ink', dark ? '#f1f5f9' : '#334155');
+            section.style.setProperty('--sk-ground', currentBg());
+            section.style.setProperty('--sk-site-extreme', dark ? '#fff' : '#000');
+        }
         document.querySelectorAll('.sk-swatch .sk-chip').forEach(chip => {
             const el = chip.querySelector('.sk-contrast');
             const raw = getComputedStyle(chip).backgroundColor;
@@ -299,7 +310,7 @@
     const q = new URLSearchParams(location.search);
     if (q.has('bg')) {
         const want = q.get('bg');
-        const o = [...select.options].find(o => o.text === want);
+        const o = want === 'page' ? select.options[0] : [...select.options].find(o => o.text === want);
         if (o) select.value = o.value; else if (/^#[0-9a-f]{6}$/i.test(want)) { custom.value = want; select.value = 'custom'; }
     }
     if (q.has('contrast')) toggle.checked = q.get('contrast') === '1';

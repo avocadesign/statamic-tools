@@ -2,6 +2,17 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.15 (6 October 2026)
+
+The reference pages take their look from the site, so a dark design gets dark reference pages.
+
+- `/site/content` and `/site/style` put the `<body>` classes from the site's layout on their own, so blocks preview on the site's page background rather than on white. `site.body_class` gives the classes instead, for a layout that sets them per page, and `site.layout_template` names the layout.
+- The pages' own text, lines, buttons and panels are mixed from the site's text colour and page background, in place of fixed slate greys, so they read on light or dark. Highlights use `--color-primary`, titles the site's heading font and the rest its sans font. A site can set any `--sk-*` variable on `.sk-reference` in its own CSS.
+- On the content page the details of each block and set sit on a panel a shade darker than the page, and the preview on the page background, so the two are told apart.
+- A header that floats over the page, absolute or fixed as one over a hero image is, no longer covers the toolbar: its height is kept clear, and a fixed or sticky one keeps the quick links below it. `site.header` is `auto`, `flow` or `hidden`.
+- The contrast ratios on `/site/style` start against the page background. Choosing another background turns that section's text light or dark to match it.
+- **Nothing to do on update.** A site on a white page looks as it did. A site that published the config doesn't need the three new keys: without them the defaults apply.
+
 ## v0.1.14 (22 September 2026)
 
 The server git script becomes the site's file rather than the package's.

@@ -18,6 +18,26 @@ The machinery Avoca Design sites share: reference pages for clients, plus the ch
 
 On production the reference pages are only visible to a logged-in Statamic user.
 
+## How the reference pages look
+
+They take their look from the site rather than bringing their own, so a dark design gets dark reference pages.
+
+- The page background comes from the `<body>` classes in the site's layout, `resources/views/layout.antlers.html`, so blocks preview on the background they have on the site. When the layout sets those classes per page, give them in `site.body_class` in the config.
+- The pages' own text, lines and buttons are mixed from the site's text colour and that background, so they read on light or dark. Highlights use `--color-primary`, titles the site's heading font and everything else its sans font.
+- On `/site/content` the details of each block and set sit on a panel a shade darker than the page, and the preview on the page background itself.
+- The site's header sits at the top. One that floats over the page, as a header over a hero image does, gets its space kept clear, and a fixed or sticky one keeps the quick links below it. `site.header` is `auto`, `flow` to put the header in the page like any other element, or `hidden` to leave it out.
+
+A site that wants something different sets the variables on `.sk-reference` in its own CSS:
+
+```css
+.sk-reference {
+    --sk-panel: color-mix(in oklab, var(--sk-ground), #000 30%);
+    --sk-accent: var(--color-secondary);
+}
+```
+
+The rest are `--sk-ink` (text), `--sk-ground` (page background), `--sk-on-accent` (text on the accent), `--sk-line`, `--sk-muted` and `--sk-font`.
+
 ## Files in the site
 
 | Path | Written by | Read by |

@@ -26,6 +26,13 @@ return [
         'image_set' => 'image',
         // The page template whose outer element spaces the blocks on every page (its stack-* classes).
         'page_template' => 'default',
+        // The layout template. Its <body> classes go on the reference pages, so blocks preview on the site's own page
+        // background and the pages take its colours. body_class gives them instead, for a layout that sets them per page.
+        'layout_template' => 'layout',
+        'body_class' => null,
+        // The site's header at the top of the reference pages. auto keeps clear the space a header that floats over the
+        // page (absolute or fixed) would cover, flow puts it in the page like any other element, hidden leaves it out.
+        'header' => 'auto',
 
         // Fieldsets that hold the scheme and button options.
         // llms.txt: the global and field holding what the site tells language models about itself.
