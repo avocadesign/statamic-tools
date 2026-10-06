@@ -2,6 +2,10 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.16 (6 October 2026)
+
+- `/site/style` reads a breakpoint set in px as px. It took every breakpoint for rem and multiplied it by 16, so a site with `--breakpoint-md: 768px` listed its section spacing and content widths from "12288px and up". Breakpoints in rem or em read as before.
+
 ## v0.1.15 (6 October 2026)
 
 The reference pages take their look from the site, so a dark design gets dark reference pages.

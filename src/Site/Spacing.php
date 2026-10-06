@@ -38,9 +38,26 @@ final class Spacing
     {
         $value = (float) $unit;
         $rem = (str_ends_with(trim($unit), 'px') ? $value / 16 : $value) * $steps;
-        $fmt = fn (float $n) => rtrim(rtrim(number_format($n, 3, '.', ''), '0'), '.');
 
-        return ['rem' => $fmt($rem).'rem', 'px' => $fmt($rem * 16).'px'];
+        return ['rem' => self::number($rem).'rem', 'px' => self::number($rem * 16).'px'];
+    }
+
+    /**
+     * A length in px, such as a breakpoint's min width: 48rem and 48em are 768px, and 768px is itself. Anything else,
+     * such as a calc(), comes back as written.
+     */
+    public static function px(string $length): string
+    {
+        if (! preg_match('/^([\d.]+)(px|r?em)?$/', trim($length), $m)) {
+            return trim($length);
+        }
+
+        return self::number(($m[2] ?? 'px') === 'px' ? (float) $m[1] : (float) $m[1] * 16).'px';
+    }
+
+    private static function number(float $n): string
+    {
+        return rtrim(rtrim(number_format($n, 3, '.', ''), '0'), '.');
     }
 
     /** @return array<string, float> breakpoint prefix ('' for every width) => steps, for one utility such as stack or pb */

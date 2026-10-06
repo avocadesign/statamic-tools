@@ -41,6 +41,15 @@ class SpacingTest extends TestCase
         $this->assertSame(['rem' => '0.25rem', 'px' => '4px'], Spacing::size(1, '4px'));
     }
 
+    public function test_a_breakpoint_reads_in_px_whatever_its_unit(): void
+    {
+        $this->assertSame('768px', Spacing::px('48rem'));
+        $this->assertSame('768px', Spacing::px('48em'));
+        $this->assertSame('768px', Spacing::px(' 768px '), 'a px breakpoint is not multiplied again');
+        $this->assertSame('0px', Spacing::px('0'));
+        $this->assertSame('calc(40rem + 1px)', Spacing::px('calc(40rem + 1px)'));
+    }
+
     public function test_the_section_stack_comes_from_the_page_template_and_is_left_out_of_the_stack_choices(): void
     {
         $section = Spacing::section($this->dir.'/default.antlers.html');

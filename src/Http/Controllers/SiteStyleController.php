@@ -165,7 +165,7 @@ class SiteStyleController extends SiteController
         $unit = Spacing::unit($tokens);
         $breakpoints = Spacing::breakpoints($tokens);
         $order = ['' => -1, ...array_flip(array_keys($breakpoints))];
-        $from = fn (string $prefix) => $prefix === '' ? 'Every width' : ((float) ($breakpoints[$prefix] ?? 0) * 16).'px and up';
+        $from = fn (string $prefix) => $prefix === '' ? 'Every width' : Spacing::px((string) ($breakpoints[$prefix] ?? '0')).' and up';
         $size = fn (float $steps) => Spacing::size($steps, $unit);
 
         $widths = [];
