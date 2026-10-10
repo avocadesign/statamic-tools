@@ -195,11 +195,13 @@ function layoutFrames() {
 
 function setView(v) {
     state.view = v;
+    fb.board = false;
     save();
     $$('#views [data-view]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.view === v)));
     $$('.view').forEach(s => { s.hidden = s.id !== `view-${v}`; });
     if (v === 'sitemap') renderSitemap();
     if (v === 'model') renderModel();
+    else showEntity();
     renderSidebar();
     renderRail();
     if (v === 'wireframes') requestAnimationFrame(layoutFrames);
@@ -228,17 +230,17 @@ function renderRail() {
     const pr = parseRoute(state.route);
     const tab = railTab(pr);
     // On the pages, the panel stays out of sight until the Notes or Comments button opens it, and a page with nothing
-    // for it has none. The other views always show their panel.
-    const off = state.view === 'wireframes' && (!state.notes || !pageHasNotes(pr));
-    // The Sitemap has its whole width: what its panel said is on the page, below the tree.
-    $('.body').classList.toggle('rail-off', off || state.view === 'sitemap');
+    // for it has none. The Sitemap and the Content model have the whole width unless their comments are open.
+    const off = (state.view === 'wireframes' && (!state.notes || !pageHasNotes(pr))) || (!!fbBoard() && !fb.board);
+    $('.body').classList.toggle('rail-off', off);
     const open = state.view === 'wireframes' && !off;
     $('#notes-btn').hidden = !pageHasOwnNotes(pr);
     $('#notes-btn').setAttribute('aria-expanded', String(open && tab === 'notes'));
     $('#fb-comment').setAttribute('aria-expanded', String(open && tab === 'comments'));
     if (state.view !== 'wireframes' || state.step < 0) $$('.device').forEach(d => d.classList.remove('dim'));
+    $$('[data-board-comments]').forEach(b => b.setAttribute('aria-expanded', String(!!(fbBoard() && fb.board))));
     if (state.view === 'wireframes') body.innerHTML = off ? '' : notesRail();
-    else if (state.view === 'model') body.innerHTML = modelRail();
+    else if (fbBoard() && fb.board) body.innerHTML = fbBoardRail();
     else body.innerHTML = '';
     requestAnimationFrame(fbAddButton);
 }
@@ -277,7 +279,7 @@ function notesRail() {
         </div>`
         : `<h2 class="side-h">${FB.on ? 'Comments' : 'Page notes'}</h2>`;
     return `<div class="rail-top">${head}<button type="button" class="icon-btn tiny" data-notes="close" aria-label="Close the panel" title="Close the panel">${ICON.close}</button></div>
-        ${tab === 'notes' ? pageNotes(pr) : fbPanel(pr)}`;
+        ${tab === 'notes' ? pageNotes(pr) : fbPanel(pr.key)}`;
 }
 
 // A page's content as displayed: each part in order, with a few words on what it shows.
@@ -444,15 +446,23 @@ function smNode(n, top) {
     ].filter(Boolean);
     const inner = `<span class="nt">${esc(n.t)}</span><span class="nu">${esc(n.u).replace(/([/.])/g, '$1<wbr>')}</span>${n.note ? `<span class="muted" style="font-size:12px">${esc(n.note)}</span>` : ''}${tags.length ? `<span class="nm">${tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</span>` : ''}`;
     const r = n.k ? ROUTES.find(x => x.key === n.k) : null;
-    return r ? `<button type="button" class="${cls}" data-go="${sampleRoute(r)}">${inner}</button>` : `<div class="${cls}">${inner}</div>`;
+    return r ? `<button type="button" class="${cls}" data-sm="${esc(n.u || n.t)}" data-go="${sampleRoute(r)}">${inner}</button>` : `<div class="${cls}" data-sm="${esc(n.u || n.t)}">${inner}</div>`;
 }
 function smKids(kids) {
     return `<ul class="sm-kids">${kids.map(k => `<li>${smNode(k)}${k.kids ? smKids(k.kids) : ''}</li>`).join('')}</ul>`;
 }
+// The Sitemap's and the Content model's title bar, like a page's on the Prototype tab, with Comments in it.
+function boardBar(title) {
+    const open = FB.on && fbSigned() ? fbFiltered('open', 'version').length : 0;
+    return `<div class="stage-bar board-bar"><div class="page-id"><h1>${esc(title)}</h1></div>
+        <div class="stage-tools">${FB.on ? `<button type="button" class="btn" data-board-comments aria-expanded="${!!fb.board}"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 2.5h10a1.5 1.5 0 0 1 1.5 1.5v6a1.5 1.5 0 0 1-1.5 1.5H8l-3.5 2.5v-2.5H3A1.5 1.5 0 0 1 1.5 10V4A1.5 1.5 0 0 1 3 2.5Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg><span>Comments</span><span class="btn-count" aria-hidden="true"${open ? '' : ' hidden'}>${open || ''}</span></button>` : ''}</div>
+    </div>`;
+}
+
 function renderSitemap() {
-    $('#view-sitemap').innerHTML = `<div class="canvas">
+    $('#view-sitemap').innerHTML = `${boardBar('Sitemap')}<div class="canvas">
         <div class="canvas-head">
-            <div><h2>Sitemap</h2><p>The pages the site will have. ${esc(PROJECT.sitemapIntro || 'Those with a dashed outline are our suggestions: say what you think in the comments on the page.')} Select a page to open it.</p></div>
+            <div><p>Select a page to open it in the prototype.</p></div>
             <div class="legend">
                 <span><i class="sw"></i>Agreed</span>
                 <span><i class="sw s"></i>Suggested</span>
@@ -466,6 +476,7 @@ function renderSitemap() {
         ${sitemapInfo()}
     </div>`;
     sitemapFade();
+    fbBoardPins();
 }
 
 // While the sitemap runs off the right edge, it fades there to say so, and gains room on the right so its last
@@ -475,7 +486,7 @@ function sitemapFade() {
     if (!sx) return;
     if (!sx.dataset.fade) {
         sx.dataset.fade = '1';
-        sx.addEventListener('scroll', sitemapFade, { passive: true });
+        sx.addEventListener('scroll', () => { sitemapFade(); fbBoardPins(); }, { passive: true });
     }
     sx.classList.toggle('overflows', sx.scrollWidth > sx.clientWidth + 1 + (sx.classList.contains('overflows') ? 56 : 0));
     sx.classList.toggle('fade-right', sx.scrollWidth - sx.clientWidth - sx.scrollLeft > 1);
@@ -555,14 +566,14 @@ function renderModel() {
     const diagram = modelOrder().filter(e => !MODEL_SECTIONS.some(([, kind]) => e.kind === kind));
     const card = e => `<button type="button" class="ent${isOpen(e.status === 'suggested') ? ' s' : ''}"${e.area ? ` style="grid-area:${e.area}"` : ''} data-ent="${e.id}" aria-pressed="${state.entity === e.id}">
         <span class="ent-h">
-            <span class="ent-k"><span class="kind">${kindIcon(e.kind)}${e.kind}</span><span>${esc(e.count)}</span></span>
+            <span class="ent-k"><span class="kind">${kindIcon(e.kind)}${e.kind}</span></span>
             <span class="ent-n">${esc(e.name)}</span>
             ${entMeta(e)}
         </span>
     </button>`;
-    $('#view-model').innerHTML = `<div class="canvas">
+    $('#view-model').innerHTML = `${boardBar('Content model')}<div class="canvas">
         <div class="canvas-head">
-            <div><h2>Content model</h2><p>The collections, taxonomies, forms and globals behind the site, with the fields we suggest adding. Select one to see where it appears and what it depends on.</p></div>
+            <div><p>The collections, taxonomies, forms and globals behind the site. Select one to see its fields, where it appears and what it connects to.</p></div>
             <div class="legend">
                 <span><i class="sw"></i>Agreed</span>
                 <span><i class="sw s"></i>Suggested</span>
@@ -571,8 +582,9 @@ function renderModel() {
         ${diagram.length ? `<div class="model" id="model" style="grid-template-areas:${esc(MODEL_LAYOUT)}"><svg aria-hidden="true" id="model-svg"></svg>${diagram.map(card).join('')}</div>` : ''}
         ${MODEL_SECTIONS.map(([title, kind]) => { const items = modelOrder().filter(e => e.kind === kind); return items.length ? `<section class="model-sec"><h3>${title}</h3><div class="model-row">${items.map(card).join('')}</div></section>` : ''; }).join('')}
         ${MODEL.length ? '' : '<p class="note-line">No content model yet.</p>'}
+        ${modelInfo()}
     </div>`;
-    requestAnimationFrame(drawRels);
+    requestAnimationFrame(() => { showEntity(); fbBoardPins(); });
 }
 
 function drawRels() {
@@ -615,46 +627,70 @@ function relSentence(r, a, b) {
     return r[2] === 'taxonomy' ? `${esc(a.name)} uses the ${esc(b.name)} taxonomy` : `${esc(a.name)} ${esc(r[2])} ${esc(b.name)}`;
 }
 
-// With nothing selected, the panel says what the model holds.
-function modelOverview() {
+// Below the diagram, in columns: what the model holds, what changed since the proposal, and what the source
+// documents left to fix.
+function modelInfo() {
     const plural = { Collection: 'Collections', Taxonomy: 'Taxonomies', Form: 'Forms', Global: 'Globals', Globals: 'Globals', Navigation: 'Navigation menus', Assets: 'Asset libraries' };
     const counts = {};
     MODEL.forEach(m => { const k = plural[m.kind] || m.kind; counts[k] = (counts[k] || 0) + 1; });
-    return `
-        <div class="rail-head"><h2>Content model</h2><p class="purpose" style="font-size:14px">${MODEL.length ? 'Select an item to see its fields, where it appears and what it connects to. Select it again, or press Escape, to clear.' : 'Nothing here yet.'}</p></div>
+    if (!MODEL.length && !CHANGES.length && !SOURCE_CHECKS.length) return '';
+    return `<div class="sm-info">
         ${MODEL.length ? `<section><h3>What it holds</h3><div class="counts">${Object.entries(counts).map(([k, n]) => `<span>${esc(k)}</span><b>${n}</b>`).join('')}</div></section>` : ''}
-        ${CHANGES.length ? `<details class="fold"><summary>What changed since the proposal</summary><div>${changesList()}</div></details>` : ''}
-        ${SOURCE_CHECKS.length ? `<details class="fold"><summary>Checked against the source documents</summary><div>${sourceChecks()}</div></details>` : ''}`;
+        ${CHANGES.length ? `<section><h3>What changed since the proposal</h3>${changesList()}</section>` : ''}
+        ${SOURCE_CHECKS.length ? `<section><h3>Checked against the source documents</h3>${sourceChecks()}</section>` : ''}
+    </div>`;
 }
 
 function clearEntity() {
     state.entity = null;
     save();
-    drawRels();
-    renderRail();
+    showEntity();
 }
 
-function modelRail() {
-    const e = MODEL.find(m => m.id === state.entity);
-    if (!e) return modelOverview();
+// The selected item opens in a drawer from the right, over the diagram: its fields, what it connects to and where it
+// appears. Its close button, Escape, selecting the card again or a click on the diagram's empty space closes it.
+function entDrawer(e) {
     const rels = RELS.filter(r => r[0] === e.id || r[1] === e.id);
     const pages = pagesFor(e.id);
-    return `
-        <div class="rail-head">
-            <div class="rail-kind"><p class="kind">${kindIcon(e.kind)}${e.kind}</p><button type="button" class="icon-btn tiny" data-ent-clear aria-label="Clear selection" title="Clear selection">${ICON.close}</button></div>
-            <h2>${esc(e.name)}</h2>
-            <div class="ent-meta">${entMeta(e)}</div>
-            <div class="badges">
-                ${isOpen(e.status === 'suggested') ? confirmBadge() : '<span class="badge">Agreed</span>'}
-                ${e.count ? `<span class="badge">${esc(e.count)}${/^[~\d]/.test(e.count) ? ({ Collection: ' entries', Taxonomy: ' terms' }[e.kind] || '') : ''}</span>` : ''}
+    return `<div class="drawer-top"><p class="kind">${kindIcon(e.kind)}${e.kind}</p><button type="button" class="icon-btn tiny" data-ent-clear aria-label="Close" title="Close">${ICON.close}</button></div>
+        <div class="drawer-body">
+            <div class="rail-head">
+                <h2>${esc(e.name)}</h2>
+                <div class="ent-meta">${entMeta(e)}</div>
+                <div class="badges">
+                    ${isOpen(e.status === 'suggested') ? confirmBadge() : '<span class="badge">Agreed</span>'}
+                    ${e.count ? `<span class="badge">${esc(e.count)}${/^[~\d]/.test(e.count) ? ({ Collection: ' entries', Taxonomy: ' terms' }[e.kind] || '') : ''}</span>` : ''}
+                </div>
             </div>
-        </div>
-        <section><h3>Fields</h3>${e.fields.length ? '' : '<p class="note-line">No fields of its own.</p>'}<table class="ftable">${e.fields.map(f => `<tr class="${f[2] || ''}"><td>${f[2] === 's' ? '+ ' : ''}${esc(f[0])}</td><td>${esc(f[1])}</td></tr>`).join('')}</table>${fieldKey(e)}
-            ${e.terms ? `<p class="note-line" style="margin-top:10px">${esc(e.terms)}</p>` : ''}</section>
-        ${rels.length ? `<section><h3>Relationships</h3><ul class="bullets">${rels.map(r => { const other = MODEL.find(m => m.id === (r[0] === e.id ? r[1] : r[0])); return `<li>${r[0] === e.id ? relSentence(r, e, other) : relSentence(r, other, e)}${r[3] ? ' (suggested)' : ''}</li>`; }).join('')}</ul></section>` : ''}
-        ${pages.length ? `<section><h3>Appears on</h3><div class="chips">${pages.map(r => `<button type="button" class="chip-btn" data-go="${sampleRoute(r)}">${esc(r.title)}</button>`).join('')}</div></section>` : ''}
-        ${CHANGES.length ? `<details class="fold"><summary>What changed since the proposal</summary><div>${changesList()}</div></details>` : ''}
-        ${SOURCE_CHECKS.length ? `<details class="fold"><summary>Checked against the source documents</summary><div>${sourceChecks()}</div></details>` : ''}`;
+            <section><h3>Fields</h3>${e.fields.length ? '' : '<p class="note-line">No fields of its own.</p>'}<table class="ftable">${e.fields.map(f => `<tr class="${f[2] || ''}"><td>${f[2] === 's' ? '+ ' : ''}${esc(f[0])}</td><td>${esc(f[1])}</td></tr>`).join('')}</table>${fieldKey(e)}
+                ${e.terms ? `<p class="note-line" style="margin-top:10px">${esc(e.terms)}</p>` : ''}</section>
+            ${rels.length ? `<section><h3>Relationships</h3><ul class="bullets">${rels.map(r => { const other = MODEL.find(m => m.id === (r[0] === e.id ? r[1] : r[0])); return `<li>${r[0] === e.id ? relSentence(r, e, other) : relSentence(r, other, e)}${r[3] ? ' (suggested)' : ''}</li>`; }).join('')}</ul></section>` : ''}
+            ${pages.length ? `<section><h3>Appears on</h3><div class="chips">${pages.map(r => `<button type="button" class="chip-btn" data-go="${sampleRoute(r)}">${esc(r.title)}</button>`).join('')}</div></section>` : ''}
+        </div>`;
+}
+
+// Shows the selected item's drawer, or none, and highlights what it connects to.
+function showEntity() {
+    const drawer = $('#ent-drawer');
+    const e = state.view === 'model' && MODEL.find(m => m.id === state.entity);
+    if (state.view === 'model') drawRels();
+    if (!e) { drawer.hidden = true; drawer.innerHTML = ''; return; }
+    const opening = drawer.hidden;
+    drawer.innerHTML = entDrawer(e);
+    drawer.setAttribute('aria-label', e.name);
+    drawer.hidden = false;
+    placeDrawer();
+    if (opening) $('[data-ent-clear]', drawer).focus({ preventScroll: true });
+}
+
+// The drawer runs down the right of the stage, below the title bar, and beside the Comments panel when it's open.
+function placeDrawer() {
+    const drawer = $('#ent-drawer');
+    if (drawer.hidden) return;
+    const s = $('#stage').getBoundingClientRect();
+    const bar = $('#view-model .board-bar');
+    const w = Math.min(420, s.width);
+    Object.assign(drawer.style, { top: `${bar ? bar.getBoundingClientRect().bottom : s.top}px`, bottom: `${innerHeight - s.bottom}px`, left: `${s.right - w}px`, width: `${w}px` });
 }
 
 /* ---------- Feedback ---------- */
@@ -663,7 +699,17 @@ function modelRail() {
 // resolve. The team (a control panel login, or a reviewer marked team) can also raise a comment as a decision and
 // record what was decided. A decision carries from one version to the next, so it shows whichever version raised it.
 const FB = Object.assign({ on: false, base: '' }, window.PROTOTYPE_FEEDBACK);
-const fb = { session: null, comments: [], num: new Map(), draft: null, open: null, deciding: null, picking: false, hover: null, error: '', errorFor: null };
+const fb = { session: null, comments: [], num: new Map(), draft: null, open: null, deciding: null, picking: false, hover: null, error: '', errorFor: null, board: false };
+
+// Comments can be made on the Sitemap and the Content model too, pinned to their page boxes and cards. Each is a page
+// of its own for comments, under a key no route can have.
+const BOARDS = {
+    sitemap: { key: '@sitemap', label: 'Sitemap', target: '[data-sm]', attr: 'data-sm' },
+    model: { key: '@model', label: 'Content model', target: '[data-ent]', attr: 'data-ent' }
+};
+const boardOf = key => Object.keys(BOARDS).find(v => BOARDS[v].key === key) || null;
+const fbBoard = () => BOARDS[state.view] || null;
+const fbHere = () => fbBoard() ? fbBoard().key : parseRoute(state.route).key;
 
 const fbSigned = () => !!(fb.session && fb.session.viewer);
 const fbStaff = () => fbSigned() && !!fb.session.viewer.staff;
@@ -747,6 +793,7 @@ function fbRefresh() {
     const open = fbSigned() ? fbFiltered('open', 'version').length : 0;
     $('#fb-badge').textContent = open ? String(open) : '';
     $('#fb-badge').hidden = !open;
+    $$('[data-board-comments] .btn-count').forEach(b => { b.textContent = open ? String(open) : ''; b.hidden = !open; });
     $('#fb-comment').setAttribute('aria-label', open ? `Comments, ${open} open` : 'Comments');
     const kept = {};
     $$('[data-fb-input]').forEach(i => { if (i.value) kept[i.dataset.fbInput] = i.value; });
@@ -784,12 +831,77 @@ function fbSendPins() {
         }
         FR[name].el.contentWindow.postMessage({ type: 'cpins', items, show: state.pins, hot: fb.open, zoom: FR[name].s }, '*');
     }
+    fbBoardPins();
 }
+
+// Pins on the Sitemap or the Content model, on their page boxes and cards, moving with them as they scroll.
+function fbBoardPins() {
+    const board = fbBoard();
+    const canvas = board && $(`#view-${state.view} .canvas`);
+    if (!canvas) return;
+    let layer = $('.board-pins', canvas);
+    if (!layer) {
+        layer = document.createElement('div');
+        layer.className = 'board-pins';
+        canvas.appendChild(layer);
+    }
+    const hot = fb.hover || fb.open;
+    let list = FB.on && fbSigned() ? fbPage(board.key).filter(c => c.status === 'open' || c.decision || c.id === fb.open) : [];
+    if (!state.pins) list = list.filter(c => c.id === hot);
+    const items = list.map(c => ({ id: c.id, n: fb.num.get(c.id) || '•', kind: fbKind(c), a: c.anchor || {} }));
+    if (fb.draft && fb.draft.page === board.key) items.push({ id: 'draft', n: '+', kind: 'draft', a: fb.draft.anchor || {} });
+    const cr = canvas.getBoundingClientRect();
+    layer.innerHTML = items.map(p => {
+        let el = null;
+        try { el = p.a.selector ? canvas.querySelector(p.a.selector) : null; } catch (e) { el = null; }
+        let x, y;
+        if (el) {
+            const r = el.getBoundingClientRect();
+            x = r.left - cr.left + (p.a.x == null ? 0.5 : p.a.x) * r.width;
+            y = r.top - cr.top + (p.a.y == null ? 0.5 : p.a.y) * r.height;
+        } else if (p.a.page_y != null) {
+            x = (p.a.page_x == null ? 0.5 : p.a.page_x) * cr.width;
+            y = p.a.page_y;
+        } else return '';
+        return `<button type="button" class="bpin bpin--${p.kind}${hot === p.id ? ' is-hot' : ''}" data-bpin="${p.id}" style="left:${x}px;top:${y}px" aria-label="${p.id === 'draft' ? 'Your new comment' : `Comment ${p.n}`}">${p.n}</button>`;
+    }).join('');
+}
+
+// Where a click landed on the Sitemap or the Content model: a page box or card, the spot within it, and its name.
+function fbBoardAnchor(canvas, e) {
+    const board = fbBoard();
+    const el = e.target.closest(board.target);
+    const c = canvas.getBoundingClientRect();
+    const unit = v => Math.max(0, Math.min(1, v));
+    const spot = { page_x: unit((e.clientX - c.left) / c.width), page_y: Math.round(Math.max(0, e.clientY - c.top)) };
+    if (!el) return { selector: null, x: null, y: null, ...spot, label: `On the ${board.label.toLowerCase()}`, text: null };
+    const r = el.getBoundingClientRect();
+    const name = (el.querySelector('.nt, .ent-n') || el).textContent.trim().slice(0, 120);
+    return { selector: `[${board.attr}="${CSS.escape(el.getAttribute(board.attr))}"]`, x: unit((e.clientX - r.left) / r.width), y: unit((e.clientY - r.top) / r.height), ...spot, label: name, text: null };
+}
+
+// The comments panel on the Sitemap or the Content model.
+function fbBoardRail() {
+    return `<div class="rail-top"><h2 class="side-h">Comments</h2><button type="button" class="icon-btn tiny" data-notes="close" aria-label="Close the panel" title="Close the panel">${ICON.close}</button></div>
+        ${fbPanel(fbHere())}`;
+}
+
+// Choosing a spot on the Sitemap or the Content model: a click on it, rather than following a page or selecting a card.
+document.addEventListener('click', e => {
+    const board = fbBoard();
+    if (!fb.picking || !board) return;
+    const canvas = $(`#view-${state.view} .canvas`);
+    if (!canvas || !canvas.contains(e.target) || e.target.closest('[data-bpin]')) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    fbPicked(null, fbBoardAnchor(canvas, e));
+}, true);
 
 /* Choosing a spot */
 
-// The panel on its Comments tab, for this page.
+// The panel on its Comments tab, for this page, or open on the Sitemap or the Content model.
 function fbToComments() {
+    if (fbBoard()) { fb.board = true; return; }
     state.notes = true;
     state.railTab = 'comments';
     state.fbList = 'page';
@@ -805,7 +917,9 @@ function fbStartComment() {
 
 function fbPick(on) {
     fb.picking = on;
+    if (on && state.view === 'model' && state.entity) clearEntity();
     tellFrames({ type: 'pick', on });
+    document.documentElement.classList.toggle('board-picking', on && !!fbBoard());
     fbAddButton();
 }
 
@@ -814,19 +928,19 @@ function fbPick(on) {
 function fbAddButton() {
     const b = $('#fb-add');
     const pr = parseRoute(state.route);
-    const show = FB.on && fbSigned() && state.view === 'wireframes' && state.notes && pageHasNotes(pr) && railTab(pr) === 'comments';
+    const show = FB.on && fbSigned() && ((state.view === 'wireframes' && state.notes && pageHasNotes(pr) && railTab(pr) === 'comments') || (!!fbBoard() && fb.board));
     b.hidden = !show;
     b.setAttribute('aria-pressed', String(fb.picking));
     b.innerHTML = fb.picking ? 'Click where your comment belongs<span class="float-cancel">Cancel</span>' : `<svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Add comment`;
     if (!show) return;
-    const r = $('#frames-wrap').getBoundingClientRect();
+    const r = (fbBoard() ? $(`#view-${state.view}`) : $('#frames-wrap')).getBoundingClientRect();
     b.style.left = `${r.left + r.width / 2}px`;
 }
 
 function fbPicked(frame, anchor) {
     fbPick(false);
-    const pr = parseRoute(state.route);
-    fb.draft = { page: pr.key, route: state.route, frame, anchor: anchor || {} };
+    const board = fbBoard();
+    fb.draft = { page: fbHere(), route: board ? null : state.route, frame: board ? null : frame, anchor: anchor || {} };
     fb.open = null;
     fb.error = '';
     fbToComments();
@@ -872,10 +986,11 @@ function fbOpen(id) {
 // there.
 function fbToggle(id) {
     const c = fb.comments.find(x => x.id === id);
-    if (fb.open !== id && c && (c.page !== parseRoute(state.route).key || state.view !== 'wireframes')) { fbShow(id); return; }
+    if (fb.open !== id && c && c.page !== fbHere()) { fbShow(id); return; }
     fb.open = fb.open === id ? null : id;
     fb.deciding = null;
     fbRefresh();
+    if (fbBoard()) { if (fb.open) fbRevealPin(fb.open); return; }
     tellFrames({ type: 'cpin-hot', id: fb.open });
     if (fb.open) tellFrames({ type: 'cpin-show', id: fb.open, soft: true });
 }
@@ -885,10 +1000,36 @@ function fbMenus() {
     $$('[data-fb-menu]').forEach(b => b.setAttribute('aria-expanded', 'false'));
 }
 
-// Takes you to the comment on its page, from the panel or the Feedback tab.
+// Brings a pin on the Sitemap or the Content model into sight, when it isn't.
+function fbRevealPin(id) {
+    requestAnimationFrame(() => {
+        const pin = $(`[data-bpin="${id}"]`);
+        if (!pin) return;
+        const r = pin.getBoundingClientRect();
+        const s = $('#stage').getBoundingClientRect();
+        if (r.top < s.top + 60 || r.bottom > s.bottom - 20) pin.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    });
+}
+
+// Opens the Sitemap or the Content model with its comments showing.
+function fbOpenBoard(view) {
+    if (state.view !== view) { endJourney(true); setView(view); }
+    fb.board = true;
+    fbRefresh();
+}
+
+// Takes you to the comment where it was made: its page, the Sitemap or the Content model.
 function fbShow(id) {
     const c = fb.comments.find(x => x.id === id);
     if (!c) return;
+    const boardView = boardOf(c.page);
+    if (boardView) {
+        fb.open = id;
+        fbOpenBoard(boardView);
+        fbRevealPin(id);
+        requestAnimationFrame(() => { const el = $(`#rail [data-fb="${id}"]`); if (el) el.scrollIntoView({ block: 'nearest' }); });
+        return;
+    }
     const there = parseRoute(state.route).key === c.page && state.view === 'wireframes';
     fb.open = id;
     state.notes = true;
@@ -950,13 +1091,14 @@ function fbSubmit(f) {
         const body = val('textarea');
         if (!body || !fb.draft) return;
         const d = fb.draft;
-        const pr = parseRoute(d.route);
+        const boardView = boardOf(d.page);
+        const pr = boardView ? null : parseRoute(d.route);
         return fbRun(fbApi('POST', 'comments', {
             context: 'prototype', version: VERSION.id, page: d.page, route: d.route, frame: d.frame,
-            url: `/prototype/${VERSION.id}${pr.path === '/' ? '' : pr.path}`, title: pr.r.title, body,
+            url: `/prototype/${VERSION.id}${!pr || pr.path === '/' ? '' : pr.path}`, title: boardView ? BOARDS[boardView].label : pr.r.title, body,
             anchor: fbAnchor(d.anchor),
-            options: optionsShowing(d.page, d.frame),
-            viewport: { width: FR[d.frame].w, height: FR[d.frame].h, breakpoint: d.frame },
+            options: boardView ? null : optionsShowing(d.page, d.frame),
+            viewport: boardView ? { width: Math.round(innerWidth), height: Math.round(innerHeight), breakpoint: boardView } : { width: FR[d.frame].w, height: FR[d.frame].h, breakpoint: d.frame },
             decision: !!(f.querySelector('[name="decision"]') || {}).checked
         }).then(res => { fb.draft = null; fbPut(res.comment); fb.open = res.comment.id; fbClear('new'); }), f, 'new');
     }
@@ -992,6 +1134,9 @@ function fbAct(act, id) {
 
 function fbClick(t) {
     if (t.id === 'fb-comment') { togglePanel('comments'); return true; }
+    if (t.hasAttribute('data-board-comments')) { if (fb.picking) fbPick(false); setNotes(!fb.board); return true; }
+    if (t.dataset.bpin) { if (t.dataset.bpin !== 'draft') fbOpen(t.dataset.bpin); return true; }
+    if (t.dataset.fbBoard) { fbOpenBoard(t.dataset.fbBoard); return true; }
     if (t.id === 'fb-add') { fbStartComment(); return true; }
     if (t.hasAttribute('data-fb-menu')) {
         const menu = t.nextElementSibling;
@@ -1098,11 +1243,12 @@ function fbThread(c) {
         ${fbError(c.id)}`;
 }
 
-// Comments: this page's, or all the comments on the prototype. Signing in comes first.
-function fbPanel(pr) {
+// Comments: this page's, the Sitemap's or the Content model's, or all the comments on the prototype. Signing in comes
+// first.
+function fbPanel(key) {
     if (!fb.session) return '<p class="note-line">Loading the comments…</p>';
     if (!fbSigned()) return `<section class="fb-section">${fbSignIn()}</section>`;
-    return (state.fbList === 'all' ? fbAll() : fbSection(pr)) + fbFoot();
+    return (state.fbList === 'all' ? fbAll() : fbSection(key)) + fbFoot();
 }
 
 // The pins switch, pinned to the foot of the panel over whatever scrolls beneath it.
@@ -1113,22 +1259,23 @@ function fbFoot() {
 // This page or all feedback, and the Comment button.
 function fbScopeBar() {
     const all = state.fbList === 'all';
+    const here = fbBoard() ? fbBoard().label : 'This page';
     const open = fbFiltered('open', 'version').length;
     return `<div class="fb-h">
-        <p class="fb-scope">${all ? '<button type="button" class="link-btn" data-fb-list="page">This page</button>' : '<b>This page</b>'}<span aria-hidden="true">·</span>${all ? '<b>All comments</b>' : `<button type="button" class="link-btn" data-fb-list="all">All comments${open ? ` (${open} open)` : ''}</button>`}</p>
+        <p class="fb-scope">${all ? `<button type="button" class="link-btn" data-fb-list="page">${here}</button>` : `<b>${here}</b>`}<span aria-hidden="true">·</span>${all ? '<b>All comments</b>' : `<button type="button" class="link-btn" data-fb-list="all">All comments${open ? ` (${open} open)` : ''}</button>`}</p>
     </div>`;
 }
 
 // The page's comments: decisions to make, then open comments, with everything done folded away.
-function fbSection(pr) {
-    const list = fbPage(pr.key).sort((a, b) => (fb.num.get(a.id) || 0) - (fb.num.get(b.id) || 0));
+function fbSection(key) {
+    const list = fbPage(key).sort((a, b) => (fb.num.get(a.id) || 0) - (fb.num.get(b.id) || 0));
     const toDecide = list.filter(fbToDecide);
     const open = list.filter(c => !c.decision && c.status === 'open');
     const done = list.filter(fbIsDone);
     return `<section class="fb-section">
         ${fbScopeBar()}
-        ${fb.draft && fb.draft.page === pr.key ? fbCompose() : ''}
-        ${!list.length && !fb.draft ? '<p class="note-line">No comments on this page yet. Press Comment, then click the spot you mean on either page.</p>' : ''}
+        ${fb.draft && fb.draft.page === key ? fbCompose() : ''}
+        ${!list.length && !fb.draft ? '<p class="note-line">No comments here yet. Press Add comment, then click the spot you mean.</p>' : ''}
         ${[...toDecide, ...open].map(c => fbCard(c)).join('')}
         ${done.length ? `<details class="fold fb-resolved"${done.some(c => c.id === fb.open) ? ' open' : ''}><summary>Done <span class="fold-n">${done.length}</span></summary><div>${done.map(c => fbCard(c)).join('')}</div></details>` : ''}
     </section>`;
@@ -1148,17 +1295,19 @@ function fbAll() {
     // Done beneath: every comment done, or with Decisions, the decisions made.
     const done = fbFiltered('done', scope).filter(c => show === 'open' || c.decision);
     const pages = [...list, ...done].map(c => c.page);
-    const keys = [...ROUTES.map(r => r.key), ...new Set(pages.filter(k => !ROUTES.some(r => r.key === k)))];
+    const keys = [...ROUTES.map(r => r.key), ...new Set(pages.filter(k => !ROUTES.some(r => r.key === k) && !boardOf(k))), ...Object.values(BOARDS).map(b => b.key)];
     const groups = keys.map(key => [key, list.filter(c => c.page === key).sort(byNum), done.filter(c => c.page === key).sort(byNum)]).filter(([, cs, ds]) => cs.length || ds.length);
-    const title = key => (ROUTES.find(r => r.key === key) || {}).title || key;
+    const title = key => boardOf(key) ? BOARDS[boardOf(key)].label : (ROUTES.find(r => r.key === key) || {}).title || key;
     const route = key => { const r = ROUTES.find(x => x.key === key); return r ? sampleRoute(r) : null; };
-    const here = parseRoute(state.route).key;
+    const here = fbHere();
+    // Another page's heading, or the Sitemap's or the Content model's, takes you there.
+    const go = key => boardOf(key) ? `data-fb-board="${boardOf(key)}"` : route(key) ? `data-go="${esc(route(key))}"` : '';
     return `<section class="fb-section">
         ${fbScopeBar()}
         <div class="fb-filters" role="group" aria-label="Show">${FB_FILTERS.map(([k, label]) => { const n = fbFiltered(k, scope).length; return `<button type="button" class="chip-btn" data-fb-filter="${k}" aria-pressed="${show === k}">${label}${n ? ` <span class="muted">${n}</span>` : ''}</button>`; }).join('')}</div>
         ${VERSIONS.length > 1 ? `<label class="toggle"><input type="checkbox" id="fb-versions"${scope === 'all' ? ' checked' : ''}> Comments on earlier versions too</label>` : ''}
         ${groups.length ? groups.map(([key, cs, ds]) => `<div class="fb-group">
-            <div class="fb-group-h"><h3>${key !== here && route(key) ? `<button type="button" class="fb-page" data-go="${esc(route(key))}">${esc(title(key))}<span aria-hidden="true">→</span></button>` : esc(title(key))}</h3>${key === here ? '<span class="fb-here">Showing</span>' : ''}</div>
+            <div class="fb-group-h"><h3>${key !== here && go(key) ? `<button type="button" class="fb-page" ${go(key)}>${esc(title(key))}<span aria-hidden="true">→</span></button>` : esc(title(key))}</h3>${key === here ? '<span class="fb-here">Showing</span>' : ''}</div>
             ${cs.map(c => fbCard(c)).join('')}
             ${ds.length ? `<details class="fold fb-resolved"${ds.some(c => c.id === fb.open) ? ' open' : ''}><summary>Done <span class="fold-n">${ds.length}</span></summary><div>${ds.map(c => fbCard(c)).join('')}</div></details>` : ''}
         </div>`).join('') : `<p class="note-line">${FB_EMPTY[show]}</p>`}
@@ -1198,6 +1347,7 @@ $('#rail').addEventListener('mouseover', e => {
     if (id === fb.hover) return;
     fb.hover = id;
     tellFrames({ type: 'cpin-hot', id: id || fb.open });
+    fbBoardPins();
 });
 $('#rail').addEventListener('mouseleave', () => { fb.hover = null; tellFrames({ type: 'cpin-hot', id: fb.open }); });
 // Coming back to the tab picks up comments made since.
@@ -1299,7 +1449,7 @@ document.addEventListener('click', e => {
     if (t.dataset.go) { endJourney(true); navigate(t.dataset.go); return; }
     if (t.dataset.entity && VIEWS.model) { state.entity = t.dataset.entity; setView('model'); return; }
     // Selecting an item again clears it.
-    if (t.dataset.ent) { state.entity = state.entity === t.dataset.ent ? null : t.dataset.ent; save(); drawRels(); renderRail(); return; }
+    if (t.dataset.ent) { state.entity = state.entity === t.dataset.ent ? null : t.dataset.ent; save(); showEntity(); return; }
     if (t.hasAttribute('data-ent-clear')) { clearEntity(); return; }
     if (t.dataset.side) { setSide(t.dataset.side === 'open'); return; }
     if (t.dataset.notes) { setNotes(t.dataset.notes === 'open'); return; }
@@ -1390,6 +1540,14 @@ $('#sync').addEventListener('change', e => {
 });
 
 function setNotes(on) {
+    if (fbBoard()) {
+        fb.board = on;
+        if (!on && fb.picking) fbPick(false);
+        renderRail();
+        fbBoardPins();
+        if (on) fbRefresh();
+        return;
+    }
     state.notes = on;
     save();
     renderRail();
@@ -1425,7 +1583,7 @@ fbStart();
 renderSidebar();
 makeFrames();
 setFrames(state.frames);
-new ResizeObserver(() => { if (state.view === 'wireframes') layoutFrames(); if (state.view === 'model') drawRels(); if (state.view === 'sitemap') sitemapFade(); }).observe($('#stage'));
+new ResizeObserver(() => { if (state.view === 'wireframes') layoutFrames(); if (state.view === 'model') { drawRels(); placeDrawer(); } if (state.view === 'sitemap') sitemapFade(); fbBoardPins(); fbAddButton(); }).observe($('#stage'));
 new ResizeObserver(() => { if (state.view === 'wireframes') layoutFrames(); }).observe($('#frames-wrap'));
 const startView = state.view;
 navigate(state.route || '/', { stay: true });

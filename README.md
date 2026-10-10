@@ -98,7 +98,8 @@ gets their improvements. What the prototype says is the site's own, one folder p
   page. An open comment has a slim reply box and one button for the next step: Mark done, Record decision (the team) or
   Reopen; the team's other actions, Make it a decision and Make a comment, sit in a ⋯ menu. A pin that covers
   something can be dragged to another spot, and pins to the element it's dropped on. A comment belongs to its version;
-  a decision shows in every version.
+  a decision shows in every version. The Sitemap and the Content model take comments too, from the Comments button in
+  their title bars, pinned to a page box or a card; All comments lists them after the pages.
 - **Decisions** come from comments. The team (a control panel login, a reviewer marked `team: true`, or
   `avoca:feedback`) raises a comment as a decision, or ticks Make it a decision as they post, and records what was
   decided. At sign-off, `php please avoca:feedback --write-decisions` copies them into `resources/site/decisions.md`.
@@ -111,7 +112,8 @@ gets their improvements. What the prototype says is the site's own, one folder p
   has no button. Notes for every page, `SITEWIDE`, show once, on the Sitemap tab below the tree, beside the menus. The panel stays out of sight until one of the two buttons opens it.
 - **The content model is the team's** until it is shared: a control panel login or a reviewer marked `team: true` sees
   the tab, marked Team, and nobody else does. `PROTOTYPE_CONTENT_MODEL=everyone` shows it to everyone; `off` hides it
-  from everyone. It hides the tab, not the data: `data.js` is in the page either way.
+  from everyone. It hides the tab, not the data: `data.js` is in the page either way. Selecting an item opens a
+  drawer from the right with its fields, relationships and pages; what the model holds sits in columns below the diagram.
 - **Display options** choose the frames, whether they scroll together, and the comment pins. Frames show just the
   page, with no browser bar. Both shows the desktop as a 1440 by 900 laptop scaled to fit beside the phone. Desktop on
   its own fills the stage edge to edge at full size, so the page lays out at the width it has. A site that needs
