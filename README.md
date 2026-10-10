@@ -96,7 +96,7 @@ gets their improvements. What the prototype says is the site's own, one folder p
   folded away, or all the feedback on the prototype, filtered to open, to decide or done, and switches the pins off and
   on; pointing at a comment shows its pin either way. Opening a comment brings its pin into sight, or takes you to its
   page. An open comment has a slim reply box and one button for the next step: Mark done, Record decision (the team) or
-  Reopen; the team's other actions, Make it a decision and Remove decision, sit in a ⋯ menu. A pin that covers
+  Reopen; the team's other actions, Make it a decision and Make a comment, sit in a ⋯ menu. A pin that covers
   something can be dragged to another spot, and pins to the element it's dropped on. A comment belongs to its version;
   a decision shows in every version.
 - **Decisions** come from comments. The team (a control panel login, a reviewer marked `team: true`, or

@@ -218,7 +218,9 @@ a.vm-i:hover, .vm-i.on { background: var(--surface-2); }
 
 /* Notes rail */
 .rail { background: var(--surface); border-left: 1px solid var(--line); overflow: auto; min-height: 0; }
-.rail-body { padding: 18px 20px 48px; display: flex; flex-direction: column; gap: 22px; }
+.rail-body { min-height: 100%; padding: 18px 20px 48px; display: flex; flex-direction: column; gap: 22px; }
+/* The Comments tab's foot: at the bottom of the panel, staying there over a list longer than the panel. */
+.fb-foot { position: sticky; bottom: 0; z-index: 2; margin: auto -20px -48px; padding: 10px 20px; border-top: 1px solid var(--line); background: var(--surface); }
 .rail h2 { font-size: 20px; font-weight: 600; line-height: 1.2; }
 .rail h3 { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 10px; }
 .rail-head { display: flex; flex-direction: column; gap: 8px; }
@@ -362,12 +364,12 @@ button.node:hover { border-color: var(--ink); }
 .fb-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .fb-where { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
 .fb-error { font-size: 12.5px; color: var(--drop); }
-.fbc { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.fbc { position: relative; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
 .fbc:not(.is-open) { cursor: pointer; }
 .fbc:not(.is-open):hover { border-color: var(--line-2); }
 .fbc.is-open { border-color: var(--line-2); background: var(--surface-2); }
 .fbc--decided, .fbc--resolved { border-left: 3px solid var(--ok); }
-.fbc-head { width: 100%; display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 10px; align-items: center; border: 0; background: none; padding: 10px 12px 4px; text-align: left; }
+.fbc-head { width: 100%; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; border: 0; background: none; padding: 10px 12px 4px; text-align: left; }
 .fbc-n { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 5px; border-radius: 999px; background: #3d4452; color: #fff; font: 600 11px/1 var(--mono); flex: none; }
 .fbc-n--decide { background: var(--pin); color: var(--pin-ink); }
 .fbc-n--decided { background: var(--ok); color: var(--ok-ink); }
@@ -383,7 +385,8 @@ button.node:hover { border-color: var(--ink); }
 .fbc-head[aria-expanded="true"] .fbc-chev svg { transform: rotate(180deg); }
 .fbc-head:hover .fbc-chev { color: var(--ink); }
 .fbc-meta b { font-size: 13px; font-weight: 600; color: var(--ink); }
-.fbc-state { font-size: 11px; font-weight: 600; padding: 1px 8px; border-radius: 999px; white-space: nowrap; border: 1px solid var(--line-2); color: var(--muted); }
+/* A decision's label sits over the card's top right corner. */
+.fbc-state { position: absolute; top: -9px; right: -6px; z-index: 1; font-size: 11px; font-weight: 600; line-height: 1.5; padding: 0 8px; border-radius: 999px; white-space: nowrap; border: 1px solid var(--line-2); background: var(--surface); color: var(--muted); }
 .fbc-state.decide { color: var(--pin); }
 .fbc-state.done { border-color: var(--ok); color: var(--ok-text); }
 .fbc-main { display: flex; flex-direction: column; gap: 8px; padding: 0 12px 12px 44px; }

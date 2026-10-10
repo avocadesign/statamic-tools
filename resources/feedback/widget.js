@@ -48,12 +48,12 @@
         '.chip[aria-pressed=true] span{color:inherit;opacity:.7}',
         '.body{flex:1;overflow:auto;padding:12px 16px;display:flex;flex-direction:column;gap:10px}',
         '.empty{margin:16px 0;color:var(--muted)}',
-        '.card{border:1px solid var(--line);border-radius:10px;background:var(--bg)}',
+        '.card{position:relative;border:1px solid var(--line);border-radius:10px;background:var(--bg)}',
         '.card:not(.is-open){cursor:pointer}',
         '.card:hover,.card.hot{border-color:var(--line-2)}',
         '.card.is-open{background:var(--soft);border-color:var(--line-2)}',
         '.card--done{border-left:3px solid var(--green)}',
-        '.card-head{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:10px;align-items:center;width:100%;padding:10px 12px 4px;border:0;background:transparent;text-align:left}',
+        '.card-head{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;width:100%;padding:10px 12px 4px;border:0;background:transparent;text-align:left}',
         '.num{flex:none;display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:11px;background:var(--note);color:var(--note-ink);font:700 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace}',
         '.num--decide{background:var(--amber);color:var(--amber-ink)}',
         '.num--done{background:var(--green);color:var(--green-ink)}',
@@ -70,7 +70,8 @@
         '.card-head[aria-expanded=true] .chev svg{transform:rotate(180deg)}',
         '.card-head:hover .chev{color:var(--ink)}',
         '.badge{padding:0 6px;border-radius:9px;background:var(--soft);color:var(--muted);font-size:11px;font-weight:600}',
-        '.state{padding:1px 8px;border:1px solid var(--line-2);border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap;color:var(--muted)}',
+        // A decision's label sits over the card's top right corner.
+        '.state{position:absolute;top:-9px;right:-6px;z-index:1;padding:0 8px;border:1px solid var(--line-2);border-radius:999px;background:var(--bg);font-size:11px;font-weight:600;line-height:1.5;white-space:nowrap;color:var(--muted)}',
         '.state.decide{color:var(--warn)}',
         '.state.done{border-color:var(--green);color:var(--green-text)}',
         '.card-main{display:flex;flex-direction:column;gap:8px;padding:0 12px 12px 44px}',
@@ -120,9 +121,9 @@
         '.group-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px}',
         '.group-h h3{margin:0;font-size:14px;font-weight:600;overflow-wrap:anywhere}',
         '.group-h span{color:var(--muted);font-size:12px;white-space:nowrap}',
-        '.foot{padding:10px 16px;border-top:1px solid var(--line)}',
+        '.foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;padding:10px 16px;border-top:1px solid var(--line)}',
         '.foot:empty{display:none}',
-        '.who{margin:0;color:var(--muted);font-size:12px;text-align:center}',
+        '.who{margin:0;color:var(--muted);font-size:12px}',
         '.signin{display:flex;flex-direction:column;gap:12px;padding:8px 0}',
         '.signin h3{margin:0;font-size:15px}',
         '.signin p{margin:0;color:var(--muted)}',
@@ -531,7 +532,9 @@
         } else {
             ui.bar.innerHTML = scopeBar();
             ui.body.innerHTML = (state.errorFor === 'panel' ? errorLine() : '') + (state.scope === 'all' ? allList() : pageList());
-            ui.foot.innerHTML = '<p class="who">Commenting as <b>' + esc(viewer.name) + '</b>' + (viewer.staff ? ' <span class="badge">team</span>' : '') +
+            // The pins switch and who's commenting, at the foot of the panel whatever scrolls above.
+            ui.foot.innerHTML = '<label class="toggle"><input type="checkbox" class="pins-toggle"' + (state.pins ? ' checked' : '') + '> Show comment pins</label>' +
+                '<p class="who"><b>' + esc(viewer.name) + '</b>' + (viewer.staff ? ' <span class="badge">team</span>' : '') +
                 ' · <button type="button" class="link sign-out">Sign out</button></p>';
         }
 
@@ -573,7 +576,6 @@
             (all ? '<button type="button" class="link" data-scope="page">This page</button>' : '<b>This page</b>') + '<span aria-hidden="true">·</span>' +
             (all ? '<b>All feedback</b>' : '<button type="button" class="link" data-scope="all">All feedback' + (open ? ' (' + open + ' open)' : '') + '</button>') +
             '</p><button type="button" class="ghost small add" aria-pressed="' + state.picking + '">Add comment</button></div>' +
-            '<label class="toggle"><input type="checkbox" class="pins-toggle"' + (state.pins ? ' checked' : '') + '> Show comment pins</label>' +
             (all ? '<div class="chips" role="group" aria-label="Show">' + FILTERS.map(function (f) {
                 var n = filtered(f[0]).length;
                 return '<button type="button" class="chip" data-show="' + f[0] + '" aria-pressed="' + (state.show === f[0]) + '">' + f[1] + (n ? ' <span>' + n + '</span>' : '') + '</button>';
@@ -622,9 +624,10 @@
             '<div class="row"><button class="primary">Post</button><button type="button" class="ghost cancel-compose">Cancel</button></div></form>';
     }
 
-    // A comment is labelled only Comment or Decision; the colour says where it stands, with a tick once it's done.
+    // Only a decision is labelled, on the card's top right corner: amber while it's to make, green with a tick once done.
     function stateBadge(c) {
-        return '<span class="state ' + (done(c) ? 'done' : c.decision ? 'decide' : 'comment') + '">' + (done(c) ? '✓ ' : '') + (c.decision ? 'Decision' : 'Comment') + '</span>';
+        if (!c.decision) return '';
+        return '<span class="state ' + (done(c) ? 'done' : 'decide') + '">' + (done(c) ? '✓ ' : '') + 'Decision</span>';
     }
 
     function by(person, time) {
@@ -658,7 +661,7 @@
         else if (c.status === 'resolved') next = ['reopen', 'Reopen'];
         else if (c.decision) { if (staff()) { next = ['decide', 'Record decision']; more.push(['resolve', 'Mark done']); } }
         else next = ['resolve', 'Mark done'];
-        if (staff()) more.push(c.decision ? ['drop', 'Remove decision'] : ['raise', 'Make it a decision']);
+        if (staff()) more.push(c.decision ? ['drop', 'Make a comment'] : ['raise', 'Make it a decision']);
         return { next: next, more: more };
     }
 

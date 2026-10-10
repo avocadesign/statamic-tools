@@ -995,10 +995,10 @@ function fbCompose() {
     </form>`;
 }
 
-// A comment is labelled only Comment or Decision; the colour says where it stands, with a tick once it's done.
+// Only a decision is labelled, on the card's top right corner: amber while it's to make, green with a tick once done.
 function fbState(c) {
-    const kind = fbIsDone(c) ? 'done' : c.decision ? 'decide' : 'comment';
-    return `<span class="fbc-state ${kind}">${fbIsDone(c) ? '✓ ' : ''}${c.decision ? 'Decision' : 'Comment'}</span>`;
+    if (!c.decision) return '';
+    return `<span class="fbc-state ${fbIsDone(c) ? 'done' : 'decide'}">${fbIsDone(c) ? '✓ ' : ''}Decision</span>`;
 }
 
 function fbCard(c) {
@@ -1034,7 +1034,7 @@ function fbActions(c) {
     else if (c.status === 'resolved') next = ['reopen', 'Reopen'];
     else if (c.decision) { if (staff) { next = ['decide', 'Record decision']; more.push(['resolve', 'Mark done']); } }
     else next = ['resolve', 'Mark done'];
-    if (staff) more.push(c.decision ? ['drop', 'Remove decision'] : ['raise', 'Make it a decision']);
+    if (staff) more.push(c.decision ? ['drop', 'Make a comment'] : ['raise', 'Make it a decision']);
     return { next, more };
 }
 
@@ -1061,7 +1061,12 @@ function fbThread(c) {
 function fbPanel(pr) {
     if (!fb.session) return '<p class="note-line">Loading the comments…</p>';
     if (!fbSigned()) return `<section class="fb-section">${fbSignIn()}</section>`;
-    return state.fbList === 'all' ? fbAll() : fbSection(pr);
+    return (state.fbList === 'all' ? fbAll() : fbSection(pr)) + fbFoot();
+}
+
+// The pins switch, pinned to the foot of the panel over whatever scrolls beneath it.
+function fbFoot() {
+    return `<div class="fb-foot"><label class="toggle"><input type="checkbox" data-fb-pins${state.pins ? ' checked' : ''}> Show comment pins</label></div>`;
 }
 
 // This page or all feedback, and the Comment button.
@@ -1071,8 +1076,7 @@ function fbScopeBar() {
     return `<div class="fb-h">
         <p class="fb-scope">${all ? '<button type="button" class="link-btn" data-fb-list="page">This page</button>' : '<b>This page</b>'}<span aria-hidden="true">·</span>${all ? '<b>All feedback</b>' : `<button type="button" class="link-btn" data-fb-list="all">All feedback${open ? ` (${open} open)` : ''}</button>`}</p>
         <button type="button" class="btn small" data-fb-act="comment" aria-pressed="${fb.picking}">Add comment</button>
-    </div>
-    <label class="toggle"><input type="checkbox" data-fb-pins${state.pins ? ' checked' : ''}> Show comment pins</label>`;
+    </div>`;
 }
 
 // The page's comments: decisions to make, then open comments, with everything done folded away.
