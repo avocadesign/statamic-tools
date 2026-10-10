@@ -16,6 +16,7 @@ Don't edit this file in `vendor/`. If a step is wrong, missing or contradicted b
 3. Open `/site/content` for a live preview of every block and set, and `/site/style` for colours, typography, spacing, buttons and colour schemes. On production both need a logged-in Statamic user.
 4. Run `php please avoca:library --json` to see what Avoca's library can install. Each item has a `handle`, `name`, `category` (`blocks`, `sets` or `presets`), `version`, `status` (`not installed`, `installed` or `update available`), `description`, and the `blocks` and `sets` it adds. `resources/site/installed.yaml` records what this site has installed, and at which version.
 5. Find out how the site is hosted and whether it will be generated as a static site. See [Static generation rules](#static-generation-rules) and [Hosting](#hosting).
+6. If the site is designed in Paper, read [Designs from Paper](#designs-from-paper) before you build anything from the design.
 
 ## How an Avoca site is put together
 
@@ -105,6 +106,77 @@ Don't edit this file in `vendor/`. If a step is wrong, missing or contradicted b
 - Start a design in the tokens, not in the blocks: colours and the colour schemes in `resources/css/colours.css`, fonts and the type scale in `resources/css/theme.css` (font files in `resources/css/fonts.css`), and heading sizes and text styles in `resources/css/typography.css`. `resources/css/site.css` imports them. CSS for a component goes in its own file in `resources/css/components/`, imported from `site.css` in the components layer like the files already there.
 - Check a token change on `/site/style`, then on `/site/content`, before you change any block.
 - If the site's blocks can reach a design through tokens and display settings, build it that way. A more complex design needs a new block: follow the decision order below.
+
+## Designs from Paper
+
+Some sites are designed in Paper between the prototype and the build. The prototype's pages go up into a Paper file, the design is done there, and it comes back down into the site. That only works when Paper and the site use the same names, so the Paper file holds the site's own design tokens, and anything that comes back as a plain number is turned into the site's token, utility or setting before it reaches a template. Commands that move the tokens each way are planned. Until they exist, do it by hand with Paper's tools, as below.
+
+The numbers in this section are the kit's defaults. Where a site has changed its tokens, take its own values from `/site/style` at the same width.
+
+### Two widths
+
+- Design each page at two artboard widths: 390 for a phone, the width of the prototype's phone frame, and 1440 for a desktop.
+- At 1440 every fluid value is at its largest and the grid is at its full width, so each token has one pixel value there. On a phone the type scale is at its smallest: the kit's sizes stop shrinking at 360, and at 390 they are less than a pixel bigger. The two ends of the scale are in the Utopia link above the type scale in `resources/css/theme.css`.
+- Nothing in between is drawn. Build the phone design as the base classes and the desktop design at `lg:`, decide what happens at `md:` yourself, and check 768 in the visual review.
+
+### Up to Paper
+
+1. Put the client's colours into `resources/css/colours.css` first, at least `--color-primary`, and check them on `/site/style`. Paper gets the real palette. The prototype's greys stay in the prototype.
+2. Create the tokens in the Paper file with `create_tokens`, under the site's own names:
+
+| From the site | As Paper tokens |
+| --- | --- |
+| Colours in `colours.css`: the `--color-*` palette, `--body-color`, `--headings-color`, and the button, border and divider tokens | `color`, same names. Keep a token that points at another as `var(--other)`, so changing the primary colour in Paper moves the buttons with it. Give the greys their resolved values from `/site/style`: they point at Tailwind's slate, which isn't in the site's files. |
+| The type scale, `--text-*`, which is fluid | `fontSize`, two per step, in px: `--text-xl` at its desktop size and `--text-xl-phone` at its phone size. |
+| Heading and text sizes, `--typography-h1` to `--typography-h6`, `--typography-lede` and `--typography-base` | `fontSize`, as aliases of the steps they use: `--typography-h1: var(--text-4xl)` and `--typography-h1-phone: var(--text-4xl-phone)`. A designer picks H1 to H6, not a step. |
+| Line heights, `--typography-line-height` and `--typography-headings-line-height` | `lineHeight`, same names, unitless. |
+| Fonts, `--font-*` | `fontFamily`, same names. |
+| The font weights the site enables, `--font-weight-*` | `fontWeight`, same names. The kit enables 400, 500 and 700. |
+| Tailwind's spacing unit, `--spacing`, 4px | `spacing`, one token per utility step, named after it: `--spacing-1` (4px), `-2`, `-3`, `-4`, `-5`, `-6`, `-8`, `-10`, `-12`, `-16`, `-20` and `-24` (96px). These exist only in Paper. Never write them into the site. |
+| The block rhythm, `--block-space`, `--block-space-md`, `--block-space-lg`, and `--scheme-block-padding` | `spacing`, same names. |
+| The grid | `container`: `--container-content`, the content width, 1280px. `spacing`: `--spacing-col-gap`, 32px, and `--spacing-col-gap-phone`, 16px. Paper has no grid, so name each section's content layer after its span class, such as `span-lg`. |
+| Corner radius, `--radius-*` | `radius`, same names. |
+| Breakpoints, `--breakpoint-*` | `breakpoint`, same names. |
+
+3. Bring the prototype's pages in with `write_html`, one section at a time, at both widths. Write every style as `var(--token)`, never as its value, so the design stays tied to the tokens. Name each section's layer after what the prototype calls it, so the build can tell which block or text editor set it becomes.
+
+### Back down from Paper
+
+Read the design with `get_jsx` and `get_computed_styles`, its images with `get_fill_image`, and the file's tokens with `get_tokens` in its `tailwind` format. Never build from a screenshot. Use screenshots only to check what you built.
+
+Every value that comes back is one of three things:
+
+- **A token the site has**, written as `var(--token)`. Use the site's token, or the utility or class built on it.
+- **A token the site doesn't have**, which the designer added in Paper. That is a design token decision. Put it in the plan, and once it is approved add it to the file its kind lives in, as [Colours and design tokens](#colours-and-design-tokens) lists, never to a block.
+- **A plain number.** Convert it with the table below. A value within the tolerance of a token is that token, because a designer nudging a box is not asking for a new size. Anything further off goes in the plan as a question, never into a template as an arbitrary value such as `text-[22px]`, `p-[18px]` or `bg-[#1d4ed8]`.
+
+| Comes back from Paper | Becomes in the site |
+| --- | --- |
+| A colour | The colour token it matches, when the two can't be told apart: a difference in OKLCH under about 0.02. A token at reduced opacity is the token with an opacity modifier, such as `bg-primary/10`, or a `color-mix()` token in `colours.css` when it must follow the colour scheme or appears more than once. |
+| A section's background in the light grey, the brand colour or the dark | The block's Colour Scheme: Light, Primary or Dark. Never a background class on a block. The scheme brings its own text colours and its padding, `--scheme-block-padding`, 48px. |
+| Text in the body or heading colour | Nothing: the scheme sets it. Any other text colour, such as a muted grey, is a token in `colours.css` overridden under each scheme, never a text colour utility. |
+| A font size | The step whose size at that artboard's width is within a pixel of it. At 1440, `xs` to `9xl` are 12.8, 16, 20, 25, 31.25, 39.06, 48.83, 61.04, 76.29, 95.37, 119.21 and 149.01. At 390 the same steps are 11.17, 13.42, 16.14, 19.4, 23.32, 28.04, 33.71, 40.54, 48.75, 58.63, 70.52 and 84.82. `4xl` and `5xl` share a size in the kit: use `4xl`. Then use the element or the class rather than the utility: a heading at H2's size is an `<h2>` or `heading-size-2`, body copy takes nothing, a lede is `lede`, and only other text takes `text-*`. |
+| A different size on a phone and a desktop | One class, when the phone size is the same step's phone size: the fluid scale shrinks every step by itself. When it isn't, the element changes step at a breakpoint, which `heading-size-*` can't do because it isn't a utility, so put it in the plan. |
+| A line height | Divide it by the font size. 1.5 on body copy and 1.2 on headings come with the element and take nothing. Any other ratio is a `leading-*` utility on text that isn't a heading, or a decision. |
+| Letter spacing | In em, or px divided by the font size: Tailwind's `tracking-tighter` (-0.05em), `tracking-tight` (-0.025em), `tracking-wide` (0.025em), `tracking-wider` (0.05em) or `tracking-widest` (0.1em). Tracking on every heading is a change to `typography.css`, not a class on each block. |
+| A font weight | 400 is `font-normal`, 500 `font-medium` and 700 `font-bold`. Any other weight isn't enabled: it needs the weight in `theme.css` and its font file in `fonts.css`, so put it in the plan. |
+| A font family | The `--font-*` token it matches. A new family needs its font files and a licence for the web, so ask the developer before building with it. |
+| A gap or padding | Divide by 4 for the utility step: 24px is `gap-6`, 32px is `p-8`. Within 2px of a step, use the step. Different on a phone and a desktop, use both: `gap-4 lg:gap-8`. Space between things stacked in a column is `stack-*`, not margins. |
+| Space between two sections | Not a margin. The page builder spaces its blocks by itself: 48px on a phone, 64px from `md` and 72px from `lg`. Less space around one block is its Block Margins setting, half or none above, none below. A different space between every block is a change to the `--block-space` tokens. Never a margin class on a block. |
+| A width or a left edge | A place on the grid. At 1440 the content runs from 80 to 1360 in 12 columns, each 77.33px with 32px gaps, so column n starts at 80 + (n - 1) × 109.33 and k columns are k × 109.33 - 32 wide. All 12 columns are `span-content`, 10 from column 2 `span-xl`, 8 from column 3 `span-lg`, 6 from column 4 `span-md`, and edge to edge is `span-full`. Anything else is `col-start` and `col-span` at `lg:`. On a phone everything is `span-content`, 32px in from each side, unless it runs edge to edge. |
+| Text narrower than its column | A narrower span first. Failing that, a measure in `ch`, such as `max-w-prose`, never a width in px. |
+| An image at a fixed size | Its ratio, through the image's Crop option: Landscape (3:2), Video (16:9), Square (1:1), Portrait (2:3) or No Crop. Never a fixed height. |
+| A corner radius | `rounded-xs` 2px, `rounded-sm` 4px, `rounded-md` 6px, `rounded-lg` 8px, `rounded-xl` 12px, `rounded-2xl` 16px, `rounded-3xl` 24px, `rounded-4xl` 32px. Buttons take theirs from `buttons.css`. |
+| A border | 1px is `border`, 2px `border-2`, coloured with `--border-colour` or `--divider-colour` so it follows the scheme. |
+| A shadow | The nearest `shadow-*` utility, or a token when the design uses the same one more than once. Paper has no shadow tokens, so shadows always come back as values. |
+| Things overlapping, or placed absolutely | Two items in the same grid row, or a decision. Put it in the plan. |
+| A button | The site's button partial, in the style it matches: primary, primary outline, light, light outline or inline. A button that matches none of them is a change to the button tokens in `colours.css`, which changes every button, so put it in the plan. Hover and focus come from the same tokens, because Paper shows only one state. |
+| An image | Content. Save it with `get_fill_image` into the images container under a file name that says what it shows, give it alt text, and set it on the entry. Never put it in a template. |
+| A logo or an icon | An SVG file: one the site already has, or exported from Paper. Never redrawn. |
+| Text | Content. It goes in entries and globals, never into a template. Text in [square brackets] is the prototype's placeholder copy, not the client's, so flag any that is still there. |
+| A part repeated across pages, such as a card | The decision order below: a block the site has, a library item, a change to a block, then a new block. |
+
+When a page is built, screenshot it at 390 and 1440 beside the Paper artboards, and list in the pull request every value that matched no token and what you did with it.
 
 ## Deciding how to build it
 
@@ -421,6 +493,7 @@ Before you change any file, write a short plan and wait for the developer to app
 - for a block or set: its fields, content first and then display settings, its group, and any token you will add;
 - for a collection: the answers you will give `avoca:make:collection`;
 - anything that depends on how the site is hosted, or on static generation;
+- for a design from Paper: every value that matched no token, and what you propose for each one;
 - anything you will leave out.
 
 Don't build until the developer approves. If the work stops matching the plan, stop and say so.
