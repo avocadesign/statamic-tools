@@ -2,6 +2,13 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.37 (10 October 2026)
+
+- **Site-wide notes show once, in the Sitemap's panel,** under Header and footer beside the menus, rather than in every page's notes. A page now has notes, and a Notes button, only when it has something of its own.
+- **The recipe says what site-wide notes are for:** the rare point every page shares that the pages can't show. Page notes don't describe the header, menus or footer, which every page draws and the Sitemap lists; anything to agree about them is a comment pinned on them. Most sites leave `SITEWIDE` empty.
+- **Fixed: the Sitemap and Content model tabs draw their side panels again.** Since v0.1.34 the line that places Add comment sat inside the code that fills the panel, so on those tabs it kept showing whatever was there before.
+- **To do on update:** nothing; a site's site-wide notes move to its Sitemap panel. Delete any that only describe the header, menus or footer.
+
 ## v0.1.36 (10 October 2026)
 
 - **The recipe says decisions belong in the comments, not the notes.** Notes say what is settled and stay clean and short; a question, a choice or anything still to agree is a comment raised as a decision.

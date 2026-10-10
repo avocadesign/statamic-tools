@@ -236,10 +236,10 @@ function renderRail() {
     $('#fb-comment').setAttribute('aria-expanded', String(open && tab === 'comments'));
     if (state.view !== 'wireframes' || state.step < 0) $$('.device').forEach(d => d.classList.remove('dim'));
     if (state.view === 'wireframes') body.innerHTML = off ? '' : notesRail();
-    if (typeof fbAddButton === 'function' && $('#fb-add')) requestAnimationFrame(fbAddButton);
     else if (state.view === 'sitemap') body.innerHTML = sitemapRail();
     else if (state.view === 'model') body.innerHTML = modelRail();
     else body.innerHTML = '';
+    requestAnimationFrame(fbAddButton);
 }
 
 // The panel's tab: Notes or Comments, or whichever of them the page has.
@@ -255,11 +255,10 @@ function togglePanel(tab) {
     if (tab === 'comments') fbRefresh();
 }
 
-// Whether a page has notes of its own, or notes for every page.
+// Whether a page has notes of its own. Notes for every page are shown once, in the Sitemap's panel, never on each page.
 function pageHasOwnNotes(pr) {
     const n = Object.assign({ purpose: '', aud: [], content: [], consider: [], tech: [], fed: [] }, NOTES[pr.key]);
-    return Boolean(n.purpose || n.aud.length || n.content.length || n.consider.length || n.tech.length || (VIEWS.model && n.fed.length)
-        || SITEWIDE.consider.length || SITEWIDE.tech.length);
+    return Boolean(n.purpose || n.aud.length || n.content.length || n.consider.length || n.tech.length || (VIEWS.model && n.fed.length));
 }
 // The panel shows for a page with notes, and for every page with feedback on, for its comments.
 const pageHasNotes = pr => FB.on || pageHasOwnNotes(pr);
@@ -302,9 +301,6 @@ function pageNotes(pr) {
         </section>` : ''}
         <div class="folds">
             ${n.content.length ? fold('Content to prepare', n.content.length, `<ol class="content-list">${n.content.map(c => `<li>${esc(c[0])}${c[1] ? `<span>${esc(c[1])}</span>` : ''}</li>`).join('')}</ol>`) : ''}
-            ${SITEWIDE.consider.length || SITEWIDE.tech.length ? fold('Site-wide: header and footer', '', `
-                ${SITEWIDE.consider.length ? bullets(SITEWIDE.consider) : ''}
-                ${SITEWIDE.tech.length ? `<div><p class="fold-h">Technical</p>${sentences(SITEWIDE.tech)}</div>` : ''}`) : ''}
             ${n.tech.length || fed ? fold('Technical notes', '', `
                 ${n.tech.length ? sentences(n.tech) : ''}
                 ${fed ? `<div><p class="fold-h">Content comes from</p><div class="chips">${fed}</div></div>` : ''}`) : ''}
@@ -463,6 +459,8 @@ function renderSitemap() {
 }
 function sitemapRail() {
     const footer = SITEMAP.flatMap(c => [c, ...(c.kids || [])]).filter(c => c.nav === 'footer' || c.foot);
+    // Anything for every page that the pages can't show, once, beside the menus.
+    const sitewide = [...(SITEWIDE.consider || []), ...(SITEWIDE.tech || [])];
     return `
         <div class="rail-head"><h2>About the sitemap</h2><p class="purpose" style="font-size:14px">${esc(PROJECT.sitemapIntro)}</p></div>
         <section><h3>Menus</h3>
@@ -471,6 +469,7 @@ function sitemapRail() {
                 <div><p style="font-weight:600;margin-bottom:6px">Footer</p><ol>${(FOOTER_NAV.length ? FOOTER_NAV.map(l => l[0]) : footer.map(c => c.t)).map(t => `<li>${esc(t)}</li>`).join('')}</ol></div>
             </div>
         </section>
+        ${sitewide.length ? `<section><h3>Header and footer</h3><div class="tech">${sitewide.map(t => `<p>${esc(t)}</p>`).join('')}</div></section>` : ''}
         ${SOURCE_MAP.length ? `<section><h3>Where the source documents go</h3>${sourceMap()}</section>` : ''}
         ${CHANGES.length ? `<section><h3>What changed since the proposal</h3>${changesList()}</section>` : ''}`;
 }

@@ -108,7 +108,7 @@ gets their improvements. What the prototype says is the site's own, one folder p
   the timeline's layout with `mode: true`; the frame's `<html>` carries `data-option-<id>` for CSS, and a comment
   records which choices were showing.
 - **Notes.** The Notes button opens the page's notes beside the comments, with every section open. A page without notes
-  has no button. The panel stays out of sight until one of the two buttons opens it.
+  has no button. Notes for every page, `SITEWIDE`, show once, in the Sitemap's panel beside the menus. The panel stays out of sight until one of the two buttons opens it.
 - **The content model is the team's** until it is shared: a control panel login or a reviewer marked `team: true` sees
   the tab, marked Team, and nobody else does. `PROTOTYPE_CONTENT_MODEL=everyone` shows it to everyone; `off` hides it
   from everyone. It hides the tab, not the data: `data.js` is in the page either way.
