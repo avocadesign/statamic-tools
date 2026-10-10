@@ -2,6 +2,13 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.41 (10 October 2026)
+
+- **The content model's drawer makes room for itself.** Where there's space, the diagram moves over while the drawer is open, beside the Comments panel too, so no card is ever under it, and takes the full width back when it closes. On a narrow screen it still covers the diagram.
+- **Fixed: the sitemap's lines join up.** The line under a page now starts at its box and stops at its last child, and each branch reaches its box. Before, it began a little below the box, ran on past the last child, and stopped just short of each box.
+- **Each tab opens at its top.** The Sitemap and the Content model no longer open scrolled to wherever the last tab was left.
+- **To do on update:** nothing.
+
 ## v0.1.40 (10 October 2026)
 
 - **Comments on the Sitemap and the Content model.** Each has a title bar, like a page's in the prototype, with a Comments button that opens the comments panel beside it. Add comment pins a comment to a page box or a card, or to an empty spot, and the pins sit on the diagram as they do on the pages. All comments lists them under Sitemap and Content model, after the pages, and opening one takes you to its tab. `avoca:feedback` names the tab as the comment's place.

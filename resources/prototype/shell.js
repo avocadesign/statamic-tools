@@ -194,6 +194,8 @@ function layoutFrames() {
 /* ---------- Top bar ---------- */
 
 function setView(v) {
+    // Each tab opens at its top: they share the stage's scroll.
+    if (v !== state.view) $('#stage').scrollTop = 0;
     state.view = v;
     fb.board = false;
     save();
@@ -673,24 +675,36 @@ function entDrawer(e) {
 function showEntity() {
     const drawer = $('#ent-drawer');
     const e = state.view === 'model' && MODEL.find(m => m.id === state.entity);
-    if (state.view === 'model') drawRels();
-    if (!e) { drawer.hidden = true; drawer.innerHTML = ''; return; }
-    const opening = drawer.hidden;
-    drawer.innerHTML = entDrawer(e);
-    drawer.setAttribute('aria-label', e.name);
-    drawer.hidden = false;
+    const opening = !!e && drawer.hidden;
+    if (e) {
+        drawer.innerHTML = entDrawer(e);
+        drawer.setAttribute('aria-label', e.name);
+    } else drawer.innerHTML = '';
+    drawer.hidden = !e;
     placeDrawer();
+    if (state.view === 'model') { drawRels(); fbBoardPins(); }
     if (opening) $('[data-ent-clear]', drawer).focus({ preventScroll: true });
 }
 
 // The drawer runs down the right of the stage, below the title bar, and beside the Comments panel when it's open.
+// Where there's room, the diagram moves over for it, so nothing is ever under it, and takes the width back when it
+// closes; on a narrow screen it covers the diagram instead.
+const DRAWER_W = 400, DRAWER_ROOM = 520;
 function placeDrawer() {
     const drawer = $('#ent-drawer');
+    const view = $('#view-model');
+    const stage = $('#stage');
+    const inner = stage.clientWidth;
+    const w = Math.min(DRAWER_W, inner);
+    const docked = !drawer.hidden && inner - w >= DRAWER_ROOM;
+    view.classList.toggle('drawer-open', docked);
+    view.style.setProperty('--drawer', `${w}px`);
+    drawer.classList.toggle('docked', docked);
     if (drawer.hidden) return;
-    const s = $('#stage').getBoundingClientRect();
+    const s = stage.getBoundingClientRect();
     const bar = $('#view-model .board-bar');
-    const w = Math.min(420, s.width);
-    Object.assign(drawer.style, { top: `${bar ? bar.getBoundingClientRect().bottom : s.top}px`, bottom: `${innerHeight - s.bottom}px`, left: `${s.right - w}px`, width: `${w}px` });
+    const top = Math.max(0, bar ? bar.getBoundingClientRect().bottom : s.top);
+    Object.assign(drawer.style, { top: `${top}px`, bottom: `${Math.max(0, innerHeight - s.bottom)}px`, left: `${s.left + stage.clientLeft + inner - w}px`, width: `${w}px` });
 }
 
 /* ---------- Feedback ---------- */
@@ -1583,8 +1597,9 @@ fbStart();
 renderSidebar();
 makeFrames();
 setFrames(state.frames);
-new ResizeObserver(() => { if (state.view === 'wireframes') layoutFrames(); if (state.view === 'model') { drawRels(); placeDrawer(); } if (state.view === 'sitemap') sitemapFade(); fbBoardPins(); fbAddButton(); }).observe($('#stage'));
+new ResizeObserver(() => { if (state.view === 'wireframes') layoutFrames(); if (state.view === 'model') { placeDrawer(); drawRels(); } if (state.view === 'sitemap') sitemapFade(); fbBoardPins(); fbAddButton(); }).observe($('#stage'));
 new ResizeObserver(() => { if (state.view === 'wireframes') layoutFrames(); }).observe($('#frames-wrap'));
+addEventListener('scroll', () => { if (!$('#ent-drawer').hidden) placeDrawer(); }, { passive: true });
 const startView = state.view;
 navigate(state.route || '/', { stay: true });
 setView(startView);

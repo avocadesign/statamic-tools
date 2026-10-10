@@ -327,10 +327,13 @@ a.vm-i:hover, .vm-i.on { background: var(--surface-2); }
 .sm-cols.one::before { display: none; }
 .sm-col { position: relative; display: flex; flex-direction: column; align-items: stretch; }
 .sm-col::before { content: ""; position: absolute; top: -24px; left: 50%; height: 24px; width: 2px; background: var(--line-2); }
-.sm-kids { list-style: none; display: flex; flex-direction: column; gap: 10px; margin: 12px 0 0 10px; padding-left: 12px; border-left: 2px solid var(--line-2); }
-.sm-kids .sm-kids { margin-top: 10px; }
+/* A page's children hang from a line that starts at its box and stops at the last child's branch: each child draws
+   its branch and the line down to it, and every child but the last carries the line on past itself. */
+.sm-kids { list-style: none; display: flex; flex-direction: column; gap: 10px; margin-left: 10px; padding: 10px 0 0 14px; }
 .sm-kids > li { position: relative; }
-.sm-kids > li::before { content: ""; position: absolute; left: -14px; top: 20px; width: 12px; height: 2px; background: var(--line-2); }
+.sm-kids > li::before { content: ""; position: absolute; left: -14px; top: 20px; width: 14px; height: 2px; background: var(--line-2); }
+.sm-kids > li::after { content: ""; position: absolute; left: -14px; top: -10px; bottom: 0; width: 2px; background: var(--line-2); }
+.sm-kids > li:last-child::after { bottom: auto; height: 32px; }
 .node { position: relative; display: flex; flex-direction: column; gap: 4px; width: 100%; text-align: left; padding: 10px 12px; border-radius: 8px; border: 1.5px solid var(--line-2); background: var(--surface); font-size: 13px; }
 button.node:hover { border-color: var(--ink); }
 .node.top { border-width: 2px; border-color: var(--ink); }
@@ -371,9 +374,12 @@ button.node:hover { border-color: var(--ink); }
 .ent-m { display: block; font-size: 11px; line-height: 1.5; color: var(--muted); overflow-wrap: anywhere; }
 .ent-m code { font-family: var(--mono); color: var(--ink-2); }
 .ent-meta { display: flex; flex-direction: column; gap: 2px; }
-/* The selected item, in a drawer from the right over the diagram, below its title bar. */
+/* The selected item, in a drawer from the right below the title bar. Where there's room the diagram moves over for it;
+   on a narrow screen it covers the diagram. */
 .ent-drawer { position: fixed; z-index: 35; display: flex; flex-direction: column; background: var(--surface); border-left: 1px solid var(--line-2); box-shadow: -16px 0 40px rgb(0 0 0 / .35); transition: transform .22s ease; }
 .ent-drawer[hidden] { display: none; }
+.ent-drawer.docked { box-shadow: none; }
+#view-model.drawer-open .canvas { margin-right: var(--drawer); }
 @starting-style { .ent-drawer { transform: translateX(100%); } }
 @media (prefers-reduced-motion: reduce) { .ent-drawer { transition: none; } }
 .drawer-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px 10px 20px; border-bottom: 1px solid var(--line); }
