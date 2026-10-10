@@ -131,6 +131,11 @@ class FeedbackTest extends TestCase
         $html = $middleware->handle(Request::create('/about'), $page('<html><body><p>Hi</p></body></html>'))->getContent();
         $this->assertMatchesRegularExpression('#<p>Hi</p><script defer src="/!/statamic-tools/feedback/loader\.js\?v=\w+" data-feedback="/!/statamic-tools/feedback"[^>]*></script>\s*</body>#', $html);
 
+        // Without a list of reviewers the tab waits for ?review; with one, it shows to everyone.
+        $this->assertStringContainsString('data-feedback-open=""', $html);
+        $this->reviewers("reviewers:\n  - name: Jane Client\n    email: jane@example.com\n");
+        $this->assertStringContainsString('data-feedback-open="1"', $middleware->handle(Request::create('/about'), $page('<html><body></body></html>'))->getContent());
+
         $this->assertSame('{"a":1}', $middleware->handle(Request::create('/about'), $page('{"a":1}', 200, 'application/json'))->getContent());
         $this->assertSame('<body>missing</body>', $middleware->handle(Request::create('/gone'), $page('<body>missing</body>', 404))->getContent());
         $this->assertSame('<body>form</body>', $middleware->handle(Request::create('/about', 'POST'), $page('<body>form</body>'))->getContent());
@@ -245,8 +250,9 @@ class FeedbackTest extends TestCase
         $this->comment('/about');
         $payload = ['context' => 'prototype', 'version' => '2', 'page' => 'contact', 'route' => '/contact', 'frame' => 'mobile', 'url' => '/contact', 'body' => 'Phone number?', 'anchor' => ['selector' => 'form label', 'x' => 0.1, 'y' => 0.5]];
 
-        $comment = $this->signedIn()->postJson('/!/statamic-tools/feedback/comments', $payload)->assertCreated()->json('comment');
+        $comment = $this->signedIn()->postJson('/!/statamic-tools/feedback/comments', [...$payload, 'options' => ['Chapters' => 'Report years']])->assertCreated()->json('comment');
         $this->assertSame(['prototype', '2', 'contact', '/contact', 'mobile'], [$comment['context'], $comment['version'], $comment['page'], $comment['route'], $comment['frame']]);
+        $this->assertSame(['Chapters' => 'Report years'], $comment['options']);
 
         // A reviewer who isn't the team can't raise a decision as they post.
         $this->signedIn()->postJson('/!/statamic-tools/feedback/comments', [...$payload, 'decision' => true])->assertForbidden();

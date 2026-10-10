@@ -15,6 +15,9 @@ function decNum(id) { return id.replace('D', ''); }
 // and pinned where they were made, so a page that still calls these draws nothing.
 function pin() { return ''; }
 function toConfirm() { return ''; }
+// The choice showing for one of the page's options (OPTIONS in data.js), for a page that draws itself differently for
+// each: ${option('chapters') === 'years' ? yearsTimeline() : shiftsTimeline()}. Undefined outside a frame's drawing.
+function option(id) { return window.OPTION_NOW ? window.OPTION_NOW[id] : undefined; }
 function flag(text) { return `<span class="wf-flag">${esc(text)}</span>`; }
 function img(label, ratio = '3/2', cls = '') {
     return `<div class="wf-img ${cls}" style="aspect-ratio:${ratio}"><span>${esc(label)}</span></div>`;

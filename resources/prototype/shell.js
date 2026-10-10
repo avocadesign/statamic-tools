@@ -7,7 +7,8 @@ const STORE = `${PROJECT.key}-prototype-v1`;
 const state = Object.assign({
     view: 'wireframes', route: '/', frames: 'both', pins: true, rail: 'notes',
     journey: JOURNEYS[0]?.id, step: -1, modes: { desktop: 'pinned', mobile: 'swipe' }, entity: null,
-    sync: true, notes: false, side: false, railTab: 'notes', fbList: 'page', fbShow: 'open', fbScope: 'version'
+    sync: true, notes: false, side: false, railTab: 'notes', fbList: 'page', fbShow: 'open', fbScope: 'version',
+    opts: {}, optsOpen: true
 }, (() => { try { return JSON.parse(localStorage.getItem(STORE) || '{}'); } catch (e) { return {}; } })());
 state.step = -1;
 // Page notes and journeys start collapsed on every visit, whatever was open last time.
@@ -20,7 +21,7 @@ const VIEWS = Object.assign({ model: true, model_team_only: false }, window.PROT
 // A view saved by an older prototype, or one this viewer doesn't have, opens the pages instead.
 if (!['wireframes', 'sitemap', 'model'].includes(state.view) || (state.view === 'model' && !VIEWS.model)) state.view = 'wireframes';
 function save() {
-    try { localStorage.setItem(STORE, JSON.stringify({ view: state.view, route: state.route, frames: state.frames, pins: state.pins, modes: state.modes, entity: state.entity, journey: state.journey, sync: state.sync, railTab: state.railTab, fbList: state.fbList, fbShow: state.fbShow, fbScope: state.fbScope, welcomed: state.welcomed })); } catch (e) { /* storage unavailable */ }
+    try { localStorage.setItem(STORE, JSON.stringify({ view: state.view, route: state.route, frames: state.frames, pins: state.pins, modes: state.modes, entity: state.entity, journey: state.journey, sync: state.sync, railTab: state.railTab, fbList: state.fbList, fbShow: state.fbShow, fbScope: state.fbScope, opts: state.opts, optsOpen: state.optsOpen, welcomed: state.welcomed })); } catch (e) { /* storage unavailable */ }
 }
 const pagesFor = id => ROUTES.filter(r => (NOTES[r.key]?.fed || []).includes(id));
 
@@ -54,10 +55,14 @@ function renderFrame(name, highlight) {
     const f = FR[name];
     if (!f.ready) return;
     const pr = parseRoute(state.route);
+    // option(id), in pages.js, reads the choices showing in this frame while its page is drawn.
+    const options = optionValues(pr.key, name);
+    window.OPTION_NOW = options;
     const html = (PAGES[pr.key] || PAGES[ROUTES[0].key])(pr.slug);
+    window.OPTION_NOW = null;
     f.el.contentWindow.postMessage({
-        type: 'render', html, title: pr.r.title,
-        mode: state.modes[name], annotate: true,
+        type: 'render', html, title: pr.r.title, options,
+        mode: modeFor(pr.key, name), annotate: true,
         phase: pr.params.phase ? Number(pr.params.phase) : null,
         highlight: highlight || null, sync: state.sync
     }, '*');
@@ -73,6 +78,7 @@ function navigate(route, opts = {}) {
     for (const name of Object.keys(FR)) renderFrame(name, opts.highlight);
     if (fb.picking) fbPick(false);
     if (fb.draft && fb.draft.page !== parseRoute(route).key) fb.draft = null;
+    renderOptions();
     fbSendPins();
     $('#url-desktop').textContent = route;
     $('#url-mobile').textContent = route;
@@ -228,7 +234,7 @@ function togglePanel(tab) {
 // Whether a page has notes of its own, or notes for every page.
 function pageHasOwnNotes(pr) {
     const n = Object.assign({ purpose: '', aud: [], content: [], consider: [], tech: [], fed: [] }, NOTES[pr.key]);
-    return Boolean(n.purpose || n.aud.length || n.content.length || n.consider.length || n.tech.length || (VIEWS.model && n.fed.length) || n.tryit
+    return Boolean(n.purpose || n.aud.length || n.content.length || n.consider.length || n.tech.length || (VIEWS.model && n.fed.length)
         || SITEWIDE.consider.length || SITEWIDE.tech.length);
 }
 // The panel shows for a page with notes, and for every page with feedback on, for its comments.
@@ -254,7 +260,6 @@ function notesRail() {
 function pageNotes(pr) {
     const n = Object.assign({ purpose: '', aud: [], content: [], consider: [], tech: [], fed: [] }, NOTES[pr.key]);
     const r = pr.r;
-    const modeSeg = name => `<div class="seg" data-mode-for="${name}">${['pinned', 'swipe', 'vertical'].map(m => `<button type="button" data-mode="${m}" aria-pressed="${state.modes[name] === m}">${m[0].toUpperCase() + m.slice(1)}</button>`).join('')}</div>`;
     const bullets = list => `<ul class="bullets">${list.map(c => `<li>${esc(c)}</li>`).join('')}</ul>`;
     // Each section opens with the notes; any can be folded away.
     const fold = (title, count, body) => `<details class="fold" open><summary>${title}${count ? ` <span class="fold-n">${count}</span>` : ''}</summary><div>${body}</div></details>`;
@@ -265,11 +270,6 @@ function pageNotes(pr) {
             ${aud.length ? `<div class="badges">${aud.map(a => `<span class="badge aud" title="${esc(AUD[a][1])}">${AUD[a][0]}</span>`).join('')}</div>` : ''}
             ${n.purpose ? `<p class="purpose">${esc(n.purpose)}</p>` : ''}
         </div>
-        ${n.tryit ? `<div class="tryit">
-            <h3 style="margin:0">Try the timeline</h3>
-            <div class="tryit-row"><span>Desktop</span>${modeSeg('desktop')}</div>
-            <div class="tryit-row"><span>Mobile</span>${modeSeg('mobile')}</div>
-        </div>` : ''}
         ${n.consider.length ? `<section>
             <h3>Considerations</h3>
             ${bullets(n.consider)}
@@ -318,7 +318,7 @@ function renderSidebar() {
                 ${on ? `<span class="jchev">${ICON.chev}</span>` : ''}
             </button>
             ${open ? `<div class="jpanel">
-                <dl class="jmeta"><dt>Arrives</dt><dd>${esc(j.arrives)}</dd><dt>Wants to</dt><dd>${esc(j.goal)}</dd><dt>Success</dt><dd>A ${esc(j.measure.toLowerCase())}, counted in Plausible</dd></dl>
+                <dl class="jmeta"><dt>Arrives</dt><dd>${esc(j.arrives)}</dd><dt>Wants to</dt><dd>${esc(j.goal)}</dd><dt>Success</dt><dd>${esc(withArticle(j.measure.toLowerCase(), true))}, counted in Plausible</dd></dl>
                 <ol class="steps">${j.steps.map((st, i) => `<li class="${i < state.step ? 'done' : ''}" ${i === state.step ? 'aria-current="step"' : ''}><button type="button" data-step="${i}"><span class="n">${i < state.step ? '✓' : i + 1}</span><span>${esc(st.t)}</span></button>${i === state.step ? `<p class="step-desc">${esc(st.d)}</p>` : ''}</li>`).join('')}</ol>
                 <div class="jnav">
                     <button type="button" class="jb-btn" data-jstep="-1" ${state.step === 0 ? 'disabled' : ''}>← Back</button>
@@ -372,10 +372,16 @@ function endJourney(quiet) {
     if (!quiet) { renderSidebar(); requestAnimationFrame(layoutFrames); }
 }
 
+// "a share", "an enquiry".
+function withArticle(word, capital) {
+    const article = /^[aeiou]/i.test(word) ? 'an' : 'a';
+    return `${capital ? article[0].toUpperCase() + article.slice(1) : article} ${word}`;
+}
+
 function finishJourney() {
     const j = activeJourney();
     endJourney();
-    toast(`Journey complete. On the live site this is counted as a ${j.measure.toLowerCase()} in Plausible.`);
+    toast(`Journey complete. On the live site this is counted as ${withArticle(j.measure.toLowerCase())} in Plausible.`);
 }
 
 /* ---------- Help and the narrow-screen drawer ---------- */
@@ -883,6 +889,7 @@ function fbSubmit(f) {
             context: 'prototype', version: VERSION.id, page: d.page, route: d.route, frame: d.frame,
             url: `/prototype/${VERSION.id}${pr.path === '/' ? '' : pr.path}`, title: pr.r.title, body,
             anchor: fbAnchor(d.anchor),
+            options: optionsShowing(d.page, d.frame),
             viewport: { width: FR[d.frame].w, height: FR[d.frame].h, breakpoint: d.frame },
             decision: !!(f.querySelector('[name="decision"]') || {}).checked
         }).then(res => { fb.draft = null; fbPut(res.comment); fb.open = res.comment.id; fbClear('new'); }), f, 'new');
@@ -982,6 +989,7 @@ function fbCard(c) {
         </button>
         <div class="fbc-main">
             <p class="fbc-body${open ? '' : ' clamp'}">${esc(c.body)}</p>
+            ${c.options && typeof c.options === 'object' && Object.keys(c.options).length ? `<p class="fbc-opts">With ${Object.entries(c.options).map(([k, v]) => `${esc(k)}: ${esc(v)}`).join(' · ')}</p>` : ''}
             ${fbIsDecided(c) ? `<div class="fbc-outcome"><b>Decided</b><p>${esc(d.outcome)}</p><small>${esc((d.decided_by || {}).name || '')}${d.decided_at ? ` · ${fbDate(d.decided_at)}` : ''}</small></div>` : ''}
             ${!open && replies.length ? `<p class="fbc-more">${replies.length} ${replies.length === 1 ? 'reply' : 'replies'}</p>` : ''}
             ${open ? fbThread(c) : ''}
@@ -1122,6 +1130,78 @@ $('#rail').addEventListener('mouseleave', () => { fb.hover = null; tellFrames({ 
 // Coming back to the tab picks up comments made since.
 document.addEventListener('visibilitychange', () => { if (!document.hidden && fbSigned()) fbLoad(); });
 
+/* ---------- Page options ---------- */
+
+// Ways a page can be shown, for reviewers to compare before choosing: OPTIONS in data.js, by page. Each switches both
+// frames, or the one its frame names; one marked mode sets the timeline's layout. The bar above the frames shows them
+// on pages that have any, folding to one line of what's showing, and a comment records which were showing.
+const PAGE_OPTIONS = typeof OPTIONS === 'undefined' ? {} : OPTIONS;
+const pageOptions = key => (PAGE_OPTIONS[key] || []).filter(o => o && o.id && Array.isArray(o.choices) && o.choices.length);
+const optsOpen = () => state.optsOpen !== false;
+
+function optionValue(key, o) {
+    const v = ((state.opts || {})[key] || {})[o.id];
+    return o.choices.some(c => c[0] === v) ? v : (o.default !== undefined ? o.default : o.choices[0][0]);
+}
+
+const choiceLabel = (o, v) => (o.choices.find(c => c[0] === v) || [v, v])[1];
+
+// The choices that apply in one frame, by option id.
+function optionValues(key, frame) {
+    const values = {};
+    pageOptions(key).filter(o => !o.frame || o.frame === frame).forEach(o => { values[o.id] = optionValue(key, o); });
+    return values;
+}
+
+// The timeline's layout in a frame: its page's mode option, or the frame's own default.
+function modeFor(key, frame) {
+    const o = pageOptions(key).find(x => x.mode && (!x.frame || x.frame === frame));
+    return o ? optionValue(key, o) : state.modes[frame];
+}
+
+// What was showing when a comment was made, in words, for the comment to keep.
+function optionsShowing(key, frame) {
+    const showing = {};
+    pageOptions(key).filter(o => !o.frame || o.frame === frame).forEach(o => { showing[String(o.label).slice(0, 100)] = String(choiceLabel(o, optionValue(key, o))).slice(0, 100); });
+    return Object.keys(showing).length ? showing : null;
+}
+
+function setOption(id, value) {
+    const key = parseRoute(state.route).key;
+    const o = pageOptions(key).find(x => x.id === id);
+    if (!o) return;
+    state.opts = state.opts || {};
+    state.opts[key] = Object.assign({}, state.opts[key], { [id]: value });
+    save();
+    renderOptions();
+    for (const name of Object.keys(FR)) {
+        if (o.frame && o.frame !== name) continue;
+        // A layout keeps the reader's place; anything else draws the page again.
+        if (o.mode && FR[name].ready) FR[name].el.contentWindow.postMessage({ type: 'mode', mode: value }, '*');
+        else renderFrame(name);
+    }
+    fbSendPins();
+}
+
+function renderOptions() {
+    const bar = $('#opts-bar');
+    const key = parseRoute(state.route).key;
+    const opts = pageOptions(key);
+    bar.hidden = !opts.length;
+    if (!opts.length) { bar.innerHTML = ''; return; }
+    const open = optsOpen();
+    const summary = opts.map(o => `${o.label}: ${choiceLabel(o, optionValue(key, o))}`).join('  ·  ');
+    bar.innerHTML = `<button type="button" class="opts-head" data-opts-toggle aria-expanded="${open}">
+            <span class="opts-title">Options on this page</span>${open ? '' : `<span class="opts-sum">${esc(summary)}</span>`}<span class="opts-chev">${ICON.chev}</span>
+        </button>
+        ${open ? `<div class="opts-body">
+            ${opts.map(o => `<div class="opt"><span class="opt-l">${esc(o.label)}${o.note ? ` <span class="muted">${esc(o.note)}</span>` : ''}</span>
+                <div class="seg" role="group" aria-label="${esc(o.label)}">${o.choices.map(([v, l]) => `<button type="button" data-opt="${esc(o.id)}" data-value="${esc(v)}" aria-pressed="${optionValue(key, o) === v}">${esc(l)}</button>`).join('')}</div></div>`).join('')}
+            <p class="opts-hint">Try each, then say which you prefer.${FB.on ? ' <button type="button" class="link-btn" data-fb-act="comment">Add comment</button>' : ''}</p>
+        </div>` : ''}`;
+    if (state.view === 'wireframes') requestAnimationFrame(layoutFrames);
+}
+
 /* ---------- Events ---------- */
 
 document.addEventListener('click', e => {
@@ -1165,14 +1245,8 @@ document.addEventListener('click', e => {
         if (next >= activeJourney().steps.length) finishJourney(); else goStep(Math.max(0, next));
         return;
     }
-    if (t.dataset.mode) {
-        const name = t.closest('[data-mode-for]').dataset.modeFor;
-        state.modes[name] = t.dataset.mode;
-        save();
-        if (FR[name].ready) FR[name].el.contentWindow.postMessage({ type: 'mode', mode: t.dataset.mode }, '*');
-        $$(`[data-mode-for="${name}"] button`).forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === t.dataset.mode)));
-        return;
-    }
+    if (t.hasAttribute('data-opts-toggle')) { state.optsOpen = !optsOpen(); save(); renderOptions(); return; }
+    if (t.dataset.opt) { setOption(t.dataset.opt, t.dataset.value); return; }
 });
 
 $('#scrim').addEventListener('click', closeSidebar);

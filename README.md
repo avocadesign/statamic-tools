@@ -102,6 +102,11 @@ gets their improvements. What the prototype says is the site's own, one folder p
 - **Decisions** come from comments. The team (a control panel login, a reviewer marked `team: true`, or
   `avoca:feedback`) raises a comment as a decision, or ticks Make it a decision as they post, and records what was
   decided. At sign-off, `php please avoca:feedback --write-decisions` copies them into `resources/site/decisions.md`.
+- **Page options.** A page can be shown more than one way, for reviewers to compare before choosing: `OPTIONS` in
+  `data.js`, by page. A bar above the frames shows the choices on pages that have them and folds to one line of what's
+  showing. A choice redraws the page, which reads it with `option('id')`, in both frames or the one it names, or sets
+  the timeline's layout with `mode: true`; the frame's `<html>` carries `data-option-<id>` for CSS, and a comment
+  records which choices were showing.
 - **Notes.** The Notes button opens the page's notes beside the comments, with every section open. A page without notes
   has no button. The panel stays out of sight until one of the two buttons opens it.
 - **The content model is the team's** until it is shared: a control panel login or a reviewer marked `team: true` sees
@@ -133,9 +138,10 @@ FEEDBACK_KEY=a-long-random-key-for-the-developer-only
 FEEDBACK_NOTIFY=studio@example.com          # optional: more addresses for the team's digest, comma separated
 ```
 
-Send reviewers the site's address with `?review` on the end, and the password. Nobody else sees anything: the
-Comments tab only appears in a browser that has signed in to review, or that opens a `?review` or `?feedback=<id>`
-link.
+With a list of reviewers (below), the Comments tab shows on every page, since only their emails can sign in: send
+them the site's address and the password. Without a list, send the address with `?review` on the end, and nobody else
+sees anything: the tab only appears in a browser that has signed in to review, or that opens a `?review` or
+`?feedback=<id>` link.
 
 - **On the page,** it works as the prototype's comments do. A Comments tab on the right edge carries the number still
   open on the site, and opens a panel: this page's comments, with those done folded away, or all the feedback, page by

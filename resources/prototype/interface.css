@@ -128,9 +128,11 @@ a.vm-i:hover, .vm-i.on { background: var(--surface-2); }
 .jchev svg { transition: transform .2s; }
 .jbtn[aria-expanded="false"] .jchev svg { transform: rotate(-90deg); }
 .jpanel { margin: 4px 0 10px 18px; padding: 4px 0 4px 18px; border-left: 2px solid var(--line); display: flex; flex-direction: column; gap: 10px; }
-.jmeta { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; font-size: 12.5px; }
-.jmeta dt { color: var(--muted); }
-.jmeta dd { margin: 0; color: var(--ink-2); }
+/* A journey's details: each label on its own line, its text below. */
+.jmeta { display: flex; flex-direction: column; margin: 0; font-size: 12.5px; }
+.jmeta dt { color: var(--muted); font-weight: 600; }
+.jmeta dt:not(:first-child) { margin-top: 8px; }
+.jmeta dd { margin: 2px 0 0; color: var(--ink-2); }
 .steps { list-style: none; display: flex; flex-direction: column; gap: 2px; }
 .steps button { width: 100%; display: grid; grid-template-columns: 24px 1fr; gap: 8px; align-items: start; text-align: left; border: 0; background: transparent; border-radius: 8px; padding: 6px 6px 6px 0; font-size: 13px; line-height: 1.35; color: var(--ink-2); }
 .steps button:hover { background: var(--surface-2); }
@@ -172,6 +174,21 @@ a.vm-i:hover, .vm-i.on { background: var(--surface-2); }
 .display-menu { position: absolute; z-index: 65; top: calc(100% + 8px); right: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; width: max-content; padding: 12px 14px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); }
 .menu-h { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: -4px; }
 .frames-wrap { flex: 1; min-height: 0; overflow: auto; padding: 16px; }
+
+/* Page options: a bar above the frames on pages that have any, folding to one line of what's showing. */
+.opts-bar { border-bottom: 1px solid var(--line); background: var(--surface); }
+.opts-bar[hidden] { display: none; }
+.opts-head { width: 100%; display: flex; align-items: center; gap: 12px; padding: 9px 16px; border: 0; background: none; text-align: left; }
+.opts-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--pin); white-space: nowrap; }
+.opts-sum { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; color: var(--ink-2); }
+.opts-chev { margin-left: auto; color: var(--muted); display: grid; transition: transform .2s; }
+.opts-head[aria-expanded="false"] .opts-chev { transform: rotate(-90deg); }
+.opts-body { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 24px; padding: 0 16px 12px; }
+.opt { display: flex; align-items: center; gap: 10px; }
+.opt-l { font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+.opt .seg button { padding: 4px 10px; font-size: 12.5px; }
+.opts-hint { flex-basis: 100%; font-size: 12.5px; color: var(--muted); }
+.fbc-opts { font-size: 12px; color: var(--muted); }
 
 /* Journey bar: the step narrative, right beside the frames */
 .jb-btn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line-2); background: var(--surface); color: var(--ink); border-radius: 8px; padding: 7px 12px; font-size: 13px; font-weight: 600; }
@@ -217,9 +234,6 @@ a.vm-i:hover, .vm-i.on { background: var(--surface-2); }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip-btn { border: 1px solid var(--line-2); background: var(--surface); border-radius: 999px; padding: 3px 10px; font-size: 12px; }
 .chip-btn:hover { background: var(--surface-2); }
-.tryit { padding: 14px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 10px; }
-.tryit-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
-.tryit-row > span { font-size: 12.5px; font-weight: 500; }
 .fold > summary { cursor: pointer; font-weight: 600; list-style: none; display: flex; align-items: center; gap: 8px; }
 .fold > summary::-webkit-details-marker { display: none; }
 .fold > summary::before { content: "›"; display: inline-block; transition: transform .2s; color: var(--muted); }

@@ -2,6 +2,13 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.26 (10 October 2026)
+
+- **Page options in the prototype.** A page can be shown more than one way for reviewers to compare, from `OPTIONS` in `data.js`: a bar above the frames shows the choices on pages that have them, and folds to one line of what's showing. A choice redraws the page in both frames, or in the one it names, or sets the timeline's layout with `mode: true`. `pages.js` reads it with the new `option('id')` helper, the frame carries `data-option-<id>` for CSS, and a comment records which choices were showing. It replaces the timeline switch in page notes (`tryit`), which only one site's timeline used.
+- **The Comments tab shows on every page when the site lists its reviewers,** since only their emails can sign in: no `?review` link needed. Without a list it still waits for `?review`.
+- **Journeys** list Arrives, Wants to and Success each above its text, and say "an enquiry" rather than "a enquiry".
+- **To do on update:** a site whose `data.js` sets `tryit` on a page moves that switch to `OPTIONS`.
+
 ## v0.1.25 (10 October 2026)
 
 - **Feedback on the site works as the prototype's comments do.** The tab reads Comments and carries the number open on the site. Its panel shows this page's comments, with those done folded away, or all the feedback page by page, filtered to open, to decide or done. Pins are graphite while open, amber for a decision to make and green once done; they can be dragged when they cover something, switched off with Show comment pins, and still show for a comment being pointed at. The team raises and records decisions from the panel, and Add comment writes the comment in the panel with the + on the page. Cards no longer say where a comment is in words (the pin shows it; `avoca:feedback` still does).

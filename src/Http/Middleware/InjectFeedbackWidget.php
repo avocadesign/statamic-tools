@@ -2,6 +2,7 @@
 
 namespace Avocadesign\StatamicTools\Http\Middleware;
 
+use Avocadesign\StatamicTools\Feedback\Reviewers;
 use Avocadesign\StatamicTools\Http\Controllers\FeedbackController;
 use Closure;
 use Illuminate\Http\Request;
@@ -66,6 +67,9 @@ class InjectFeedbackWidget
             'data-feedback' => $base,
             'data-feedback-version' => $version,
             'data-feedback-entry' => $entry ? (string) $entry->id() : '',
+            // With a list of reviewers, only their emails sign in, so the Comments tab can show to everyone without
+            // the ?review link.
+            'data-feedback-open' => Reviewers::listed() ? '1' : '',
         ];
 
         $html = '';

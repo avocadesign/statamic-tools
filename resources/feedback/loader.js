@@ -1,7 +1,8 @@
 /*
- * Avoca feedback: the loader. The only script feedback adds to a page while it is on. It shows nothing to a visitor
- * who isn't reviewing: the Comments tab appears for a browser that has signed in to review before, or when the address
- * asks for it, with ?review on the link reviewers are sent, or ?feedback=<id> for one comment. For a browser that has
+ * Avoca feedback: the loader. The only script feedback adds to a page while it is on. When the site lists its
+ * reviewers, only their emails can sign in, so the Comments tab shows on every page. Without a list it shows nothing to
+ * a visitor who isn't reviewing: the tab appears for a browser that has signed in to review before, or when the
+ * address asks for it, with ?review on the link reviewers are sent, or ?feedback=<id> for one comment. For a browser that has
  * reviewed before, the widget starts once the page has settled, so the pins and the number of open comments show
  * without a click; otherwise it loads on the first click.
  */
@@ -17,7 +18,8 @@
     var invited = params.has('review');
     var known = false;
     try { known = localStorage.getItem('avoca-feedback') === '1'; } catch (e) { /* storage unavailable */ }
-    if (!known && !named && !invited) return;
+    var open = script.getAttribute('data-feedback-open') === '1';
+    if (!known && !named && !invited && !open) return;
 
     var base = script.getAttribute('data-feedback');
     var version = script.getAttribute('data-feedback-version') || '';

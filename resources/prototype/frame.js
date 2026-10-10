@@ -418,6 +418,13 @@
             window.__tlStart = m.phase || null;
             if ('sync' in m) syncOn = !!m.sync;
             document.documentElement.dataset.tlMode = m.mode || 'swipe';
+            // Each page option's choice, for the site's CSS or the page's script: data-option-chapters="years".
+            Array.prototype.slice.call(document.documentElement.attributes).forEach(function (a) {
+                if (a.name.indexOf('data-option-') === 0) document.documentElement.removeAttribute(a.name);
+            });
+            Object.keys(m.options || {}).forEach(function (id) {
+                if (/^[a-z0-9-]+$/i.test(id)) document.documentElement.setAttribute('data-option-' + id, String(m.options[id]));
+            });
             document.body.classList.toggle('wf-annotate', !!m.annotate);
             app.innerHTML = m.html;
             markFills(app);

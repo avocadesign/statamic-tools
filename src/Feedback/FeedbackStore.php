@@ -73,7 +73,7 @@ final class FeedbackStore
      * it, as the widget measured them. A comment on the prototype also records the version, the page's route key and
      * route, and the frame it was made in.
      *
-     * @param  array<string, mixed>  $comment  url, entry, title, body, anchor, viewport; for the prototype, version, page, route, frame
+     * @param  array<string, mixed>  $comment  url, entry, title, body, anchor, viewport; for the prototype, version, page, route, frame, options
      * @param  array{name: string, staff: bool}  $author
      * @return array<string, mixed>
      */
@@ -87,6 +87,7 @@ final class FeedbackStore
             'page' => $prototype ? (string) ($comment['page'] ?? '') : null,
             'route' => $prototype ? (string) ($comment['route'] ?? '') : null,
             'frame' => $prototype ? (string) ($comment['frame'] ?? '') : null,
+            'options' => $prototype && ! empty($comment['options']) ? (array) $comment['options'] : null,
             'url' => (string) $comment['url'],
             'entry' => $comment['entry'] ?? null,
             'title' => $comment['title'] ?? null,

@@ -166,7 +166,13 @@ class FeedbackController extends Controller
             'frame' => ['nullable', 'in:desktop,mobile'],
             'decision' => ['nullable', 'boolean'],
             'who' => ['nullable', 'string', 'max:120'],
+            'options' => ['nullable', 'array', 'max:12'],
+            'options.*' => ['string', 'max:100'],
         ], ['body.required' => 'Write a comment first.']);
+        // The prototype's page options showing when the comment was made, by label: words only, and short.
+        $input['options'] = collect($input['options'] ?? [])
+            ->filter(fn ($value, $label) => is_string($label) && mb_strlen($label) <= 100)
+            ->all() ?: null;
 
         // The team can raise a comment as a decision as it posts it; anyone else is turned away before anything is kept.
         abort_if(! empty($input['decision']) && ! $author['staff'], 403, 'Only the team can raise a decision.');
