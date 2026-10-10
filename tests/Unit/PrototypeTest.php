@@ -117,6 +117,37 @@ class PrototypeTest extends TestCase
         $this->withCookie('prototype', $cookie)->get('/prototype')->assertSee('Your name');
     }
 
+    public function test_the_page_gets_the_sites_name_and_whether_feedback_is_on(): void
+    {
+        config(['app.name' => 'Harbour Trust', 'statamic-tools.feedback.enabled' => true]);
+        $this->app['env'] = 'local';
+
+        $this->get('/prototype')->assertOk()
+            ->assertSee('window.PROTOTYPE_SITE = "Harbour Trust";', false)
+            ->assertSee('window.PROTOTYPE_FEEDBACK = {"on":true,"base":"/!/statamic-tools/feedback"};', false)
+            ->assertDontSee('prototype-theme', false);
+    }
+
+    public function test_the_content_model_is_the_teams_unless_it_is_shared(): void
+    {
+        $team = ['name' => 'Avoca', 'staff' => true];
+        $reviewer = ['name' => 'Jane Smith', 'staff' => false];
+
+        $this->assertSame(['model' => true, 'model_team_only' => true], Prototype::views($team));
+        $this->assertSame(['model' => false, 'model_team_only' => false], Prototype::views($reviewer));
+        $this->assertFalse(Prototype::views(null)['model']);
+
+        config(['statamic-tools.prototype.content_model' => 'everyone']);
+        $this->assertSame(['model' => true, 'model_team_only' => false], Prototype::views($reviewer));
+        $this->assertSame(['model' => true, 'model_team_only' => false], Prototype::views($team));
+
+        config(['statamic-tools.prototype.content_model' => 'off']);
+        $this->assertFalse(Prototype::views($team)['model']);
+
+        config(['statamic-tools.prototype.content_model' => 'team']);
+        $this->get('/prototype')->assertSee('window.PROTOTYPE_VIEWS = {"model":false,"model_team_only":false};', false);
+    }
+
     public function test_a_list_of_reviewers_asks_for_an_email_even_without_a_password(): void
     {
         file_put_contents("{$this->dir}/reviewers.yaml", "reviewers:\n  - name: Jane Smith\n    email: jane@example.com\n");

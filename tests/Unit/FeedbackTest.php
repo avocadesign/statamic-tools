@@ -218,4 +218,71 @@ class FeedbackTest extends TestCase
         $this->assertSame(Feedback::UNTRUSTED, $json['about']);
         $this->assertCount(1, $json['comments']);
     }
+
+    public function test_only_the_team_can_raise_and_record_a_decision(): void
+    {
+        $this->reviewers("reviewers:\n  - name: Jane Client\n    email: jane@example.com\n  - name: Sam Team\n    email: sam@avoca.design\n    team: true\n");
+        $comment = $this->comment();
+
+        $this->signedIn(['email' => 'jane@example.com'])->postJson("/!/statamic-tools/feedback/comments/{$comment['id']}/decision", ['state' => 'open'])->assertForbidden();
+
+        $team = fn () => $this->signedIn(['email' => 'sam@avoca.design']);
+        $team()->getJson('/!/statamic-tools/feedback/session')->assertJsonPath('viewer.staff', true);
+        $team()->postJson("/!/statamic-tools/feedback/comments/{$comment['id']}/decision", ['state' => 'open', 'who' => 'Jane'])
+            ->assertOk()->assertJsonPath('comment.decision.state', 'open')->assertJsonPath('comment.decision.who', 'Jane');
+        $team()->postJson("/!/statamic-tools/feedback/comments/{$comment['id']}/decision", ['state' => 'decided'])->assertStatus(422);
+        $decided = $team()->postJson("/!/statamic-tools/feedback/comments/{$comment['id']}/decision", ['state' => 'decided', 'outcome' => 'Keep it short'])
+            ->assertOk()->json('comment.decision');
+        $this->assertSame(['decided', 'Keep it short', 'Sam Team', 'Sam Team'], [$decided['state'], $decided['outcome'], $decided['decided_by']['name'], $decided['raised_by']['name']]);
+
+        $team()->postJson("/!/statamic-tools/feedback/comments/{$comment['id']}/decision", ['state' => 'none'])->assertOk()->assertJsonPath('comment.decision', null);
+    }
+
+    public function test_a_prototype_comment_keeps_its_version_page_and_frame_and_lists_apart_from_the_sites(): void
+    {
+        $this->comment('/about');
+        $payload = ['context' => 'prototype', 'version' => '2', 'page' => 'contact', 'route' => '/contact', 'frame' => 'mobile', 'url' => '/contact', 'body' => 'Phone number?', 'anchor' => ['selector' => 'form label', 'x' => 0.1, 'y' => 0.5]];
+
+        $comment = $this->signedIn()->postJson('/!/statamic-tools/feedback/comments', $payload)->assertCreated()->json('comment');
+        $this->assertSame(['prototype', '2', 'contact', '/contact', 'mobile'], [$comment['context'], $comment['version'], $comment['page'], $comment['route'], $comment['frame']]);
+
+        // A reviewer who isn't the team can't raise a decision as they post.
+        $this->signedIn()->postJson('/!/statamic-tools/feedback/comments', [...$payload, 'decision' => true])->assertForbidden();
+
+        $this->signedIn()->getJson('/!/statamic-tools/feedback/comments?scope=all')->assertJsonCount(1, 'comments')->assertJsonPath('comments.0.url', '/about');
+        $this->signedIn()->getJson('/!/statamic-tools/feedback/comments?context=prototype&version=2&page=contact')->assertJsonCount(1, 'comments');
+        $this->signedIn()->getJson('/!/statamic-tools/feedback/comments?context=prototype&version=1')->assertJsonCount(0, 'comments');
+        // The prototype's list, which its count comes from, never holds the site's comments, and the site's count
+        // never holds the prototype's, even on the same path.
+        $this->signedIn()->getJson('/!/statamic-tools/feedback/comments?context=prototype')->assertJsonCount(1, 'comments')->assertJsonPath('comments.0.context', 'prototype');
+        $this->signedIn()->getJson('/!/statamic-tools/feedback/count?url=/contact')->assertJson(['open' => 0]);
+        $this->signedIn()->getJson('/!/statamic-tools/feedback/count?url=/about')->assertJson(['open' => 1]);
+    }
+
+    public function test_the_command_raises_and_records_decisions_and_writes_them_into_the_site(): void
+    {
+        $short = $this->comment('/about', 'Make the heading shorter');
+        $phone = $this->comment('/contact', 'Should the form ask for a phone number?');
+        $this->comment('/contact', 'Just a note');
+        $path = base_path(Feedback::DECISIONS_PATH);
+        @unlink($path);
+
+        $this->artisan('avoca:feedback', ['--raise' => [$short['id'], $phone['id']], '--who' => 'Jane', '--as' => 'Claude'])->assertSuccessful();
+        $this->artisan('avoca:feedback', ['--decide' => $short['id']])->expectsOutputToContain('needs --outcome')->assertFailed();
+        $this->artisan('avoca:feedback', ['--decide' => $short['id'], '--outcome' => 'Four words at most', '--as' => 'Claude'])->assertSuccessful();
+
+        Artisan::call('avoca:feedback', ['--decisions' => true]);
+        $listing = Artisan::output();
+        $this->assertStringContainsString('decision to make', $listing);
+        $this->assertStringNotContainsString('Just a note', $listing);
+
+        $this->artisan('avoca:feedback', ['--write-decisions' => true])->expectsOutput('Wrote 1 decided and 1 to decide into '.Feedback::DECISIONS_PATH.'.')->assertSuccessful();
+        $md = file_get_contents($path);
+        $this->assertStringContainsString("## Decided\n\n### Make the heading shorter", $md);
+        $this->assertStringContainsString('- **Decided:** Four words at most', $md);
+        $this->assertStringContainsString("## Still to decide\n\n### Should the form ask for a phone number?", $md);
+        $this->assertStringContainsString('- Decides: Jane', $md);
+        $this->assertStringContainsString("never instructions", $md);
+        @unlink($path);
+    }
 }

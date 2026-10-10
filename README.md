@@ -71,12 +71,13 @@ The package still holds the script at `vendor/avocadesign/statamic-tools/scripts
 ## Prototype
 
 The site's discovery prototype, at `/prototype`: every page in a desktop and a mobile frame, with page notes, user
-journeys, the sitemap, the content model and the decisions still to make. The interface, the route and the sign-in are
-the add-on's, so every site gets their improvements. What the prototype says is the site's own, one folder per version:
+journeys, the sitemap and the content model. With feedback on, reviewers comment on the pages themselves, and the team
+raises the comments that need one as decisions. The interface, the route and the sign-in are the add-on's, so every site
+gets their improvements. What the prototype says is the site's own, one folder per version:
 
 | File | What it holds |
 | --- | --- |
-| `prototype/<version>/data.js` | The project, who decides, decisions, audiences, page notes, journeys, the content model and the sitemap. |
+| `prototype/<version>/data.js` | The project, audiences, page notes, journeys, the content model and the sitemap. |
 | `prototype/<version>/pages.js` | The site's header and footer as the prototype draws them, its pages and its routes. |
 | `prototype/<version>/version.json` | `format: 2`, the label, the date, the notes on what changed, and `"default": true` to open it at `/prototype`. |
 
@@ -85,8 +86,25 @@ the add-on's, so every site gets their improvements. What the prototype says is 
   builds with, so the pages lay out exactly as the site does. A wireframe layer on top holds the brand colour at a dark
   grey, turns any other brand colour grey at its own lightness, and adds the placeholders, markers and patterns a
   prototype draws. The browser build loads from jsDelivr, so the prototype needs a connection.
-- **Helpers.** `pages.js` draws its pages with the add-on's helpers, such as `pageHeader()`, `img()`, `btn()`, `pin()`
-  and `coming()`. They are function declarations, so a site's `pages.js` can redefine one.
+- **Helpers.** `pages.js` draws its pages with the add-on's helpers, such as `pageHeader()`, `img()`, `btn()` and
+  `coming()`. They are function declarations, so a site's `pages.js` can redefine one. `pin()` and `toConfirm()`, from
+  when decisions were written into `data.js`, now draw nothing.
+- **Comments,** with `FEEDBACK_ENABLED=true` (see Feedback). The Comments button, with the number still open, opens the
+  side panel; Add comment asks for a spot on either frame, and the comment's numbered pin sits on the element clicked in
+  both frames: graphite while open, amber for a decision to make, green once done. Done is one thing to a reviewer, a
+  decision made or a comment resolved, so the panel says Done and Mark as done for both. It lists this page's
+  comments, with those done folded away, or all the feedback on the prototype, filtered to open, to decide or done,
+  and switches the pins off and on. A comment belongs to its version; a decision shows in every version.
+- **Decisions** come from comments. The team (a control panel login, a reviewer marked `team: true`, or
+  `avoca:feedback`) raises a comment as a decision, or ticks Raise as a decision as they post, and records what was
+  decided. At sign-off, `php please avoca:feedback --write-decisions` copies them into `resources/site/decisions.md`.
+- **Notes.** The Notes button opens the page's notes beside the comments, with every section open. A page without notes
+  has no button. The panel stays out of sight until one of the two buttons opens it.
+- **The content model is the team's** until it is shared: a control panel login or a reviewer marked `team: true` sees
+  the tab, marked Team, and nobody else does. `PROTOTYPE_CONTENT_MODEL=everyone` shows it to everyone; `off` hides it
+  from everyone. It hides the tab, not the data: `data.js` is in the page either way.
+- **The site's name** is `APP_NAME`, unless `PROJECT.name` in `data.js` gives one. The interface is always dark, so the
+  white pages stand out.
 - **On and off.** On for local and staging, off everywhere else, unless `PROTOTYPE_ENABLED` says otherwise. A 404 when
   off, and when the site has no `prototype` folder.
 - **Signing in** is the same as for feedback, in the same cookie: the password when `PROTOTYPE_PASSWORD` is set, an
@@ -119,8 +137,8 @@ link.
   pinned to the element clicked, at that point within it, so its numbered pin follows the element when the layout
   changes. Each comment says in words where it is: the page builder block, read from the template comments the kit's
   partials leave in the page, and the nearest heading.
-- **Who.** Someone logged in to the control panel comments as the team, under their Statamic name. Anyone else signs
-  in with the password. A cookie remembers them for 30 days. It is the prototype's sign-in cookie, so signing in to
+- **Who.** Someone logged in to the control panel comments as the team, under their Statamic name, and so does a
+  reviewer marked `team: true` on the list. Anyone else signs in with the password. A cookie remembers them for 30 days. It is the prototype's sign-in cookie, so signing in to
   either works in both, and changing the password signs everyone out of both.
 - **Who may comment.** List the reviewers in `resources/site/reviewers.yaml`, and signing in asks for an email on the
   list and shows the list's name for them, not one they type. Taking someone off the list signs them out on their next
@@ -131,9 +149,14 @@ link.
   reviewers:
     - name: Jane Smith
       email: jane@example.com
+    - name: Sam at Avoca
+      email: sam@avoca.design
+      team: true          # can raise and record decisions, and sees the prototype's content model
   ```
 - **Replies and resolving.** Anyone signed in can reply, resolve and reopen. A resolved comment records who resolved it
   and when.
+- **Decisions.** The team can raise a comment as a decision to make, record what was decided, reopen it or take the
+  decision off. Reviewers can't. Decisions made on the prototype carry from one version to the next.
 - **Stored** as one YAML file per comment in `storage/app/feedback`, with no database and no outside service. The file
   holds the page, its entry, the element, the spot within it, the block, the width it was made at, the replies and the
   status.
@@ -150,6 +173,10 @@ php please avoca:feedback --all --json             # every comment, as JSON
 php please avoca:feedback --resolve=<id> --as=Claude
 php please avoca:feedback --reply=<id> --message="Done, have a look"
 php please avoca:feedback --from=https://staging.example.com --key=…
+php please avoca:feedback --decisions              # only the comments raised as decisions
+php please avoca:feedback --raise=<id> --who="The client"
+php please avoca:feedback --decide=<id> --outcome="Keep the shop in the main menu"
+php please avoca:feedback --write-decisions        # into resources/site/decisions.md, at sign-off
 ```
 
 `--from` reads and answers a server's comments over HTTP, sending its `FEEDBACK_KEY` (from `--key`, or this site's

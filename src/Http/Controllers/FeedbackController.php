@@ -95,24 +95,39 @@ class FeedbackController extends Controller
     {
         $this->authorise($request);
 
-        return $this->json(['open' => count($this->store->all($this->path($request->query('url')), FeedbackStore::OPEN))]);
+        $open = array_filter($this->store->all($this->path($request->query('url')), FeedbackStore::OPEN), fn ($c) => ($c['context'] ?? 'site') === 'site');
+
+        return $this->json(['open' => count($open)]);
     }
 
-    /** Comments on one page, or every page, in one state or both, each with where it was made in words. */
+    /**
+     * Comments on the site's pages, or on the prototype, each with where it was made in words. The site's are listed
+     * for one page or every page; the prototype's for one version or every version, one page or all. Either can be
+     * narrowed to one state, and to decisions only.
+     */
     public function index(Request $request): JsonResponse
     {
         $this->authorise($request);
 
-        $url = $request->query('scope') === 'all' ? null : $this->path($request->query('url'));
+        $context = in_array($request->query('context'), ['prototype', 'all'], true) ? $request->query('context') : 'site';
+        $url = $context === 'site' && $request->query('scope') !== 'all' ? $this->path($request->query('url')) : null;
         $status = in_array($request->query('status'), [FeedbackStore::OPEN, FeedbackStore::RESOLVED], true) ? $request->query('status') : null;
+        $version = is_string($request->query('version')) ? $request->query('version') : null;
+        $page = is_string($request->query('page')) ? $request->query('page') : null;
+        $decisions = $request->boolean('decisions');
         $blocks = Blocks::pageBuilder();
+
+        $comments = array_values(array_filter($this->store->all($url, $status), fn (array $c) => ($context === 'all' || ($c['context'] ?? 'site') === $context)
+            && ($version === null || ($c['version'] ?? null) === $version)
+            && ($page === null || ($c['page'] ?? null) === $page)
+            && (! $decisions || ! empty($c['decision']))));
 
         $comments = array_map(function (array $comment) use ($blocks) {
             $handle = $comment['anchor']['block'] ?? null;
             $comment['anchor']['block_name'] = is_string($handle) && isset($blocks[$handle]) ? $blocks[$handle]['display'] : null;
 
             return $comment;
-        }, $this->store->all($url, $status));
+        }, $comments);
 
         return $this->json(['comments' => $comments]);
     }
@@ -138,11 +153,42 @@ class FeedbackController extends Controller
             'viewport.width' => ['nullable', 'integer', 'min:0', 'max:20000'],
             'viewport.height' => ['nullable', 'integer', 'min:0', 'max:20000'],
             'viewport.breakpoint' => ['nullable', 'string', 'max:10'],
+            'context' => ['nullable', 'in:site,prototype'],
+            'version' => ['nullable', 'string', 'max:40', 'regex:/^[A-Za-z0-9-]+$/'],
+            'page' => ['nullable', 'string', 'max:100'],
+            'route' => ['nullable', 'string', 'max:300'],
+            'frame' => ['nullable', 'in:desktop,mobile'],
+            'decision' => ['nullable', 'boolean'],
+            'who' => ['nullable', 'string', 'max:120'],
         ], ['body.required' => 'Write a comment first.']);
 
-        $input['url'] = $this->path($input['url']);
+        // The team can raise a comment as a decision as it posts it; anyone else is turned away before anything is kept.
+        abort_if(! empty($input['decision']) && ! $author['staff'], 403, 'Only the team can raise a decision.');
 
-        return $this->json(['comment' => $this->store->create($input, $author)], 201);
+        $input['url'] = $this->path($input['url']);
+        $comment = $this->store->create($input, $author);
+        if (! empty($input['decision'])) {
+            $comment = $this->store->decide($comment['id'], FeedbackStore::TO_DECIDE, $author, null, $input['who'] ?? null);
+        }
+
+        return $this->json(['comment' => $comment], 201);
+    }
+
+    /**
+     * Raises a comment as a decision to make, records the outcome, or takes the decision off. Only the team can: a
+     * control panel login, a reviewer marked team, or the command.
+     */
+    public function decide(Request $request, string $id): JsonResponse
+    {
+        $by = $this->authorise($request);
+        abort_unless($by['staff'], 403, 'Only the team can make a decision.');
+        $input = $request->validate([
+            'state' => ['required', 'in:open,decided,none'],
+            'outcome' => ['required_if:state,decided', 'nullable', 'string', 'max:5000'],
+            'who' => ['nullable', 'string', 'max:120'],
+        ], ['outcome.required_if' => 'Write what was decided.']);
+
+        return $this->found($this->store->decide($id, $input['state'], $by, $input['outcome'] ?? null, $input['who'] ?? null));
     }
 
     public function reply(Request $request, string $id): JsonResponse

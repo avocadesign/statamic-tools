@@ -528,5 +528,195 @@
         if (note) note.hidden = false;
     });
 
+
+    /* ---------- Comments: pins on the page, and choosing a spot for a new one ----------
+       The shell sends the comments for this page; each pin sits on its element, at the spot within it, so it moves
+       with the element. A comment whose element has gone sits where it was on the page, dashed. */
+
+    var cpins = { items: [], show: true, hot: null, zoom: 1 };
+    var pinLayer = null, outline = null, picking = false;
+
+    function layer() {
+        if (!pinLayer || !pinLayer.isConnected) {
+            pinLayer = document.createElement('div');
+            pinLayer.className = 'wf-cpins';
+            pinLayer.setAttribute('aria-label', 'Comments');
+            document.body.appendChild(pinLayer);
+        }
+        // The frame is drawn scaled down; the pins scale back up, so they're the same size on screen in both frames.
+        pinLayer.style.setProperty('--wf-zoom', String(cpins.zoom || 1));
+        return pinLayer;
+    }
+
+    function find(sel) {
+        if (!sel) return null;
+        try { var el = app.querySelector(sel); return el && el.getClientRects().length ? el : null; } catch (e) { return null; }
+    }
+
+    function placePins() {
+        var root = layer();
+        root.innerHTML = '';
+        root.hidden = !cpins.show;
+        if (!cpins.show) return;
+        var docW = document.documentElement.scrollWidth;
+        cpins.items.forEach(function (c) {
+            var el = find(c.selector), x, y;
+            if (el) {
+                var r = el.getBoundingClientRect();
+                x = r.left + window.scrollX + (c.x == null ? 0.5 : c.x) * r.width;
+                y = r.top + window.scrollY + (c.y == null ? 0.5 : c.y) * r.height;
+            } else if (c.page_y != null) {
+                x = (c.page_x == null ? 0.5 : c.page_x) * docW;
+                y = c.page_y;
+            } else {
+                return;
+            }
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'wf-cpin wf-cpin--' + c.kind + (el ? '' : ' wf-cpin--moved') + (cpins.hot === c.id ? ' is-hot' : '');
+            b.dataset.cpin = c.id;
+            b.style.left = x + 'px';
+            b.style.top = y + 'px';
+            b.textContent = c.n;
+            b.setAttribute('aria-label', c.label || ('Comment ' + c.n));
+            root.appendChild(b);
+        });
+    }
+
+    function markEl(el) {
+        if (!outline) {
+            outline = document.createElement('div');
+            outline.className = 'wf-pick-outline';
+            document.body.appendChild(outline);
+        }
+        if (!el) { outline.hidden = true; return; }
+        var r = el.getBoundingClientRect();
+        outline.hidden = false;
+        outline.style.left = (r.left + window.scrollX - 3) + 'px';
+        outline.style.top = (r.top + window.scrollY - 3) + 'px';
+        outline.style.width = (r.width + 6) + 'px';
+        outline.style.height = (r.height + 6) + 'px';
+    }
+
+    function trimText(s, n) {
+        s = String(s || '').replace(/\s+/g, ' ').trim();
+        return s.length > n ? s.slice(0, n - 1).trim() + '…' : s;
+    }
+
+    // A path to the element from the page's own root, which the next render of the same page rebuilds the same.
+    function selectorFor(el) {
+        var parts = [];
+        for (var node = el; node && node !== app && node.nodeType === 1; node = node.parentElement) {
+            var part = node.tagName.toLowerCase();
+            var parent = node.parentElement;
+            if (parent) {
+                var same = Array.prototype.filter.call(parent.children, function (c) { return c.tagName === node.tagName; });
+                if (same.length > 1) part += ':nth-of-type(' + (same.indexOf(node) + 1) + ')';
+            }
+            parts.unshift(part);
+        }
+        return ':scope > ' + parts.join(' > ');
+    }
+
+    function labelFor(el) {
+        var parts = [];
+        var j = el.closest('[data-j]');
+        if (j && j.dataset.j === 'header') parts.push('Site header');
+        if (j && j.dataset.j === 'footer') parts.push('Site footer');
+        var heading = '';
+        if (/^H[1-6]$/.test(el.tagName)) heading = trimText(el.textContent, 60);
+        else {
+            var box = el.closest('section, header, footer, article, main') || app;
+            var hs = box.querySelectorAll('h1, h2, h3, h4, h5, h6'), found = null;
+            for (var i = 0; i < hs.length; i++) if (hs[i].contains(el) || (hs[i].compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING)) found = hs[i];
+            found = found || hs[0];
+            if (found) heading = trimText(found.textContent, 60);
+        }
+        var own = trimText(el.textContent, 41);
+        if (own && own.length <= 40 && own !== heading) parts.push('“' + own + '”');
+        if (heading) parts.push('near “' + heading + '”');
+        return parts.join(', ') || 'On the page';
+    }
+
+    function pickOn(on) {
+        picking = on;
+        document.documentElement.classList.toggle('wf-picking', on);
+        if (!on) markEl(null);
+    }
+
+    document.addEventListener('mousemove', function (e) {
+        if (!picking) return;
+        if (e.target.closest && e.target.closest('.wf-cpins')) { markEl(null); return; }
+        markEl(e.target === document.documentElement || e.target === document.body ? null : e.target);
+    }, true);
+
+    document.addEventListener('click', function (e) {
+        var pinBtn = e.target.closest && e.target.closest('[data-cpin]');
+        if (picking) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            if (pinBtn) return;
+            var el = e.target === document.documentElement || e.target === document.body ? app : e.target;
+            var r = el.getBoundingClientRect();
+            var docW = Math.max(document.documentElement.scrollWidth, 1);
+            post({ type: 'picked', anchor: {
+                selector: selectorFor(el),
+                x: Math.max(0, Math.min(1, (e.clientX - r.left) / (r.width || 1))),
+                y: Math.max(0, Math.min(1, (e.clientY - r.top) / (r.height || 1))),
+                page_x: Math.max(0, Math.min(1, (e.clientX + window.scrollX) / docW)),
+                page_y: Math.round(e.clientY + window.scrollY),
+                label: labelFor(el),
+                text: trimText(el.textContent, 120)
+            } });
+            pickOn(false);
+            return;
+        }
+        if (pinBtn) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            post({ type: 'cpin', id: pinBtn.dataset.cpin });
+        }
+    }, true);
+
+    document.addEventListener('keydown', function (e) {
+        if (picking && e.key === 'Escape') { pickOn(false); post({ type: 'pick-cancel' }); }
+    });
+
+    window.addEventListener('resize', placePins);
+    setInterval(function () { if (cpins.items.length && cpins.show) placePins(); }, 1200);
+
+    window.addEventListener('message', function (e) {
+        if (e.source !== parent) return;
+        var m = e.data || {};
+        if (m.type === 'cpins') {
+            cpins.items = m.items || [];
+            cpins.show = m.show !== false;
+            cpins.hot = m.hot || null;
+            if (m.zoom) cpins.zoom = m.zoom;
+            placePins();
+        } else if (m.type === 'zoom') {
+            cpins.zoom = m.zoom || 1;
+            layer();
+        } else if (m.type === 'cpin-hot') {
+            cpins.hot = m.id || null;
+            placePins();
+            var hotItem = cpins.items.filter(function (c) { return c.id === m.id; })[0];
+            markEl(hotItem ? find(hotItem.selector) : null);
+        } else if (m.type === 'cpin-show') {
+            var item = cpins.items.filter(function (c) { return c.id === m.id; })[0];
+            var target = item && find(item.selector);
+            if (target) target.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' });
+            else if (item && item.page_y != null) window.scrollTo({ top: Math.max(0, item.page_y - window.innerHeight / 2), behavior: reduced ? 'auto' : 'smooth' });
+            cpins.hot = m.id;
+            placePins();
+        } else if (m.type === 'pick') {
+            pickOn(!!m.on);
+        } else if (m.type === 'render') {
+            // The page has been replaced: clear the old outline, and put the pins back once it has laid out.
+            if (!picking) markEl(null);
+            setTimeout(placePins, 60);
+        }
+    });
+
     post({ type: 'ready' });
 })();

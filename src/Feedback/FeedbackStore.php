@@ -16,6 +16,11 @@ final class FeedbackStore
 
     public const RESOLVED = 'resolved';
 
+    /** A decision still to make, and one made. */
+    public const TO_DECIDE = 'open';
+
+    public const DECIDED = 'decided';
+
     public function __construct(private string $directory)
     {
     }
@@ -65,16 +70,23 @@ final class FeedbackStore
 
     /**
      * Records a new comment and returns it. Where it was made is the page and, on it, the element and the spot within
-     * it, as the widget measured them.
+     * it, as the widget measured them. A comment on the prototype also records the version, the page's route key and
+     * route, and the frame it was made in.
      *
-     * @param  array<string, mixed>  $comment  url, entry, title, body, anchor, viewport
+     * @param  array<string, mixed>  $comment  url, entry, title, body, anchor, viewport; for the prototype, version, page, route, frame
      * @param  array{name: string, staff: bool}  $author
      * @return array<string, mixed>
      */
     public function create(array $comment, array $author): array
     {
+        $prototype = ($comment['context'] ?? 'site') === 'prototype';
         $record = [
             'id' => (string) Str::ulid(),
+            'context' => $prototype ? 'prototype' : 'site',
+            'version' => $prototype ? (string) ($comment['version'] ?? '') : null,
+            'page' => $prototype ? (string) ($comment['page'] ?? '') : null,
+            'route' => $prototype ? (string) ($comment['route'] ?? '') : null,
+            'frame' => $prototype ? (string) ($comment['frame'] ?? '') : null,
             'url' => (string) $comment['url'],
             'entry' => $comment['entry'] ?? null,
             'title' => $comment['title'] ?? null,
@@ -87,6 +99,7 @@ final class FeedbackStore
             'resolved_by' => null,
             'resolved_at' => null,
             'replies' => [],
+            'decision' => null,
         ];
 
         $this->write($record);
@@ -113,6 +126,40 @@ final class FeedbackStore
             'resolved_by' => $by,
             'resolved_at' => now()->toIso8601String(),
         ]);
+    }
+
+    /**
+     * Raises a comment as a decision to make, records the decision made, or takes the decision off again. The team
+     * does this, never the reviewers: who may is the controller's to check.
+     *
+     * @param  array{name: string, staff: bool}  $by
+     */
+    public function decide(string $id, string $state, array $by, ?string $outcome = null, ?string $who = null): ?array
+    {
+        return $this->change($id, function (array $comment) use ($state, $by, $outcome, $who) {
+            if ($state === 'none') {
+                return [...$comment, 'decision' => null];
+            }
+
+            $decision = (array) ($comment['decision'] ?? []);
+            $decision['raised_by'] ??= $by;
+            $decision['raised_at'] ??= now()->toIso8601String();
+            if ($who !== null) {
+                $decision['who'] = $who;
+            }
+            $decision['state'] = $state === self::DECIDED ? self::DECIDED : self::TO_DECIDE;
+            if ($decision['state'] === self::DECIDED) {
+                $decision['outcome'] = (string) $outcome;
+                $decision['decided_by'] = $by;
+                $decision['decided_at'] = now()->toIso8601String();
+            } else {
+                $decision['outcome'] = null;
+                $decision['decided_by'] = null;
+                $decision['decided_at'] = null;
+            }
+
+            return [...$comment, 'decision' => $decision];
+        });
     }
 
     public function reopen(string $id): ?array

@@ -92,6 +92,9 @@ return [
         'path' => 'prototype',
         // The Tailwind the frames compile the site's CSS with, when the site's node_modules doesn't say.
         'tailwind' => '4.3.3',
+        // Who sees the Content model tab: 'team' (a control panel login, or a reviewer marked team), 'everyone', or
+        // 'off'. The team only, unless PROTOTYPE_CONTENT_MODEL says otherwise.
+        'content_model' => env('PROTOTYPE_CONTENT_MODEL', 'team'),
     ],
 
     // Feedback: comments pinned to the site's pages, for a review on local or staging. Off unless FEEDBACK_ENABLED is

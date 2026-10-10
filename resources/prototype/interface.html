@@ -6,20 +6,21 @@
         </button>
         <div class="brand">
             <strong id="brand-name"></strong>
-            <span id="brand-sub"></span>
-        </div>
-        <div class="version">
-            <button type="button" class="version-btn" id="version-btn" aria-haspopup="true" aria-expanded="false" aria-controls="version-menu"></button>
-            <div class="version-menu" id="version-menu" hidden></div>
+            <div class="brand-sub">
+                <span class="version">
+                    <button type="button" class="version-btn" id="version-btn" aria-haspopup="true" aria-expanded="false" aria-controls="version-menu"></button>
+                    <span class="version-menu" id="version-menu" hidden></span>
+                </span>
+                <span aria-hidden="true">·</span>
+                <span id="brand-sub"></span>
+            </div>
         </div>
         <nav class="seg tabs" role="tablist" aria-label="View" id="views">
             <button type="button" role="tab" data-view="wireframes" aria-selected="true">Prototype</button>
             <button type="button" role="tab" data-view="sitemap" aria-selected="false">Sitemap</button>
             <button type="button" role="tab" data-view="model" aria-selected="false">Content model</button>
-            <button type="button" role="tab" data-view="decisions" aria-selected="false">Decisions<span class="count" id="dec-count"></span></button>
         </nav>
         <div class="viewer" id="viewer" hidden></div>
-        <button type="button" class="icon-btn theme-btn" id="theme-toggle"></button>
         <button type="button" class="btn help-btn" id="help-open" aria-label="How to use">
             <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M6.2 6.2a1.9 1.9 0 1 1 2.6 1.8c-.5.2-.8.6-.8 1.1v.4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="8" cy="11.6" r=".9" fill="currentColor"/></svg>
             <span class="lbl">How to use</span>
@@ -30,8 +31,7 @@
         <aside class="sidebar" id="sidebar" aria-label="Journeys">
             <div class="side-scroll" id="side-scroll"></div>
             <a class="agency" href="__AGENCY_URL__" target="_blank" rel="noopener" title="Prepared by __AGENCY_NAME__">
-                <span class="agency-logo light"><!--AGENCY_LOGO--></span>
-                <span class="agency-logo dark"><!--AGENCY_LOGO_DARK--></span>
+                <span class="agency-logo"><!--AGENCY_LOGO_DARK--></span>
                 <span class="agency-text"><b>Prepared by __AGENCY_NAME__</b><span id="prepared"></span></span>
             </a>
         </aside>
@@ -45,31 +45,47 @@
                         <span class="path" id="page-path">/</span>
                     </div>
                     <div class="stage-tools" id="wf-tools">
-                        <div class="seg" id="frame-pick" aria-label="Show">
-                            <button type="button" data-frames="both" aria-pressed="true">Both</button>
-                            <button type="button" data-frames="desktop" aria-pressed="false">Desktop</button>
-                            <button type="button" data-frames="mobile" aria-pressed="false">Mobile</button>
+                        <button type="button" class="btn" id="notes-btn" aria-expanded="false" aria-controls="rail" hidden>
+                            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="1.75" width="10" height="12.5" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M5.5 5.5h5M5.5 8h5M5.5 10.5h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                            <span>Notes</span>
+                        </button>
+                        <button type="button" class="btn" id="fb-comment" aria-expanded="false" aria-controls="rail" hidden>
+                            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 2.5h10a1.5 1.5 0 0 1 1.5 1.5v6a1.5 1.5 0 0 1-1.5 1.5H8l-3.5 2.5v-2.5H3A1.5 1.5 0 0 1 1.5 10V4A1.5 1.5 0 0 1 3 2.5Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+                            <span>Comments</span>
+                            <span class="btn-count" id="fb-badge" aria-hidden="true" hidden></span>
+                        </button>
+                        <div class="display">
+                            <button type="button" class="btn" id="display-btn" aria-haspopup="true" aria-expanded="false" aria-controls="display-menu">
+                                <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4.5h7M12 4.5h2M2 11.5h2M7 11.5h7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="10.5" cy="4.5" r="1.6" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="5.5" cy="11.5" r="1.6" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
+                                <span>Display options</span>
+                            </button>
+                            <div class="display-menu" id="display-menu" hidden>
+                                <p class="menu-h">Show</p>
+                                <div class="seg" id="frame-pick" role="group" aria-label="Show">
+                                    <button type="button" data-frames="both" aria-pressed="true">Both</button>
+                                    <button type="button" data-frames="desktop" aria-pressed="false">Desktop</button>
+                                    <button type="button" data-frames="mobile" aria-pressed="false">Mobile</button>
+                                </div>
+                                <label class="toggle"><input type="checkbox" id="sync" checked> Scroll together</label>
+                                <label class="toggle" id="pins-toggle" hidden><input type="checkbox" id="pins" checked> Comment pins</label>
+                            </div>
                         </div>
-                        <label class="toggle"><input type="checkbox" id="sync" checked> Scroll together</label>
-                        <label class="toggle"><input type="checkbox" id="annotate" checked> Decision numbers</label>
                     </div>
                 </div>
                 <div class="frames-wrap" id="frames-wrap">
                     <div class="frames" id="frames">
                         <div class="device" id="dev-desktop">
-                            <div class="device-label"><b>Desktop</b><span id="lab-desktop"></span></div>
+                            <div class="device-label"><button type="button" class="device-name" aria-expanded="false">Desktop <span class="dims" id="lab-desktop"></span></button><span class="zoom" id="zoom-desktop"></span></div>
                             <div class="browser">
                                 <div class="bar"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="url" id="url-desktop">/</span></div>
                                 <div class="viewport" id="vp-desktop"></div>
                             </div>
                         </div>
                         <div class="device" id="dev-mobile">
-                            <div class="device-label"><b>Mobile</b><span id="lab-mobile"></span></div>
-                            <div class="phone">
-                                <div class="screen">
-                                    <div class="bar"><span class="url" id="url-mobile">/</span></div>
-                                    <div class="viewport" id="vp-mobile"></div>
-                                </div>
+                            <div class="device-label"><button type="button" class="device-name" aria-expanded="false">Mobile <span class="dims" id="lab-mobile"></span></button><span class="zoom" id="zoom-mobile"></span></div>
+                            <div class="browser">
+                                <div class="bar"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="url" id="url-mobile">/</span></div>
+                                <div class="viewport" id="vp-mobile"></div>
                             </div>
                         </div>
                     </div>
@@ -77,10 +93,9 @@
             </section>
             <section class="view" id="view-sitemap" aria-label="Sitemap" hidden></section>
             <section class="view" id="view-model" aria-label="Content model" hidden></section>
-            <section class="view" id="view-decisions" aria-label="Decisions" hidden></section>
         </main>
 
-        <aside class="rail" id="rail" aria-label="Notes">
+        <aside class="rail" id="rail" aria-label="Notes and comments">
             <div class="rail-body" id="rail-body"></div>
         </aside>
     </div>
@@ -99,9 +114,9 @@
             <li><b>Follow a journey, or look around.</b> A journey on the left walks you through the site the way a particular visitor would, one step at a time: press Next, or click the link on the page. To look around, click links on the pages, or open any page from the Sitemap tab.</li>
             <li><b>Each page shows twice.</b> On desktop and on mobile. Scroll either one; with “Scroll together” on, the other follows.</li>
             <li><b>Grey boxes and [bracketed words] are placeholders.</b> Photos and writing still to come.</li>
-            <li><b>Numbered circles are decisions.</b> <span class="pinnum">4</span> still to decide, <span class="pinnum agreed">8</span> decided. Click one to read it.</li>
-            <li><b>Page notes</b> say what each page is for and what content it needs. Open them from the strip on the right, or click a numbered circle.</li>
-            <li><b>The tabs at the top</b> show the whole sitemap, the content behind the site, and every decision in one list.</li>
+            <li id="help-comments" hidden><b>Comment on anything.</b> Press Comments to open them, then Add comment and click the spot you mean on either page. Numbered pins show the comments: <span class="pin-key">1</span> a comment, <span class="pin-key decide">2</span> a decision to make, <span class="pin-key decided">3</span> done. Click a pin to read it and reply; All feedback lists every comment on the prototype.</li>
+            <li><b>Notes</b> say what a page is for and what content it needs. Press Notes to open them; pages without notes have no button.</li>
+            <li><b>The tabs at the top</b> show the whole sitemap and the content behind the site.</li>
         </ol>
         <div class="help-foot"><button type="button" class="btn primary" id="help-done">Got it</button></div>
     </div>

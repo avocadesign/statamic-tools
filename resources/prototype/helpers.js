@@ -4,21 +4,17 @@
    ---------- */
 
 /* ---------- Site markup, rendered into both frames ----------
-   The site's own Tailwind classes and tokens (03-frame.css), so a page reads like the kit's blocks.
+   The site's own Tailwind classes and tokens, so a page reads like the kit's blocks.
    Each page is a function in PAGES that returns markup; ROUTES gives it a URL. Mark anything a journey step
-   or a decision points at with data-j="…", and put a decision's marker beside it with pin('D1'). */
+   points at with data-j="…". */
 
 function esc(s) { return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 function decNum(id) { return id.replace('D', ''); }
 
-function pin(id, corner) {
-    const d = DEC[id];
-    if (!d) return '';
-    const agreed = d.status === 'agreed';
-    return `<span class="wf-pin${agreed ? ' wf-pin--agreed' : ''}${corner ? ' wf-pin--corner' : ''}" data-pin="${id}" role="button" tabindex="0" aria-label="Decision ${decNum(id)}${agreed ? ' (decided)' : ''}: ${esc(d.title)}">${decNum(id)}</span>`;
-}
-// "To confirm" until the decision that settles it is agreed, then nothing: pageHeader({ badge: toConfirm('D2') }).
-function toConfirm(id) { return DEC[id] && DEC[id].status === 'agreed' ? '' : 'To confirm'; }
+// Numbered decision markers came from decisions written into data.js. Decisions are comments now, raised by the team
+// and pinned where they were made, so a page that still calls these draws nothing.
+function pin() { return ''; }
+function toConfirm() { return ''; }
 function flag(text) { return `<span class="wf-flag">${esc(text)}</span>`; }
 function img(label, ratio = '3/2', cls = '') {
     return `<div class="wf-img ${cls}" style="aspect-ratio:${ratio}"><span>${esc(label)}</span></div>`;

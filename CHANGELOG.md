@@ -2,6 +2,18 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.22 (10 October 2026)
+
+The prototype's decisions come from its comments, and its interface is reworked around them.
+
+- **Comments in the prototype.** With feedback on, the Comments button, with the number still open, opens a side panel. Add comment asks for a spot on either frame; the numbered pin sits on the element clicked, in both frames and at the same size whatever the zoom: graphite while open, amber for a decision to make, green once done. Done covers a decision made and a comment resolved, which a client can't tell apart, so the panel says Done and Mark as done for both. It lists this page's comments or all the feedback, filtered to open, to decide or done, with a switch for the pins. Prototype comments keep their version, page, route and frame, and never mix with the site's own comments or counts.
+- **Decisions are comments the team raises.** A control panel login, a reviewer marked `team: true` in `reviewers.yaml`, or `avoca:feedback` can raise a comment as a decision, record what was decided, reopen it or take it off; reviewers can't. Decisions carry from one version to the next. `avoca:feedback` gains `--decisions`, `--raise`, `--who`, `--decide`, `--outcome`, `--drop-decision` and `--write-decisions`, which copies them into `resources/site/decisions.md` at sign-off.
+- **Decisions written into `data.js` are gone,** with the Decisions tab and the numbered markers. `pin()` and `toConfirm()` draw nothing, so pages that call them still work.
+- **Notes and Comments buttons.** The side panel stays out of sight until one opens it, on its Notes or Comments tab. Notes open with every section showing and no longer repeat the page's address; a page without notes has no Notes button.
+- **The content model is the team's** until it's shared: `PROTOTYPE_CONTENT_MODEL=everyone` shows it to reviewers, `off` hides it from everyone.
+- **Layout.** Always dark, with no light and dark switch. The desktop frame is a 1440 by 900 laptop, and the phone has the same browser frame; a frame's size shows on pointing at its name, its zoom always. Both, Desktop or Mobile, Scroll together and Comment pins sit in a Display options menu. The version is a link under the site's name, which comes from `APP_NAME` unless `data.js` names it. The signed-in name is shortened to the name and Sign out.
+- **To do on update:** nothing. Optionally, take `WHO`, `DECISIONS`, `DEC`, `SITEMAP_DECISIONS`, `BEFORE_DESIGN` and the `decisions` in `NOTES` out of a site's `data.js`, and set `name: ''` to use `APP_NAME`; mark the team in `reviewers.yaml` with `team: true`.
+
 ## v0.1.21 (10 October 2026)
 
 The discovery prototype moves into the add-on, so every site gets its improvements.

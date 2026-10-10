@@ -41,7 +41,7 @@ final class Viewer
         if (Reviewers::listed()) {
             $person = is_string($cookie['email'] ?? null) ? Reviewers::find($cookie['email']) : null;
 
-            return $person ? ['name' => $person['name'], 'staff' => false] : null;
+            return $person ? ['name' => $person['name'], 'staff' => $person['team']] : null;
         }
 
         if (! is_string($cookie['name'] ?? null) || trim($cookie['name']) === '') {

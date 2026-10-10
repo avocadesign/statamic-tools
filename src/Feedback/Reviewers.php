@@ -12,6 +12,12 @@ use Statamic\Facades\YAML;
  *     reviewers:
  *       - name: Jane Smith
  *         email: jane@example.com
+ *       - name: Sam Avoca
+ *         email: sam@avoca.design
+ *         team: true
+ *
+ * Someone marked team: true comments as the team, as a control panel login does: they can raise a comment as a
+ * decision and record its outcome. It is how the team signs in on a site without control panel accounts for them.
  */
 final class Reviewers
 {
@@ -22,7 +28,7 @@ final class Reviewers
         return str_starts_with($path, '/') ? $path : base_path($path);
     }
 
-    /** @return array<int, array{name: string, email: string}> */
+    /** @return array<int, array{name: string, email: string, team: bool}> */
     public static function all(): array
     {
         $path = self::path();
@@ -36,7 +42,7 @@ final class Reviewers
             $name = trim((string) ($person['name'] ?? ''));
             $email = self::normalise((string) ($person['email'] ?? ''));
             if ($name !== '' && $email !== '') {
-                $people[] = ['name' => $name, 'email' => $email];
+                $people[] = ['name' => $name, 'email' => $email, 'team' => (bool) ($person['team'] ?? false)];
             }
         }
 
@@ -48,7 +54,7 @@ final class Reviewers
         return self::all() !== [];
     }
 
-    /** @return array{name: string, email: string}|null */
+    /** @return array{name: string, email: string, team: bool}|null */
     public static function find(string $email): ?array
     {
         $email = self::normalise($email);

@@ -5,23 +5,28 @@ const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 
 const STORE = `${PROJECT.key}-prototype-v1`;
 const state = Object.assign({
-    view: 'wireframes', route: '/', frames: 'both', annotate: true, rail: 'notes',
-    journey: JOURNEYS[0]?.id, step: -1, modes: { desktop: 'pinned', mobile: 'swipe' }, entity: null, who: 'all',
-    sync: true, notes: false, side: true, decs: 'open'
+    view: 'wireframes', route: '/', frames: 'both', pins: true, rail: 'notes',
+    journey: JOURNEYS[0]?.id, step: -1, modes: { desktop: 'pinned', mobile: 'swipe' }, entity: null,
+    sync: true, notes: false, side: false, railTab: 'notes', fbList: 'page', fbShow: 'open', fbScope: 'version'
 }, (() => { try { return JSON.parse(localStorage.getItem(STORE) || '{}'); } catch (e) { return {}; } })());
 state.step = -1;
+// Page notes and journeys start collapsed on every visit, whatever was open last time.
+state.notes = false;
+state.side = false;
 state.entity = null;  // the content model opens with nothing selected
+// Which tabs this viewer has. The server says, from PROTOTYPE_CONTENT_MODEL and who is viewing: the content model is
+// the team's unless it's shared. Opened as a file or an Artifact, everything shows.
+const VIEWS = Object.assign({ model: true, model_team_only: false }, window.PROTOTYPE_VIEWS);
+// A view saved by an older prototype, or one this viewer doesn't have, opens the pages instead.
+if (!['wireframes', 'sitemap', 'model'].includes(state.view) || (state.view === 'model' && !VIEWS.model)) state.view = 'wireframes';
 function save() {
-    try { localStorage.setItem(STORE, JSON.stringify({ view: state.view, route: state.route, frames: state.frames, annotate: state.annotate, modes: state.modes, entity: state.entity, journey: state.journey, sync: state.sync, notes: state.notes, side: state.side, decs: state.decs, welcomed: state.welcomed })); } catch (e) { /* storage unavailable */ }
+    try { localStorage.setItem(STORE, JSON.stringify({ view: state.view, route: state.route, frames: state.frames, pins: state.pins, modes: state.modes, entity: state.entity, journey: state.journey, sync: state.sync, railTab: state.railTab, fbList: state.fbList, fbShow: state.fbShow, fbScope: state.fbScope, welcomed: state.welcomed })); } catch (e) { /* storage unavailable */ }
 }
-const agreedCount = () => DECISIONS.filter(d => d.status === 'agreed').length;
-
-const whoLabel = w => w.map(k => WHO[k]).join(', ');
 const pagesFor = id => ROUTES.filter(r => (NOTES[r.key]?.fed || []).includes(id));
 
 /* ---------- Frames ---------- */
 
-const FRAME_DOC = '<!doctype html><html lang="en" class="antialiased"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
+const FRAME_DOC = '<!doctype html><html lang="en" class="antialiased"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="data:,">'
     + '<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@' + (window.PROTOTYPE_TAILWIND || '4.3.3') + '/dist/index.global.js"><\/script>'
     + '<style type="text/tailwindcss">' + document.getElementById('frame-css').textContent + '</style>'
     + '</head><body class="flex flex-col min-h-screen bg-white wf-annotate"><div id="app" class="flex flex-col min-h-screen"></div>'
@@ -29,7 +34,7 @@ const FRAME_DOC = '<!doctype html><html lang="en" class="antialiased"><head><met
     + '</body></html>';
 
 const FR = {
-    desktop: { w: 1280, h: 800, s: 1, ready: false, el: null },
+    desktop: { w: 1440, h: 900, s: 1, ready: false, el: null },
     mobile: { w: 390, h: 844, s: 1, ready: false, el: null }
 };
 
@@ -52,7 +57,7 @@ function renderFrame(name, highlight) {
     const html = (PAGES[pr.key] || PAGES[ROUTES[0].key])(pr.slug);
     f.el.contentWindow.postMessage({
         type: 'render', html, title: pr.r.title,
-        mode: state.modes[name], annotate: state.annotate,
+        mode: state.modes[name], annotate: true,
         phase: pr.params.phase ? Number(pr.params.phase) : null,
         highlight: highlight || null, sync: state.sync
     }, '*');
@@ -66,6 +71,9 @@ function navigate(route, opts = {}) {
     pendingHighlight = opts.highlight || null;
     save();
     for (const name of Object.keys(FR)) renderFrame(name, opts.highlight);
+    if (fb.picking) fbPick(false);
+    if (fb.draft && fb.draft.page !== parseRoute(route).key) fb.draft = null;
+    fbSendPins();
     $('#url-desktop').textContent = route;
     $('#url-mobile').textContent = route;
     const pr = parseRoute(route);
@@ -83,7 +91,7 @@ window.addEventListener('message', e => {
     if (!name) return;
     const m = e.data || {};
     if (m.source !== 'wf-frame') return;
-    if (m.type === 'ready') { FR[name].ready = true; renderFrame(name, pendingHighlight); }
+    if (m.type === 'ready') { FR[name].ready = true; renderFrame(name, pendingHighlight); fbSendPins(); if (fb.picking) tellFrames({ type: 'pick', on: true }); }
     else if (m.type === 'nav') {
         if (state.step >= 0) {
             const next = activeJourney().steps[state.step + 1];
@@ -93,7 +101,9 @@ window.addEventListener('message', e => {
         }
         navigate(m.route);
     }
-    else if (m.type === 'pin') openDecision(m.id);
+    else if (m.type === 'cpin') fbOpen(m.id);
+    else if (m.type === 'picked') fbPicked(name, m.anchor);
+    else if (m.type === 'pick-cancel') fbPick(false);
     else if (m.type === 'external') toast('Links to other websites are switched off in the prototype.');
     else if (m.type === 'inert') toast(`“${m.label}” is a placeholder in the prototype.`);
     else if (m.type === 'download') toast(`Downloads aren’t served in the prototype (${m.href}).`);
@@ -109,8 +119,8 @@ function layoutFrames() {
     const W = area.clientWidth - 32;
     const H = area.clientHeight - 32;
     let show = state.frames;
-    // Both frames need room for the phone at 55% and the computer at 30%.
-    if (show === 'both' && (narrow || W < 390 * 0.55 + 44 + 1280 * 0.3)) show = 'mobile';
+    // Both frames need room for the phone at 55% and the laptop at 30%.
+    if (show === 'both' && (narrow || W < 390 * 0.55 + 44 + 1440 * 0.3)) show = 'mobile';
     $('#dev-desktop').hidden = show === 'mobile';
     $('#dev-mobile').hidden = show === 'desktop';
     // During a journey, fade the other device, but only while both are on screen.
@@ -118,7 +128,7 @@ function layoutFrames() {
     $('#dev-desktop').classList.toggle('dim', jd === 'mobile');
     $('#dev-mobile').classList.toggle('dim', jd === 'desktop');
 
-    const label = 26, bar = 34, phoneChrome = 20 + 30;
+    const label = 26, bar = 34, phoneChrome = bar + 2;
     const D = FR.desktop, M = FR.mobile;
     if (!narrow) {
         M.w = 390; M.h = 844;
@@ -127,13 +137,14 @@ function layoutFrames() {
             ? Math.max(0.55, Math.min(0.8, fitH, (W * 0.4 - 44) / M.w))
             : Math.min(1, Math.max(0.5, fitH));
         const mobileW = show === 'both' ? M.w * M.s + 20 + 24 : 0;
-        D.w = 1280;
-        D.s = Math.min(1, Math.max(0.3, (W - mobileW) / D.w));
-        D.h = Math.min(900, Math.max(640, Math.round((H - label - bar) / D.s)));
+        // A 1440 by 900 laptop, as large as fits beside the phone and within the height.
+        D.w = 1440;
+        D.h = 900;
+        D.s = Math.min(1, Math.max(0.3, Math.min((W - mobileW) / D.w, (H - label - bar - 2) / D.h)));
     } else {
         M.w = 390; M.h = 780;
         M.s = Math.min(1, (W - 20) / M.w);
-        D.w = 1280; D.s = Math.min(1, W / D.w); D.h = 900;
+        D.w = 1440; D.s = Math.min(1, W / D.w); D.h = 900;
     }
     for (const name of ['desktop', 'mobile']) {
         const f = FR[name];
@@ -144,7 +155,9 @@ function layoutFrames() {
         const vp = $(`#vp-${name}`);
         vp.style.width = Math.round(f.w * f.s) + 'px';
         vp.style.height = Math.round(f.h * f.s) + 'px';
-        $(`#lab-${name}`).textContent = `${f.w} × ${f.h} · ${Math.round(f.s * 100)}%`;
+        $(`#lab-${name}`).textContent = `${f.w} × ${f.h}`;
+        $(`#zoom-${name}`).textContent = `${Math.round(f.s * 100)}%`;
+        if (f.ready && f.sentZoom !== f.s) { f.sentZoom = f.s; f.el.contentWindow.postMessage({ type: 'zoom', zoom: f.s }, '*'); }
     }
 }
 
@@ -157,7 +170,6 @@ function setView(v) {
     $$('.view').forEach(s => { s.hidden = s.id !== `view-${v}`; });
     if (v === 'sitemap') renderSitemap();
     if (v === 'model') renderModel();
-    if (v === 'decisions') renderDecisions();
     renderRail();
     if (v === 'wireframes') requestAnimationFrame(layoutFrames);
 }
@@ -171,110 +183,84 @@ function toast(msg) {
     toastTimer = setTimeout(() => { t.hidden = true; }, 3200);
 }
 
-/* ---------- Decided or to confirm ---------- */
+/* ---------- Suggested ---------- */
 
-// Clients see one question: is it settled? A suggestion of ours stays to confirm until the decision that settles it
-// is agreed; everything else is agreed.
-const isOpen = (suggested, id) => !!suggested && !(id && DEC[id] && DEC[id].status === 'agreed');
-const confirmBadge = id => `<span class="badge sugg">To confirm${id && DEC[id] ? ` · decision ${decNum(id)}` : ''}</span>`;
-
-/* ---------- Decisions ---------- */
-
-function decisionCard(d, { open = false, locate = true, pagesLinks = true, row = false, tag = '' } = {}) {
-    const agreed = d.status === 'agreed';
-    const cls = `dec${row ? ' row' : ''}${agreed ? ' agreed' : ''}`;
-    const head = `<span class="pinnum">${decNum(d.id)}</span><span class="t">${esc(d.title)}${tag ? ` <span class="dtag">${esc(tag)}</span>` : ''}</span>${row ? '' : '<span class="chev" aria-hidden="true">›</span>'}<span class="who">${agreed ? '<span class="state">Decided</span>' : ''}${agreed ? 'Decided by' : 'Decides'}: ${esc(whoLabel(agreed && d.decidedBy ? d.decidedBy : d.who))}</span>`;
-    const question = `<p class="q">${esc(d.q)}</p>${d.from ? `<p class="from"><b>${esc(PROJECT.fromLabel)}.</b> ${esc(d.from)}</p>` : ''}`;
-    const options = `<p class="opts-h">Options</p><ol class="opts">${d.options.map((o, i) => `<li class="${i === d.rec ? (agreed ? 'chosen' : 'rec') : ''}"><span class="opt-l">${String.fromCharCode(65 + i)}</span><span class="opt-b"><b>${esc(o[0])}${i === d.rec ? `<em>${agreed ? 'Decided' : 'Suggested'}</em>` : ''}</b><span>${esc(o[1])}</span></span></li>`).join('')}</ol>`;
-    const why = `<p class="why"><b>${agreed ? 'Why' : d.rec === -1 ? 'Why it matters' : 'Why we suggest it'}.</b> ${esc(d.why)}</p>${d.change ? `<p class="portal"><b>If agreed:</b> ${esc(d.change)}</p>` : ''}`;
-    const links = `<div class="dec-actions">
-                ${locate ? `<button type="button" class="chip-btn" data-locate="${d.id}">Show on the page</button>` : ''}
-                ${pagesLinks ? (d.pages || []).map(k => { const r = ROUTES.find(x => x.key === k); return r ? `<button type="button" class="chip-btn" data-go="${sampleRoute(r)}" data-pin-after="${d.id}">${esc(r.title)}</button>` : ''; }).join('') : ''}
-            </div>`;
-    // On the Decisions tab each decision reads in full: the question and its pages on the left, the options on the
-    // right. Elsewhere it folds away.
-    if (row) {
-        return `<article class="${cls}" id="dec-${d.id}">
-            <div class="dec-l"><div class="dec-h">${head}</div>${question}${links}</div>
-            <div class="dec-r">${options}${why}</div>
-        </article>`;
-    }
-    return `<details class="${cls}" id="dec-${d.id}" ${open ? 'open' : ''}>
-        <summary>${head}</summary>
-        <div class="inner">${question}${options}${why}${links}</div>
-    </details>`;
-}
-
-function openDecision(id) {
-    if (state.view !== 'wireframes') setView('wireframes');
-    if (!state.notes) setNotes(true);
-    const el = $(`#dec-${id}`);
-    if (!el) return;
-    el.open = true;
-    el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    el.classList.remove('flash');
-    void el.offsetWidth;
-    el.classList.add('flash');
-}
+// What we suggest rather than what's agreed: a page, a field or a part of the content model. Agreeing it happens in
+// the feedback, as a decision on the page.
+const isOpen = suggested => !!suggested;
+const confirmBadge = () => '<span class="badge sugg">Suggested</span>';
 
 /* ---------- Rail ---------- */
 
 function renderRail() {
     const body = $('#rail-body');
-    // Page notes fold to a strip; the other views always show their panel.
-    const folded = state.view === 'wireframes' && !state.notes;
-    // The Decisions tab has the width to itself.
-    $('.body').classList.toggle('rail-off', state.view === 'decisions');
-    $('.body').classList.toggle('notes-off', folded);
-    $('#rail').classList.toggle('mini', folded);
+    const pr = parseRoute(state.route);
+    const tab = railTab(pr);
+    // On the pages, the panel stays out of sight until the Notes or Comments button opens it, and a page with nothing
+    // for it has none. The other views always show their panel.
+    const off = state.view === 'wireframes' && (!state.notes || !pageHasNotes(pr));
+    $('.body').classList.toggle('rail-off', off);
+    const open = state.view === 'wireframes' && !off;
+    $('#notes-btn').hidden = !pageHasOwnNotes(pr);
+    $('#notes-btn').setAttribute('aria-expanded', String(open && tab === 'notes'));
+    $('#fb-comment').setAttribute('aria-expanded', String(open && tab === 'comments'));
     if (state.view !== 'wireframes' || state.step < 0) $$('.device').forEach(d => d.classList.remove('dim'));
-    if (folded) body.innerHTML = notesStrip();
-    else if (state.view === 'wireframes') body.innerHTML = notesRail();
+    if (state.view === 'wireframes') body.innerHTML = off ? '' : notesRail();
     else if (state.view === 'sitemap') body.innerHTML = sitemapRail();
     else if (state.view === 'model') body.innerHTML = modelRail();
     else body.innerHTML = '';
 }
 
-// Where each decision is marked. The header and footer are on every page, so theirs are site-wide.
-function pinPlaces(pr) {
-    const doc = new DOMParser().parseFromString((PAGES[pr.key] || PAGES[ROUTES[0].key])(pr.slug), 'text/html');
-    const places = { page: new Set(), header: new Set(), footer: new Set() };
-    doc.querySelectorAll('[data-pin]').forEach(el => {
-        const where = el.closest('[data-j="footer"]') ? 'footer' : el.closest('[data-j="header"]') ? 'header' : 'page';
-        places[where].add(el.dataset.pin);
-    });
-    return places;
+// The panel's tab: Notes or Comments, or whichever of them the page has.
+const railTab = pr => !FB.on ? 'notes' : !pageHasOwnNotes(pr) ? 'comments' : state.railTab === 'comments' ? 'comments' : 'notes';
+
+// The Notes and Comments buttons: each opens the panel on its tab, or closes it when it's already showing.
+function togglePanel(tab) {
+    if (fb.picking) fbPick(false);
+    if (state.notes && railTab(parseRoute(state.route)) === tab) { setNotes(false); return; }
+    state.railTab = tab;
+    if (tab === 'comments') state.fbList = 'page';
+    setNotes(true);
+    if (tab === 'comments') fbRefresh();
 }
 
-// The decisions for this page: the ones its notes list, then any others marked on it, leaving out the site-wide ones.
-function pageDecisions(pr, places) {
-    const listed = NOTES[pr.key]?.decisions || [];
-    const siteWide = id => (places.header.has(id) || places.footer.has(id)) && !places.page.has(id);
-    const extra = [...places.page].filter(id => !listed.includes(id)).sort((a, b) => decNum(a) - decNum(b));
-    return [...listed, ...extra].filter(id => DEC[id] && !siteWide(id));
+// Whether a page has notes of its own, or notes for every page.
+function pageHasOwnNotes(pr) {
+    const n = Object.assign({ purpose: '', aud: [], content: [], consider: [], tech: [], fed: [] }, NOTES[pr.key]);
+    return Boolean(n.purpose || n.aud.length || n.content.length || n.consider.length || n.tech.length || (VIEWS.model && n.fed.length) || n.tryit
+        || SITEWIDE.consider.length || SITEWIDE.tech.length);
 }
+// The panel shows for a page with notes, and for every page with feedback on, for its comments.
+const pageHasNotes = pr => FB.on || pageHasOwnNotes(pr);
 
-// Page notes: decisions and considerations open, then content to prepare, the header and footer, and technical notes
-// folded away.
+// The panel: with feedback on, a Notes tab and a Comments tab, or just the one when the page has no notes.
 function notesRail() {
     const pr = parseRoute(state.route);
-    const n = Object.assign({ purpose: '', aud: [], content: [], decisions: [], consider: [], tech: [], fed: [] }, NOTES[pr.key]);
+    const notes = pageHasOwnNotes(pr);
+    const tab = railTab(pr);
+    const open = FB.on && fbSigned() ? fbOpenOn(pr.key) : 0;
+    const head = FB.on && notes
+        ? `<div class="seg rail-tabs" role="tablist" aria-label="Notes and comments">
+            <button type="button" role="tab" data-rail-tab="notes" aria-selected="${tab === 'notes'}">Notes</button>
+            <button type="button" role="tab" data-rail-tab="comments" aria-selected="${tab === 'comments'}">Comments${open ? `<span class="count">${open}</span>` : ''}</button>
+        </div>`
+        : `<h2 class="side-h">${FB.on ? 'Comments' : 'Page notes'}</h2>`;
+    return `<div class="rail-top">${head}<button type="button" class="icon-btn tiny" data-notes="close" aria-label="Collapse the panel" title="Collapse the panel">${ICON.panelR}</button></div>
+        ${tab === 'notes' ? pageNotes(pr) : fbPanel(pr)}`;
+}
+
+// Page notes: what the page is for, considerations, the content to prepare, the header and footer, and technical notes.
+function pageNotes(pr) {
+    const n = Object.assign({ purpose: '', aud: [], content: [], consider: [], tech: [], fed: [] }, NOTES[pr.key]);
     const r = pr.r;
-    const places = pinPlaces(pr);
-    const decs = pageDecisions(pr, places);
-    const siteWide = where => [...places[where]].filter(id => DEC[id] && !places.page.has(id));
     const modeSeg = name => `<div class="seg" data-mode-for="${name}">${['pinned', 'swipe', 'vertical'].map(m => `<button type="button" data-mode="${m}" aria-pressed="${state.modes[name] === m}">${m[0].toUpperCase() + m.slice(1)}</button>`).join('')}</div>`;
     const bullets = list => `<ul class="bullets">${list.map(c => `<li>${esc(c)}</li>`).join('')}</ul>`;
-    const fold = (title, count, body) => `<details class="fold"><summary>${title}${count ? ` <span class="fold-n">${count}</span>` : ''}</summary><div>${body}</div></details>`;
+    // Each section opens with the notes; any can be folded away.
+    const fold = (title, count, body) => `<details class="fold" open><summary>${title}${count ? ` <span class="fold-n">${count}</span>` : ''}</summary><div>${body}</div></details>`;
     const aud = n.aud.filter(a => AUD[a]);
-    const fed = n.fed.map(id => { const e = MODEL.find(m => m.id === id); return e ? `<button type="button" class="chip-btn" data-entity="${id}">${esc(e.name)} <span class="muted">${esc(e.kind.toLowerCase())}</span></button>` : ''; }).join('');
-    const headerFooter = [['header', 'In the header, on every page'], ['footer', 'In the footer, on every page']]
-        .map(([where, label]) => siteWide(where).length ? `<div><p class="fold-h">${label}</p>${siteWide(where).map(id => decisionCard(DEC[id])).join('')}</div>` : '').join('');
-
-    return `<div class="rail-top"><h2 class="side-h">Page notes</h2><button type="button" class="icon-btn tiny" data-notes="close" aria-label="Collapse page notes" title="Collapse page notes">${ICON.panelR}</button></div>
-        <div class="rail-head">
+    const fed = !VIEWS.model ? '' : n.fed.map(id => { const e = MODEL.find(m => m.id === id); return e ? `<button type="button" class="chip-btn" data-entity="${id}">${esc(e.name)} <span class="muted">${esc(e.kind.toLowerCase())}</span></button>` : ''; }).join('');
+    return `<div class="rail-head">
             <h2>${esc(r.title)}</h2>
-            <p class="path">${esc(r.path)}${r.sample ? `  ·  showing ${esc(pr.slug)}` : ''}</p>
             ${aud.length ? `<div class="badges">${aud.map(a => `<span class="badge aud" title="${esc(AUD[a][1])}">${AUD[a][0]}</span>`).join('')}</div>` : ''}
             ${n.purpose ? `<p class="purpose">${esc(n.purpose)}</p>` : ''}
         </div>
@@ -283,32 +269,19 @@ function notesRail() {
             <div class="tryit-row"><span>Desktop</span>${modeSeg('desktop')}</div>
             <div class="tryit-row"><span>Mobile</span>${modeSeg('mobile')}</div>
         </div>` : ''}
-        ${decs.length ? `<section>
-            <h3>Decisions on this page <span class="h-n">${decs.length}</span></h3>
-            ${decs.map(id => decisionCard(DEC[id])).join('')}
-        </section>` : ''}
         ${n.consider.length ? `<section>
             <h3>Considerations</h3>
             ${bullets(n.consider)}
         </section>` : ''}
         <div class="folds">
             ${n.content.length ? fold('Content to prepare', n.content.length, `<ul class="content-list">${n.content.map(c => `<li><b>${esc(c[0])}</b>${c[1] ? `<span>${esc(c[1])}</span>` : ''}</li>`).join('')}</ul>`) : ''}
-            ${headerFooter || SITEWIDE.consider.length || SITEWIDE.tech.length ? fold('Site-wide: header and footer', '', `
-                ${headerFooter}
+            ${SITEWIDE.consider.length || SITEWIDE.tech.length ? fold('Site-wide: header and footer', '', `
                 ${SITEWIDE.consider.length ? bullets(SITEWIDE.consider) : ''}
                 ${SITEWIDE.tech.length ? `<div><p class="fold-h">Technical</p>${bullets(SITEWIDE.tech)}</div>` : ''}`) : ''}
             ${n.tech.length || fed ? fold('Technical notes', '', `
                 ${n.tech.length ? bullets(n.tech) : ''}
                 ${fed ? `<div><p class="fold-h">Content comes from</p><div class="chips">${fed}</div></div>` : ''}`) : ''}
         </div>`;
-}
-
-function notesStrip() {
-    const pr = parseRoute(state.route);
-    const open = pageDecisions(pr, pinPlaces(pr)).filter(id => DEC[id].status !== 'agreed').length;
-    return `<button type="button" class="fold-tab" data-notes="open" aria-label="Show page notes${open ? `, ${open} open decisions` : ''}" title="Show page notes">
-        ${ICON.panelR}<span class="fold-tab-label">Page notes</span>${open ? `<span class="fold-tab-count" title="${open} open decisions on this page">${open}</span>` : ''}
-    </button>`;
 }
 
 const ICON = {
@@ -423,12 +396,12 @@ function closeSidebar() { $('#sidebar').classList.remove('open'); $('#scrim').hi
 /* ---------- Sitemap ---------- */
 
 function smNode(n, top) {
-    const cls = ['node', top ? 'top' : '', isOpen(n.s, n.d) ? 's' : '', n.count ? 'c' : ''].join(' ');
+    const cls = ['node', top ? 'top' : '', isOpen(n.s) ? 's' : '', n.count ? 'c' : ''].join(' ');
     const tags = [
         n.nav === 'main' ? 'main menu' : '', n.nav === 'footer' || n.foot ? 'footer' : '',
         n.count ? `${n.count} ${n.coll ? n.coll.toLowerCase() + ' entries' : 'entries'}` : ''
     ].filter(Boolean);
-    const inner = `<span class="nt">${esc(n.t)}</span><span class="nu">${esc(n.u)}</span>${n.note ? `<span class="muted" style="font-size:12px">${esc(n.note)}</span>` : ''}${tags.length ? `<span class="nm">${tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</span>` : ''}${n.d && DEC[n.d] ? `<span class="pinnum" data-open-dec="${n.d}" title="${esc(DEC[n.d].title)}">${decNum(n.d)}</span>` : ''}`;
+    const inner = `<span class="nt">${esc(n.t)}</span><span class="nu">${esc(n.u)}</span>${n.note ? `<span class="muted" style="font-size:12px">${esc(n.note)}</span>` : ''}${tags.length ? `<span class="nm">${tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</span>` : ''}`;
     const r = n.k ? ROUTES.find(x => x.key === n.k) : null;
     return r ? `<button type="button" class="${cls}" data-go="${sampleRoute(r)}">${inner}</button>` : `<div class="${cls}">${inner}</div>`;
 }
@@ -438,12 +411,11 @@ function smKids(kids) {
 function renderSitemap() {
     $('#view-sitemap').innerHTML = `<div class="canvas">
         <div class="canvas-head">
-            <div><h2>Sitemap</h2><p>The pages the site will have. Those to confirm are our suggestions, each settled by the decision numbered beside it. Select a page to open it; select a number to read the decision.</p></div>
+            <div><h2>Sitemap</h2><p>The pages the site will have. Those with a dashed outline are our suggestions: say what you think in the feedback on the page. Select a page to open it.</p></div>
             <div class="legend">
-                <span><i class="sw"></i>Decided</span>
-                <span><i class="sw s"></i>To confirm</span>
+                <span><i class="sw"></i>Agreed</span>
+                <span><i class="sw s"></i>Suggested</span>
                 <span><i class="sw c"></i>Collection entries</span>
-                <span><span class="pinnum" style="min-width:16px;height:16px;font-size:9px">1</span>Decision</span>
             </div>
         </div>
         <div class="scroll-x"><div class="sm" style="--cols:${Math.max(1, SITEMAP.length)}">
@@ -463,8 +435,7 @@ function sitemapRail() {
             </div>
         </section>
         ${SOURCE_MAP.length ? `<section><h3>Where the source documents go</h3>${sourceMap()}</section>` : ''}
-        ${CHANGES.length ? `<section><h3>What changed since the proposal</h3>${changesList()}</section>` : ''}
-        ${SITEMAP_DECISIONS.length ? `<section><h3>Sitemap decisions</h3>${SITEMAP_DECISIONS.filter(id => DEC[id]).map(id => decisionCard(DEC[id], { locate: false })).join('')}</section>` : ''}`;
+        ${CHANGES.length ? `<section><h3>What changed since the proposal</h3>${changesList()}</section>` : ''}`;
 }
 function sourceMap() {
     return `<ul class="changes">${SOURCE_MAP.map(r => `<li><b>${esc(r[0])}</b><span>${esc(r[1])}</span>${r[2] ? `<button type="button" class="chip-btn" data-go="${r[2]}" style="grid-row:1/span 2">Open</button>` : ''}</li>`).join('')}</ul>`;
@@ -473,7 +444,7 @@ function sourceChecks() {
     return `<ul class="changes">${SOURCE_CHECKS.map(c => `<li><b>${esc(c[0])}</b><span>${esc(c[1])}</span></li>`).join('')}</ul>`;
 }
 function changesList() {
-    return `<ul class="changes">${CHANGES.map(c => `<li><b>${esc(c[0])}</b><span>${esc(c[1])}</span><button type="button" data-open-dec="${c[2]}" aria-label="Decision ${decNum(c[2])}"><span class="pinnum">${decNum(c[2])}</span></button></li>`).join('')}</ul>`;
+    return `<ul class="changes">${CHANGES.map(c => `<li><b>${esc(c[0])}</b><span>${esc(c[1])}</span></li>`).join('')}</ul>`;
 }
 
 /* ---------- Content model ---------- */
@@ -510,7 +481,7 @@ function fieldKey(e) {
     const key = [];
     if (e.fields.some(f => f[2] === 's')) key.push('<span><span class="mono" style="color:var(--sugg-line)">+ field</span>to add</span>');
     if (e.fields.some(f => f[2] === 'x')) key.push('<span><span class="mono" style="color:var(--drop);text-decoration:line-through">field</span>to remove</span>');
-    return key.length ? `<p class="legend field-key"><span>To confirm:</span>${key.join('')}</p>` : '';
+    return key.length ? `<p class="legend field-key"><span>Suggested:</span>${key.join('')}</p>` : '';
 }
 
 // Pages always comes first, so it leads on a phone too, where the cards stack in this order.
@@ -521,10 +492,10 @@ const MODEL_SECTIONS = [['Navigation', 'Navigation'], ['Asset libraries', 'Asset
 
 function renderModel() {
     const diagram = modelOrder().filter(e => !MODEL_SECTIONS.some(([, kind]) => e.kind === kind));
-    const card = e => `<button type="button" class="ent${isOpen(e.status === 'suggested', (e.dec || [])[0]) ? ' s' : ''}"${e.area ? ` style="grid-area:${e.area}"` : ''} data-ent="${e.id}" aria-pressed="${state.entity === e.id}">
+    const card = e => `<button type="button" class="ent${isOpen(e.status === 'suggested') ? ' s' : ''}"${e.area ? ` style="grid-area:${e.area}"` : ''} data-ent="${e.id}" aria-pressed="${state.entity === e.id}">
         <span class="ent-h">
             <span class="ent-k"><span class="kind">${kindIcon(e.kind)}${e.kind}</span><span>${esc(e.count)}</span></span>
-            <span class="ent-n">${esc(e.name)} ${(e.dec || []).map(id => `<span class="pinnum">${decNum(id)}</span>`).join('')}</span>
+            <span class="ent-n">${esc(e.name)}</span>
             ${entMeta(e)}
         </span>
     </button>`;
@@ -532,8 +503,8 @@ function renderModel() {
         <div class="canvas-head">
             <div><h2>Content model</h2><p>The collections, taxonomies, forms and globals behind the site, with the fields we suggest adding. Select one to see where it appears and what it depends on.</p></div>
             <div class="legend">
-                <span><i class="sw"></i>Decided</span>
-                <span><i class="sw s"></i>To confirm</span>
+                <span><i class="sw"></i>Agreed</span>
+                <span><i class="sw s"></i>Suggested</span>
             </div>
         </div>
         ${diagram.length ? `<div class="model" id="model" style="grid-template-areas:${esc(MODEL_LAYOUT)}"><svg aria-hidden="true" id="model-svg"></svg>${diagram.map(card).join('')}</div>` : ''}
@@ -613,39 +584,483 @@ function modelRail() {
             <h2>${esc(e.name)}</h2>
             <div class="ent-meta">${entMeta(e)}</div>
             <div class="badges">
-                ${isOpen(e.status === 'suggested', (e.dec || [])[0]) ? confirmBadge((e.dec || [])[0]) : '<span class="badge">Decided</span>'}
+                ${isOpen(e.status === 'suggested') ? confirmBadge() : '<span class="badge">Agreed</span>'}
                 ${e.count ? `<span class="badge">${esc(e.count)}${/^[~\d]/.test(e.count) ? ({ Collection: ' entries', Taxonomy: ' terms' }[e.kind] || '') : ''}</span>` : ''}
             </div>
         </div>
-        <section><h3>Fields</h3>${e.fields.length ? '' : '<p class="note-line">No fields of its own.</p>'}<table class="ftable">${e.fields.map(f => `<tr class="${f[2] || ''}"><td>${f[2] === 's' ? '+ ' : ''}${esc(f[0])}</td><td>${esc(f[1])}${f[3] ? ` <span class="pinnum" style="min-width:18px;height:18px;font-size:10px">${decNum(f[3])}</span>` : ''}</td></tr>`).join('')}</table>${fieldKey(e)}
+        <section><h3>Fields</h3>${e.fields.length ? '' : '<p class="note-line">No fields of its own.</p>'}<table class="ftable">${e.fields.map(f => `<tr class="${f[2] || ''}"><td>${f[2] === 's' ? '+ ' : ''}${esc(f[0])}</td><td>${esc(f[1])}</td></tr>`).join('')}</table>${fieldKey(e)}
             ${e.terms ? `<p class="note-line" style="margin-top:10px">${esc(e.terms)}</p>` : ''}</section>
         ${rels.length ? `<section><h3>Relationships</h3><ul class="bullets">${rels.map(r => { const other = MODEL.find(m => m.id === (r[0] === e.id ? r[1] : r[0])); return `<li>${r[0] === e.id ? relSentence(r, e, other) : relSentence(r, other, e)}${r[3] ? ' (suggested)' : ''}</li>`; }).join('')}</ul></section>` : ''}
         ${pages.length ? `<section><h3>Appears on</h3><div class="chips">${pages.map(r => `<button type="button" class="chip-btn" data-go="${sampleRoute(r)}">${esc(r.title)}</button>`).join('')}</div></section>` : ''}
-        ${(e.dec || []).filter(id => DEC[id]).length ? `<section><h3>Decisions</h3>${e.dec.filter(id => DEC[id]).map(id => decisionCard(DEC[id], { locate: false })).join('')}</section>` : ''}
         ${CHANGES.length ? `<details class="fold"><summary>What changed since the proposal</summary><div>${changesList()}</div></details>` : ''}
         ${SOURCE_CHECKS.length ? `<details class="fold"><summary>Checked against the source documents</summary><div>${sourceChecks()}</div></details>` : ''}`;
 }
 
-/* ---------- Decisions view ---------- */
+/* ---------- Feedback ---------- */
 
-function renderDecisions() {
-    const mine = DECISIONS.filter(d => state.who === 'all' || d.who.includes(state.who));
-    const groups = { open: mine.filter(d => d.status !== 'agreed'), agreed: mine.filter(d => d.status === 'agreed') };
-    const list = groups[state.decs] || groups.open;
-    const before = new Set(BEFORE_DESIGN);
-    const intro = PROJECT.decisionsIntro;
-    $('#view-decisions').innerHTML = `<div class="canvas">
-        <div class="canvas-head">
-            <div><h2>Decisions</h2><p>${DECISIONS.length ? `Every question the prototype raises, with the options and what we suggest. Numbers match the markers on the pages.${intro ? ` ${esc(intro)}` : ''}` : 'Questions to settle appear here as the prototype raises them, each with its options and what we suggest.'}</p></div>
-        </div>
-        ${DECISIONS.length ? `<div class="dec-filters">
-            <div class="seg" id="decs-pick">${[['open', 'Unresolved'], ['agreed', 'Decided']].map(([k, v]) => `<button type="button" data-decs="${k}" aria-pressed="${(groups[state.decs] ? state.decs : 'open') === k}">${v}<span class="count">${groups[k].length}</span></button>`).join('')}</div>
-            <div class="seg" id="who-pick">${[['all', 'All']].concat(Object.entries(WHO)).map(([k, v]) => `<button type="button" data-who="${k}" aria-pressed="${state.who === k}">${esc(v)}</button>`).join('')}</div>
-        </div>` : ''}
-        ${list.length ? `<div class="dlist">${list.map(d => decisionCard(d, { locate: false, row: true, tag: before.has(d.id) && d.status !== 'agreed' ? 'Needed before design' : '' })).join('')}</div>`
-            : DECISIONS.length ? `<p class="note-line">${state.decs === 'agreed' ? 'Nothing decided yet' : 'Nothing left to decide'}${state.who === 'all' ? '' : ` for ${esc(WHO[state.who])}`}.</p>` : ''}
-    </div>`;
+// Comments on the prototype, kept by the site with the feedback on its pages. Anyone signed in can comment, reply and
+// resolve. The team (a control panel login, or a reviewer marked team) can also raise a comment as a decision and
+// record what was decided. A decision carries from one version to the next, so it shows whichever version raised it.
+const FB = Object.assign({ on: false, base: '' }, window.PROTOTYPE_FEEDBACK);
+const fb = { session: null, comments: [], num: new Map(), draft: null, open: null, deciding: null, picking: false, hover: null, error: '', errorFor: null };
+
+const fbSigned = () => !!(fb.session && fb.session.viewer);
+const fbStaff = () => fbSigned() && !!fb.session.viewer.staff;
+const fbIsDecided = c => !!(c.decision && c.decision.state === 'decided');
+// A page's comments: this version's, and decisions from any version.
+const fbPage = key => fb.comments.filter(c => c.page === key && (c.version === VERSION.id || c.decision));
+// Done is green, whether decided or resolved; a decision still to make is amber; an open comment is graphite.
+const fbKind = c => fbIsDecided(c) ? 'decided' : c.status === 'resolved' ? 'resolved' : c.decision ? 'decide' : 'comment';
+const fbToDecide = c => c.decision && !fbIsDecided(c) && c.status === 'open';
+// Done, for a reviewer, is one thing: a decision made or a comment resolved.
+const fbIsDone = c => fbIsDecided(c) || c.status === 'resolved';
+// Open on a page: comments still open, and decisions still to make.
+const fbOpenOn = key => fbPage(key).filter(c => c.status === 'open' && !fbIsDecided(c)).length;
+const fbVersionLabel = id => (VERSIONS.find(v => v.id === id) || {}).label || `Version ${id}`;
+const fbDate = iso => {
+    const d = new Date(iso);
+    return isNaN(d) ? '' : `${d.toLocaleDateString('en-NZ', { day: 'numeric', month: 'short' })}, ${d.toLocaleTimeString('en-NZ', { hour: 'numeric', minute: '2-digit' })}`;
+};
+
+function fbApi(method, path, body) {
+    const headers = { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' };
+    if (body) headers['Content-Type'] = 'application/json';
+    if (fb.session && fb.session.token) headers['X-CSRF-TOKEN'] = fb.session.token;
+    return fetch(`${FB.base}/${path}`, { method, credentials: 'same-origin', headers, body: body ? JSON.stringify(body) : undefined })
+        .then(r => r.json().catch(() => ({})).then(data => {
+            if (r.ok) return data;
+            const first = data.errors ? Object.values(data.errors).flat()[0] : null;
+            const err = new Error(first || data.message || `Something went wrong (${r.status}).`);
+            err.status = r.status;
+            throw err;
+        }));
 }
+
+function fbStart() {
+    if (!FB.on) return;
+    $('#fb-comment').hidden = false;
+    $('#pins-toggle').hidden = false;
+    $('#help-comments').hidden = false;
+    fbApi('GET', 'session')
+        .then(s => { fb.session = s; return fbSigned() ? fbLoad() : fbRefresh(); })
+        .catch(err => { fb.session = { viewer: null }; fb.error = err.message; fb.errorFor = 'signin'; fbRefresh(); });
+}
+
+function fbLoad() {
+    return fbApi('GET', 'comments?context=prototype')
+        .then(d => { fb.comments = d.comments || []; fbRefresh(); })
+        .catch(err => { if (err.status === 401 && fb.session) fb.session.viewer = null; fbRefresh(); });
+}
+
+// Each page numbers its comments from the oldest, the same in the panel, on the pins and in the Feedback tab.
+function fbIndex() {
+    fb.num = new Map();
+    const pages = new Set(fb.comments.map(c => c.page));
+    pages.forEach(key => fbPage(key).sort((a, b) => String(a.created_at).localeCompare(String(b.created_at))).forEach((c, i) => fb.num.set(c.id, i + 1)));
+}
+
+function fbFiltered(show, scope) {
+    return fb.comments.filter(c => scope === 'all' || c.version === VERSION.id || c.decision).filter(c => {
+        if (show === 'open') return c.status === 'open' && !fbIsDecided(c);
+        if (show === 'decide') return fbToDecide(c);
+        if (show === 'done') return fbIsDone(c);
+        return true;
+    });
+}
+
+// Re-renders whatever shows feedback, keeping anything half typed.
+function fbRefresh() {
+    fbIndex();
+    const open = fbSigned() ? fbFiltered('open', 'version').length : 0;
+    $('#fb-badge').textContent = open ? String(open) : '';
+    $('#fb-badge').hidden = !open;
+    $('#fb-comment').setAttribute('aria-label', open ? `Comments, ${open} open` : 'Comments');
+    const kept = {};
+    $$('[data-fb-input]').forEach(i => { if (i.value) kept[i.dataset.fbInput] = i.value; });
+    const focused = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.fbInput : null;
+    renderRail();
+    $$('[data-fb-input]').forEach(i => { if (kept[i.dataset.fbInput] != null) i.value = kept[i.dataset.fbInput]; });
+    if (focused && $(`[data-fb-input="${focused}"]`)) $(`[data-fb-input="${focused}"]`).focus();
+    if (state.view === 'wireframes') requestAnimationFrame(layoutFrames);
+    fbSendPins();
+}
+
+function fbViewer() {
+    const v = fb.session && fb.session.viewer;
+    if (!v) return;
+    $('#viewer').innerHTML = `<b title="Signed in as ${esc(v.name)}">${esc(v.name)}</b><a href="/prototype/sign-out">Sign out</a>`;
+    $('#viewer').hidden = false;
+}
+
+// The pins for the page on show. Each frame gets those it can place: by element in either frame, and by spot on the
+// page only in the frame the comment was made in, where the spot means the same thing.
+function fbSendPins() {
+    if (!FB.on) return;
+    const pr = parseRoute(state.route);
+    const list = fbPage(pr.key).filter(c => c.status === 'open' || c.decision || c.id === fb.open);
+    for (const name of Object.keys(FR)) {
+        if (!FR[name].ready) continue;
+        const items = list.map(c => {
+            const a = c.anchor || {};
+            const here = c.frame === name;
+            return { id: c.id, n: fb.num.get(c.id) || '•', kind: fbKind(c), selector: a.selector, x: a.x, y: a.y, page_x: here ? a.page_x : null, page_y: here ? a.page_y : null, label: `Comment ${fb.num.get(c.id) || ''} from ${(c.author || {}).name || 'someone'}` };
+        });
+        if (fb.draft && fb.draft.page === pr.key && fb.draft.frame === name) {
+            const a = fb.draft.anchor;
+            items.push({ id: 'draft', n: '+', kind: 'draft', selector: a.selector, x: a.x, y: a.y, page_x: a.page_x, page_y: a.page_y, label: 'Your new comment' });
+        }
+        FR[name].el.contentWindow.postMessage({ type: 'cpins', items, show: state.pins, hot: fb.open, zoom: FR[name].s }, '*');
+    }
+}
+
+/* Choosing a spot */
+
+// The panel on its Comments tab, for this page.
+function fbToComments() {
+    state.notes = true;
+    state.railTab = 'comments';
+    state.fbList = 'page';
+    save();
+}
+
+function fbStartComment() {
+    if (!fbSigned()) { fbToComments(); fbRefresh(); fbFocus('[data-fb-form="signin"] input'); return; }
+    fbPick(!fb.picking);
+}
+
+
+
+function fbPick(on) {
+    fb.picking = on;
+    tellFrames({ type: 'pick', on });
+    $$('[data-fb-act="comment"]').forEach(b => b.setAttribute('aria-pressed', String(on)));
+    if (on) toast('Click the spot you want to comment on, on either page. Press Escape to stop.');
+    else $('#toast').hidden = true;
+}
+
+function fbPicked(frame, anchor) {
+    fbPick(false);
+    const pr = parseRoute(state.route);
+    fb.draft = { page: pr.key, route: state.route, frame, anchor: anchor || {} };
+    fb.open = null;
+    fb.error = '';
+    fbToComments();
+    fbRefresh();
+    fbFocus('[data-fb-input="new"]');
+}
+
+function fbFocus(sel) {
+    requestAnimationFrame(() => { const el = $(sel); if (el) { el.scrollIntoView({ block: 'nearest' }); el.focus(); } });
+}
+
+/* Opening a thread */
+
+function fbOpen(id) {
+    if (!fb.comments.some(c => c.id === id)) return;
+    fb.open = id;
+    fb.deciding = null;
+    fbToComments();
+    fbRefresh();
+    tellFrames({ type: 'cpin-hot', id });
+    requestAnimationFrame(() => { const el = $(`#rail [data-fb="${id}"]`); if (el) el.scrollIntoView({ block: 'nearest' }); });
+}
+
+function fbToggle(id) {
+    fb.open = fb.open === id ? null : id;
+    fb.deciding = null;
+    fbRefresh();
+    tellFrames({ type: 'cpin-hot', id: fb.open });
+}
+
+// Takes you to the comment on its page, from the panel or the Feedback tab.
+function fbShow(id) {
+    const c = fb.comments.find(x => x.id === id);
+    if (!c) return;
+    const there = parseRoute(state.route).key === c.page && state.view === 'wireframes';
+    fb.open = id;
+    state.notes = true;
+    state.railTab = 'comments';
+    if (!there) {
+        endJourney(true);
+        const r = ROUTES.find(x => x.key === c.page);
+        navigate(c.route || (r ? sampleRoute(r) : '/'));
+    }
+    fbRefresh();
+    setTimeout(() => tellFrames({ type: 'cpin-show', id }), there ? 0 : 600);
+    requestAnimationFrame(() => { const el = $(`#rail [data-fb="${id}"]`); if (el) el.scrollIntoView({ block: 'nearest' }); });
+}
+
+/* Writing */
+
+function fbPut(comment) {
+    const i = fb.comments.findIndex(c => c.id === comment.id);
+    if (i >= 0) fb.comments[i] = comment; else fb.comments.unshift(comment);
+}
+
+// Only the parts of the spot the server keeps, within its limits.
+function fbAnchor(a) {
+    const unit = v => typeof v === 'number' && isFinite(v) ? Math.max(0, Math.min(1, v)) : null;
+    return {
+        selector: typeof a.selector === 'string' ? a.selector.slice(0, 1000) : null,
+        x: unit(a.x), y: unit(a.y), page_x: unit(a.page_x),
+        page_y: typeof a.page_y === 'number' && isFinite(a.page_y) ? Math.max(0, Math.round(a.page_y)) : null,
+        label: typeof a.label === 'string' ? a.label.slice(0, 300) : null,
+        text: typeof a.text === 'string' ? a.text.slice(0, 300) : null
+    };
+}
+
+function fbRun(request, form, key) {
+    const buttons = form ? $$('button', form) : [];
+    buttons.forEach(b => { b.disabled = true; });
+    fb.error = '';
+    return request
+        .then(() => { fb.errorFor = null; })
+        .catch(err => { fb.error = err.message; fb.errorFor = key; })
+        .then(() => { buttons.forEach(b => { b.disabled = false; }); fbRefresh(); });
+}
+
+function fbClear(key) {
+    const el = $(`[data-fb-input="${key}"]`);
+    if (el) el.value = '';
+}
+
+function fbSubmit(f) {
+    const kind = f.dataset.fbForm, id = f.dataset.id;
+    const val = sel => ((f.querySelector(sel) || {}).value || '').trim();
+    if (kind === 'signin') {
+        const pass = f.querySelector('[name="password"]');
+        return fbRun(fbApi('POST', 'sign-in', { name: val('[name="name"]') || null, email: val('[name="email"]') || null, password: pass ? pass.value : null })
+            .then(() => fbApi('GET', 'session'))
+            .then(s => { fb.session = s; fbViewer(); return fbLoad(); }), f, 'signin');
+    }
+    if (kind === 'new') {
+        const body = val('textarea');
+        if (!body || !fb.draft) return;
+        const d = fb.draft;
+        const pr = parseRoute(d.route);
+        return fbRun(fbApi('POST', 'comments', {
+            context: 'prototype', version: VERSION.id, page: d.page, route: d.route, frame: d.frame,
+            url: `/prototype/${VERSION.id}${pr.path === '/' ? '' : pr.path}`, title: pr.r.title, body,
+            anchor: fbAnchor(d.anchor),
+            viewport: { width: FR[d.frame].w, height: FR[d.frame].h, breakpoint: d.frame },
+            decision: !!(f.querySelector('[name="decision"]') || {}).checked
+        }).then(res => { fb.draft = null; fbPut(res.comment); fb.open = res.comment.id; fbClear('new'); }), f, 'new');
+    }
+    if (kind === 'reply') {
+        const body = val('textarea');
+        if (!body) return;
+        return fbRun(fbApi('POST', `comments/${id}/replies`, { body }).then(res => { fbPut(res.comment); fbClear(`reply-${id}`); }), f, id);
+    }
+    if (kind === 'outcome') {
+        const outcome = val('textarea');
+        if (!outcome) return;
+        return fbRun(fbApi('POST', `comments/${id}/decision`, { state: 'decided', outcome }).then(res => { fb.deciding = null; fbPut(res.comment); fbClear(`outcome-${id}`); }), f, id);
+    }
+}
+
+function fbAct(act, id) {
+    const post = (path, body) => fbRun(fbApi('POST', `comments/${id}/${path}`, body).then(res => fbPut(res.comment)), null, id);
+    if (act === 'comment') fbStartComment();
+    else if (act === 'cancel-new') { fb.draft = null; fb.error = ''; fbRefresh(); }
+    else if (act === 'show') fbShow(id);
+    else if (act === 'resolve') post('resolve');
+    else if (act === 'reopen') post('reopen');
+    else if (act === 'raise' || act === 'undecide') post('decision', { state: 'open' });
+    else if (act === 'drop') post('decision', { state: 'none' });
+    else if (act === 'decide') { fb.deciding = id; fbRefresh(); fbFocus(`[data-fb-input="outcome-${id}"]`); }
+    else if (act === 'cancel-decide') { fb.deciding = null; fbRefresh(); }
+}
+
+function fbClick(t) {
+    if (t.id === 'fb-comment') { togglePanel('comments'); return true; }
+    if (t.dataset.fbToggle) { fbToggle(t.dataset.fbToggle); return true; }
+    if (t.dataset.fbAct) { fbAct(t.dataset.fbAct, t.dataset.id); return true; }
+    if (t.dataset.fbFilter) { state.fbShow = t.dataset.fbFilter; save(); renderRail(); return true; }
+    if (t.dataset.fbList) { state.fbList = t.dataset.fbList; save(); renderRail(); $('#rail').scrollTop = 0; return true; }
+    if (t.dataset.railTab) { state.railTab = t.dataset.railTab; save(); renderRail(); return true; }
+    return false;
+}
+
+/* Drawing */
+
+const fbError = key => fb.error && fb.errorFor === key ? `<p class="fb-error" role="alert">${esc(fb.error)}</p>` : '';
+
+function fbSignIn() {
+    const s = fb.session || {};
+    return `<form class="fb-form" data-fb-form="signin">
+        <p class="fb-lead">Say who you are to see and leave comments.</p>
+        ${s.needs_email
+            ? '<input class="fb-input" type="email" name="email" placeholder="Your email address" aria-label="Your email address" autocomplete="email" required>'
+            : '<input class="fb-input" name="name" placeholder="Your name" aria-label="Your name" autocomplete="name" maxlength="80" required>'}
+        ${s.needs_password ? '<input class="fb-input" type="password" name="password" placeholder="Password" aria-label="Password" autocomplete="current-password" required>' : ''}
+        ${fbError('signin')}
+        <div class="fb-row"><button type="submit" class="btn primary">Continue</button></div>
+    </form>`;
+}
+
+function fbCompose() {
+    return `<form class="fb-form fb-compose" data-fb-form="new">
+        <p class="fb-where"><span class="fbc-n fbc-n--draft">+</span>New comment, at the + on the page</p>
+        <textarea class="fb-input" data-fb-input="new" rows="3" maxlength="5000" placeholder="What would you change, or what do you think?" aria-label="Your comment" required></textarea>
+        ${fbStaff() ? '<label class="toggle"><input type="checkbox" name="decision"> Raise as a decision</label>' : ''}
+        ${fbError('new')}
+        <div class="fb-row"><button type="submit" class="btn primary">Post</button><button type="button" class="btn" data-fb-act="cancel-new">Cancel</button></div>
+    </form>`;
+}
+
+function fbState(c) {
+    if (fbIsDone(c)) return '<span class="fbc-state done">Done</span>';
+    return c.decision ? `<span class="fbc-state decide">Decision to make${c.decision.who ? `: ${esc(c.decision.who)}` : ''}</span>` : '';
+}
+
+function fbCard(c) {
+    const open = fb.open === c.id;
+    const kind = fbKind(c);
+    const n = fb.num.get(c.id);
+    const d = c.decision;
+    const author = (c.author || {}).name || 'Someone';
+    const replies = c.replies || [];
+    return `<article class="fbc fbc--${kind}${open ? ' is-open' : ''}" data-fb="${c.id}">
+        <button type="button" class="fbc-head" data-fb-toggle="${c.id}" aria-expanded="${open}">
+            <span class="fbc-n fbc-n--${kind}">${n || '•'}</span>
+            <span class="fbc-meta"><b>${esc(author)}</b><span>${fbDate(c.created_at)}${c.version !== VERSION.id ? ` · ${esc(fbVersionLabel(c.version))}` : ''}</span></span>
+            ${fbState(c)}
+        </button>
+        <div class="fbc-main">
+            <p class="fbc-body${open ? '' : ' clamp'}">${esc(c.body)}</p>
+            ${fbIsDecided(c) ? `<div class="fbc-outcome"><b>Decided</b><p>${esc(d.outcome)}</p><small>${esc((d.decided_by || {}).name || '')}${d.decided_at ? ` · ${fbDate(d.decided_at)}` : ''}</small></div>` : ''}
+            ${!open && replies.length ? `<p class="fbc-more">${replies.length} ${replies.length === 1 ? 'reply' : 'replies'}</p>` : ''}
+            ${open ? fbThread(c) : ''}
+        </div>
+    </article>`;
+}
+
+function fbThread(c) {
+    const d = c.decision;
+    const staff = fbStaff();
+    const replies = (c.replies || []).map(r => `<li><p class="fbc-meta"><b>${esc((r.author || {}).name || 'Someone')}</b><span>${fbDate(r.created_at)}</span></p><p class="fbc-body">${esc(r.body)}</p></li>`).join('');
+    const btn = (act, label) => `<button type="button" class="link-btn" data-fb-act="${act}" data-id="${c.id}">${label}</button>`;
+    return `${replies ? `<ul class="fbc-replies">${replies}</ul>` : ''}
+        ${fb.deciding === c.id ? `<form class="fb-form" data-fb-form="outcome" data-id="${c.id}">
+            <label class="fb-label" for="fb-outcome-${c.id}">What was decided</label>
+            <textarea class="fb-input" id="fb-outcome-${c.id}" data-fb-input="outcome-${c.id}" rows="3" maxlength="5000" required></textarea>
+            <div class="fb-row"><button type="submit" class="btn primary">Record decision</button>${btn('cancel-decide', 'Cancel')}</div>
+        </form>` : ''}
+        ${fbSigned() ? `<form class="fb-form" data-fb-form="reply" data-id="${c.id}">
+            <textarea class="fb-input" data-fb-input="reply-${c.id}" rows="2" maxlength="5000" placeholder="Reply" aria-label="Reply" required></textarea>
+            <div class="fb-row"><button type="submit" class="btn">Reply</button></div>
+        </form>` : ''}
+        ${fbError(c.id)}
+        <div class="fbc-actions">
+            ${btn('show', 'Show on page')}
+            ${fbSigned() ? (c.status === 'open' ? btn('resolve', 'Mark as done') : btn('reopen', 'Reopen')) : ''}
+            ${staff && fb.deciding !== c.id ? (!d ? btn('raise', 'Raise as a decision')
+                : fbIsDecided(c) ? btn('undecide', 'Reopen the decision') + btn('drop', 'Not a decision')
+                : btn('decide', 'Record the decision') + btn('drop', 'Not a decision')) : ''}
+        </div>`;
+}
+
+// Comments: this page's, or all the feedback on the prototype. Signing in comes first.
+function fbPanel(pr) {
+    if (!fb.session) return '<p class="note-line">Loading the comments…</p>';
+    if (!fbSigned()) return `<section class="fb-section">${fbSignIn()}</section>`;
+    return state.fbList === 'all' ? fbAll() : fbSection(pr);
+}
+
+// This page or all feedback, and the Comment button.
+function fbScopeBar() {
+    const all = state.fbList === 'all';
+    const open = fbFiltered('open', 'version').length;
+    return `<div class="fb-h">
+        <p class="fb-scope">${all ? '<button type="button" class="link-btn" data-fb-list="page">This page</button>' : '<b>This page</b>'}<span aria-hidden="true">·</span>${all ? '<b>All feedback</b>' : `<button type="button" class="link-btn" data-fb-list="all">All feedback${open ? ` (${open} open)` : ''}</button>`}</p>
+        <button type="button" class="btn small" data-fb-act="comment" aria-pressed="${fb.picking}">Add comment</button>
+    </div>
+    <label class="toggle"><input type="checkbox" data-fb-pins${state.pins ? ' checked' : ''}> Comment pins on the page</label>`;
+}
+
+// The page's comments: decisions to make, then open comments, with everything done folded away.
+function fbSection(pr) {
+    const list = fbPage(pr.key).sort((a, b) => (fb.num.get(a.id) || 0) - (fb.num.get(b.id) || 0));
+    const toDecide = list.filter(fbToDecide);
+    const open = list.filter(c => !c.decision && c.status === 'open');
+    const done = list.filter(fbIsDone);
+    return `<section class="fb-section">
+        ${fbScopeBar()}
+        ${fb.draft && fb.draft.page === pr.key ? fbCompose() : ''}
+        ${!list.length && !fb.draft ? '<p class="note-line">No comments on this page yet. Press Comment, then click the spot you mean on either page.</p>' : ''}
+        ${[...toDecide, ...open].map(c => fbCard(c)).join('')}
+        ${done.length ? `<details class="fold fb-resolved"${done.some(c => c.id === fb.open) ? ' open' : ''}><summary>Done <span class="fold-n">${done.length}</span></summary><div>${done.map(c => fbCard(c)).join('')}</div></details>` : ''}
+    </section>`;
+}
+
+const FB_FILTERS = [['open', 'Open'], ['decide', 'To decide'], ['done', 'Done'], ['all', 'All']];
+const FB_EMPTY = {
+    open: 'Nothing open.',
+    decide: 'No decisions waiting.',
+    done: 'Nothing done yet.',
+    all: 'No comments yet.'
+};
+
+// All the feedback on the prototype, page by page, filtered to what needs doing. Decisions from earlier versions are
+// always in it; their other comments only when asked for.
+function fbAll() {
+    // Decided and Resolved, from before they were one filter, are Done.
+    const show = ['decided', 'resolved'].includes(state.fbShow) ? 'done' : FB_FILTERS.some(f => f[0] === state.fbShow) ? state.fbShow : 'open';
+    const scope = state.fbScope === 'all' ? 'all' : 'version';
+    const list = fbFiltered(show, scope);
+    const keys = [...ROUTES.map(r => r.key), ...new Set(list.map(c => c.page).filter(k => !ROUTES.some(r => r.key === k)))];
+    const groups = keys.map(key => [key, list.filter(c => c.page === key).sort((a, b) => (fb.num.get(a.id) || 0) - (fb.num.get(b.id) || 0))]).filter(([, cs]) => cs.length);
+    const title = key => (ROUTES.find(r => r.key === key) || {}).title || key;
+    const route = key => { const r = ROUTES.find(x => x.key === key); return r ? sampleRoute(r) : null; };
+    const here = parseRoute(state.route).key;
+    return `<section class="fb-section">
+        ${fbScopeBar()}
+        <div class="fb-filters" role="group" aria-label="Show">${FB_FILTERS.map(([k, label]) => { const n = fbFiltered(k, scope).length; return `<button type="button" class="chip-btn" data-fb-filter="${k}" aria-pressed="${show === k}">${label}${n ? ` <span class="muted">${n}</span>` : ''}</button>`; }).join('')}</div>
+        ${VERSIONS.length > 1 ? `<label class="toggle"><input type="checkbox" id="fb-versions"${scope === 'all' ? ' checked' : ''}> Comments on earlier versions too</label>` : ''}
+        ${groups.length ? groups.map(([key, cs]) => `<div class="fb-group">
+            <div class="fb-group-h"><h3>${esc(title(key))}</h3>${key === here ? '<span class="fb-here">Showing</span>' : route(key) ? `<button type="button" class="link-btn" data-go="${esc(route(key))}">Open page</button>` : ''}</div>
+            ${cs.map(c => fbCard(c)).join('')}
+        </div>`).join('') : `<p class="note-line">${FB_EMPTY[show]}</p>`}
+    </section>`;
+}
+
+// Comment pins: the same switch in the Comments tab and in Display options.
+function setPins(on) {
+    state.pins = on;
+    save();
+    $('#pins').checked = on;
+    $$('[data-fb-pins]').forEach(i => { i.checked = on; });
+    fbSendPins();
+}
+document.addEventListener('change', e => {
+    if (e.target.matches('[data-fb-pins]')) { setPins(e.target.checked); return; }
+    if (e.target.id !== 'fb-versions') return;
+    state.fbScope = e.target.checked ? 'all' : 'version';
+    save();
+    renderRail();
+});
+document.addEventListener('submit', e => {
+    const f = e.target.closest('[data-fb-form]');
+    if (!f) return;
+    e.preventDefault();
+    fbSubmit(f);
+});
+// A folded card opens from anywhere on it.
+document.addEventListener('click', e => {
+    const card = e.target.closest('.fbc:not(.is-open)');
+    if (card && !e.target.closest('button, a, textarea, input, label, summary')) fbToggle(card.dataset.fb);
+});
+// Pointing at a comment in the panel lights up its pin.
+$('#rail').addEventListener('mouseover', e => {
+    const card = e.target.closest('[data-fb]');
+    const id = card ? card.dataset.fb : null;
+    if (id === fb.hover) return;
+    fb.hover = id;
+    tellFrames({ type: 'cpin-hot', id: id || fb.open });
+});
+$('#rail').addEventListener('mouseleave', () => { fb.hover = null; tellFrames({ type: 'cpin-hot', id: fb.open }); });
+// Coming back to the tab picks up comments made since.
+document.addEventListener('visibilitychange', () => { if (!document.hidden && fbSigned()) fbLoad(); });
 
 /* ---------- Events ---------- */
 
@@ -653,31 +1068,26 @@ document.addEventListener('click', e => {
     if (!e.target.closest('.version')) versionMenu(false);
     // A click on the diagram's empty space clears the selection.
     if (state.view === 'model' && state.entity && e.target.closest('#view-model') && !e.target.closest('.ent, button, a, summary')) { clearEntity(); return; }
-    const t = e.target.closest('button, [data-open-dec]');
+    if (!e.target.closest('.display')) displayMenu(false);
+    const t = e.target.closest('button');
     if (!t) return;
+    if (fbClick(t, e)) return;
     if (t.id === 'version-btn') { versionMenu($('#version-menu').hidden); return; }
+    if (t.id === 'display-btn') { displayMenu($('#display-menu').hidden); return; }
+    if (t.id === 'notes-btn') { togglePanel('notes'); return; }
+    // A frame's name shows its size; pointing at it does too.
+    if (t.classList.contains('device-name')) { const on = t.getAttribute('aria-expanded') !== 'true'; t.setAttribute('aria-expanded', String(on)); t.parentElement.classList.toggle('show-dims', on); return; }
     if (t.id === 'help-open') { openHelp(); return; }
-    if (t.id === 'theme-toggle') { setTheme(currentTheme() === 'dark' ? 'light' : 'dark'); return; }
     if (t.id === 'help-close' || t.id === 'help-done') { closeHelp(); return; }
     if (t.id === 'nav-toggle') { $('#sidebar').classList.contains('open') ? closeSidebar() : openSidebar(); return; }
     if (t.hasAttribute('data-journey-end')) { endJourney(); return; }
     if (t.dataset.view) { if (t.dataset.view === 'model') state.entity = null; setView(t.dataset.view); return; }
     if (t.dataset.frames) { setFrames(t.dataset.frames); return; }
-    if (t.dataset.openDec) { e.preventDefault(); e.stopPropagation(); openDecision(t.dataset.openDec); return; }
-    if (t.dataset.go) { endJourney(true); navigate(t.dataset.go, t.dataset.pinAfter ? { highlight: `[data-pin="${t.dataset.pinAfter}"]` } : {}); return; }
-    if (t.dataset.locate) {
-        const id = t.dataset.locate;
-        const html = PAGES[parseRoute(state.route).key](parseRoute(state.route).slug);
-        if (html.includes(`data-pin="${id}"`)) tellFrames({ type: 'highlight', sel: `[data-pin="${id}"]` });
-        else { const r = ROUTES.find(x => x.key === (DEC[id].pages || [])[0]); if (r) navigate(sampleRoute(r), { highlight: `[data-pin="${id}"]` }); }
-        return;
-    }
-    if (t.dataset.entity) { state.entity = t.dataset.entity; setView('model'); return; }
+    if (t.dataset.go) { endJourney(true); navigate(t.dataset.go); return; }
+    if (t.dataset.entity && VIEWS.model) { state.entity = t.dataset.entity; setView('model'); return; }
     // Selecting an item again clears it.
     if (t.dataset.ent) { state.entity = state.entity === t.dataset.ent ? null : t.dataset.ent; save(); drawRels(); renderRail(); return; }
     if (t.hasAttribute('data-ent-clear')) { clearEntity(); return; }
-    if (t.dataset.who) { state.who = t.dataset.who; renderDecisions(); return; }
-    if (t.dataset.decs) { state.decs = t.dataset.decs; save(); renderDecisions(); return; }
     if (t.dataset.side) { setSide(t.dataset.side === 'open'); return; }
     if (t.dataset.notes) { setNotes(t.dataset.notes === 'open'); return; }
     if (t.dataset.journey) {
@@ -707,7 +1117,15 @@ document.addEventListener('click', e => {
 $('#scrim').addEventListener('click', closeSidebar);
 $('#help').addEventListener('click', e => { if (e.target.id === 'help') closeHelp(); });
 document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') { versionMenu(false); if (!$('#help').hidden) closeHelp(); else if (state.view === 'model' && state.entity) clearEntity(); else closeSidebar(); return; }
+    if (e.key === 'Escape') {
+        versionMenu(false);
+        displayMenu(false);
+        if (fb.picking) fbPick(false);
+        else if (!$('#help').hidden) closeHelp();
+        else if (state.view === 'model' && state.entity) clearEntity();
+        else closeSidebar();
+        return;
+    }
     if (state.step < 0 || !$('#help').hidden || e.target.closest('input, select, textarea, [contenteditable]')) return;
     if (e.key === 'ArrowRight') { e.preventDefault(); const next = state.step + 1; if (next >= activeJourney().steps.length) finishJourney(); else goStep(next); }
     if (e.key === 'ArrowLeft' && state.step > 0) { e.preventDefault(); goStep(state.step - 1); }
@@ -734,33 +1152,17 @@ function renderVersion() {
 }
 function versionMenu(open) {
     const m = $('#version-menu');
+    if (!m || $('#version-btn').disabled) return;
     m.hidden = !open;
     $('#version-btn').setAttribute('aria-expanded', String(open));
 }
 
-/* ---------- Light and dark ---------- */
-
-const darkMQ = matchMedia('(prefers-color-scheme: dark)');
-const THEME_ICON = {
-    dark: '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 9.6A5.8 5.8 0 0 1 6.4 2.5a5.8 5.8 0 1 0 7.1 7.1Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>',
-    light: '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M8 1.5v1.6M8 12.9v1.6M1.5 8h1.6M12.9 8h1.6M3.4 3.4l1.1 1.1M11.5 11.5l1.1 1.1M3.4 12.6l1.1-1.1M11.5 4.5l1.1-1.1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>'
-};
-const currentTheme = () => document.documentElement.dataset.theme || (darkMQ.matches ? 'dark' : 'light');
-
-// The button shows where a click takes you: a moon in light mode, a sun in dark mode.
-function renderThemeToggle() {
-    const next = currentTheme() === 'dark' ? 'light' : 'dark';
-    const b = $('#theme-toggle');
-    b.innerHTML = THEME_ICON[next];
-    b.setAttribute('aria-label', `Switch to ${next} mode`);
-    b.title = `Switch to ${next} mode`;
+function displayMenu(open) {
+    const m = $('#display-menu');
+    if (!m) return;
+    m.hidden = !open;
+    $('#display-btn').setAttribute('aria-expanded', String(open));
 }
-function setTheme(t) {
-    document.documentElement.dataset.theme = t;
-    try { localStorage.setItem('prototype-theme', t); } catch (e) { /* storage unavailable */ }
-    renderThemeToggle();
-}
-darkMQ.addEventListener('change', renderThemeToggle);
 
 function setFrames(f) {
     state.frames = f;
@@ -783,30 +1185,31 @@ function setNotes(on) {
     if (on) $('#rail').scrollTop = 0;
 }
 
-$('#annotate').addEventListener('change', e => {
-    state.annotate = e.target.checked;
-    save();
-    tellFrames({ type: 'annotate', on: state.annotate });
-});
+$('#pins').addEventListener('change', e => setPins(e.target.checked));
 
 /* ---------- Start ---------- */
 
-document.title = `${PROJECT.name} prototype`;
-$('#brand-name').textContent = PROJECT.name;
+// The site's name is APP_NAME from .env, unless data.js names it (a name still in [brackets] is a placeholder).
+const SITE_NAME = PROJECT.name && !/^\[.*\]$/.test(PROJECT.name) ? PROJECT.name : (window.PROTOTYPE_SITE || PROJECT.name || 'Website');
+document.title = `${VERSION.label} · ${SITE_NAME} prototype`;
+$('#brand-name').textContent = SITE_NAME;
 $('#brand-sub').textContent = PROJECT.subtitle;
 $('#prepared').textContent = PROJECT.prepared;
 if (!AGENCY.url) { $('.agency').removeAttribute('href'); $('.agency').removeAttribute('target'); }
 // Who signed in on the site's sign-in page. Opened as a file or an Artifact, there is no one.
 const viewer = window.PROTOTYPE_VIEWER;
 if (viewer && viewer.name) {
-    $('#viewer').innerHTML = `<span>Signed in as <b>${esc(viewer.name)}</b></span><a href="/prototype/sign-out">Not you?</a>`;
+    $('#viewer').innerHTML = `<b title="Signed in as ${esc(viewer.name)}">${esc(viewer.name)}</b><a href="/prototype/sign-out">Sign out</a>`;
     $('#viewer').hidden = false;
 }
-$('#dec-count').textContent = DECISIONS.length ? `${DECISIONS.length - agreedCount()} open` : '';
 $('#sync').checked = state.sync;
-$('#annotate').checked = state.annotate;
-renderThemeToggle();
+$('#pins').checked = state.pins;
+const modelTab = $('[data-view="model"]');
+modelTab.hidden = !VIEWS.model;
+// The team sees the content model before anyone else does, and the tab says so.
+if (VIEWS.model_team_only) { modelTab.insertAdjacentHTML('beforeend', '<span class="team-only">Team</span>'); modelTab.title = 'Only the team sees this. PROTOTYPE_CONTENT_MODEL=everyone shares it.'; }
 renderVersion();
+fbStart();
 renderSidebar();
 makeFrames();
 setFrames(state.frames);

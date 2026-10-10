@@ -2,15 +2,16 @@
 
 namespace Avocadesign\StatamicTools\Prototype;
 
+use Avocadesign\StatamicTools\Feedback\FeedbackSettings;
 use Avocadesign\StatamicTools\Site\CssTokens;
 use Avocadesign\StatamicTools\Site\SiteCss;
 
 /**
  * The site's discovery prototype. The interface, the route and the sign-in are the add-on's, so every site gets their
- * improvements; what the prototype says is the site's own, in prototype/<version>/: data.js (the project, decisions,
- * notes, journeys, content model and sitemap), pages.js (its header, footer, pages and routes) and version.json.
- * The frames draw those pages with the site's real CSS, compiled by Tailwind's browser build, and the add-on's
- * wireframe layer on top.
+ * improvements; what the prototype says is the site's own, in prototype/<version>/: data.js (the project, notes,
+ * journeys, content model and sitemap), pages.js (its header, footer, pages and routes) and version.json. The frames
+ * draw those pages with the site's real CSS, compiled by Tailwind's browser build, and the add-on's wireframe layer on
+ * top. With feedback on, comments and the decisions the team raises from them are made on the pages themselves.
  *
  * A version folder holding a built index.html and no data.js is from before the move: it is served as it was built,
  * because a version shared with a client never changes.
@@ -28,6 +29,22 @@ final class Prototype
         }
 
         return filter_var($setting, FILTER_VALIDATE_BOOLEAN);
+    }
+
+    /**
+     * Whether this viewer sees the Content model tab, and whether that is only because they are the team. The team sees
+     * it unless PROTOTYPE_CONTENT_MODEL is off; everyone else only when it is 'everyone'.
+     *
+     * @return array{model: bool, model_team_only: bool}
+     */
+    public static function views(?array $viewer): array
+    {
+        $setting = strtolower(trim((string) config('statamic-tools.prototype.content_model', 'team')));
+        $everyone = in_array($setting, ['everyone', 'all', 'true', '1', 'on', 'yes'], true);
+        $off = in_array($setting, ['off', 'none', 'false', '0', 'no'], true);
+        $team = (bool) ($viewer['staff'] ?? false);
+
+        return ['model' => $everyone || ($team && ! $off), 'model_team_only' => ! $everyone && ! $off && $team];
     }
 
     public static function folder(): string
@@ -94,7 +111,8 @@ final class Prototype
         $folder = self::folder().'/'.$version['id'];
         $json = fn ($value) => json_encode($value, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         $list = array_values(array_map(fn ($v) => array_diff_key($v, ['legacy' => true]), self::versions()));
-        $globals = 'window.PROTOTYPE_VIEWER = '.$json($viewer).'; window.PROTOTYPE_VERSIONS = '.$json($list).';';
+        $globals = 'window.PROTOTYPE_VIEWER = '.$json($viewer).'; window.PROTOTYPE_VERSIONS = '.$json($list).'; window.PROTOTYPE_VIEWS = '.$json(self::views($viewer)).';';
+        $feedback = ['on' => FeedbackSettings::active(), 'base' => '/'.trim((string) config('statamic.routes.action', '!'), '/').'/statamic-tools/feedback'];
 
         if ($version['legacy']) {
             return (string) preg_replace('/<head>/', '<head><script>'.$globals.'</script>', (string) file_get_contents("{$folder}/index.html"), 1);
@@ -102,7 +120,6 @@ final class Prototype
 
         $agency = self::agency();
         $interface = strtr(self::resource('interface.html'), [
-            '<!--AGENCY_LOGO-->' => $agency['logo'],
             '<!--AGENCY_LOGO_DARK-->' => $agency['logo_dark'],
             '__AGENCY_NAME__' => e($agency['name']),
             '__AGENCY_URL__' => e($agency['url']),
@@ -111,14 +128,14 @@ final class Prototype
         $title = e($version['label'].' · '.config('app.name').' prototype');
 
         return '<!doctype html><html lang="en"><head><meta charset="utf-8">'
-            .'<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="robots" content="noindex, nofollow"><link rel="icon" href="data:,">'
+            .'<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="robots" content="noindex, nofollow"><meta name="color-scheme" content="dark"><link rel="icon" href="data:,">'
             ."<title>{$title}</title>"
-            .'<script>try { const t = localStorage.getItem(\'prototype-theme\'); if (t === \'light\' || t === \'dark\') document.documentElement.dataset.theme = t; } catch (e) {}</script>'
             .'<style>'.self::resource('interface.css').'</style></head><body>'."\n"
             .$interface."\n"
             .'<script type="text/plain" id="frame-css">'."\n".self::frameCss()."\n".'</script>'."\n"
             .'<script type="text/plain" id="frame-js">'."\n".self::resource('frame.js')."\n".'</script>'."\n"
             .'<script>'.$globals.' window.PROTOTYPE_TAILWIND = '.$json(self::tailwindVersion()).";\n"
+            .'window.PROTOTYPE_FEEDBACK = '.$json($feedback).'; window.PROTOTYPE_SITE = '.$json((string) config('app.name')).";\n"
             .'const AGENCY = '.$json(['handle' => $agency['handle'], 'name' => $agency['name'], 'url' => $agency['url']]).";\n"
             .'const VERSION = '.$json($about).";\n"
             .(string) file_get_contents("{$folder}/data.js")."\n"

@@ -4,17 +4,11 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow">
+    <link rel="icon" href="data:,">
     <title>Sign in · {{ config('app.name') }} prototype</title>
-    <script>
-        // The light or dark choice made in the prototype; with none saved, the computer's setting decides.
-        try { const t = localStorage.getItem('prototype-theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}
-    </script>
     <style>
-        :root { --bg: #f4f5f7; --surface: #fff; --ink: #1f2430; --ink-2: #3d4452; --muted: #5d6475; --line: #e3e5ea; --line-2: #cfd3da; --error: #b23a2a; color-scheme: light; }
-        @media (prefers-color-scheme: dark) {
-            :root:not([data-theme="light"]) { --bg: #12151b; --surface: #191d25; --ink: #eceef2; --ink-2: #c6cad3; --muted: #a3a9b6; --line: #2b313c; --line-2: #343a46; --error: #f08b78; color-scheme: dark; }
-        }
-        :root[data-theme="dark"] { --bg: #12151b; --surface: #191d25; --ink: #eceef2; --ink-2: #c6cad3; --muted: #a3a9b6; --line: #2b313c; --line-2: #343a46; --error: #f08b78; color-scheme: dark; }
+        /* Dark, like the prototype. */
+        :root { --bg: #12151b; --surface: #191d25; --ink: #eceef2; --ink-2: #c6cad3; --muted: #a3a9b6; --line: #2b313c; --line-2: #343a46; --error: #f08b78; color-scheme: dark; }
         * { box-sizing: border-box; }
         body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px 16px; background: var(--bg); color: var(--ink); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
         main { width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 20px; }
@@ -33,10 +27,6 @@
         .note { font-size: 12px; text-align: center; }
         footer { display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 12px; color: var(--muted); }
         footer svg { width: 32px; height: 32px; }
-        .logo-dark { display: none; }
-        @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .logo-light { display: none; } :root:not([data-theme="light"]) .logo-dark { display: inline-flex; } }
-        :root[data-theme="dark"] .logo-light { display: none; }
-        :root[data-theme="dark"] .logo-dark { display: inline-flex; }
     </style>
 </head>
 <body>
@@ -79,7 +69,7 @@
         </div>
         @if ($agency['name'] !== '')
             <footer>
-                @if ($agency['logo'] !== '')<span class="logo-light" aria-hidden="true">{!! $agency['logo'] !!}</span><span class="logo-dark" aria-hidden="true">{!! $agency['logo_dark'] !!}</span>@endif
+                @if ($agency['logo_dark'] !== '')<span aria-hidden="true">{!! $agency['logo_dark'] !!}</span>@endif
                 <span>Prepared by {{ $agency['name'] }}</span>
             </footer>
         @endif
