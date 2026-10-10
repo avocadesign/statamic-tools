@@ -120,6 +120,7 @@ window.addEventListener('message', e => {
         navigate(m.route);
     }
     else if (m.type === 'cpin') fbOpen(m.id);
+    else if (m.type === 'click') closePanelOutside();
     else if (m.type === 'picked') fbPicked(name, m.anchor);
     else if (m.type === 'moved') fbMoved(name, m.id, m.anchor);
     else if (m.type === 'pick-cancel') fbPick(false);
@@ -1506,6 +1507,18 @@ document.addEventListener('click', e => {
 });
 
 $('#scrim').addEventListener('click', closeSidebar);
+
+// A click on the pages, or on the stage around them, closes the side panel, as a click on the site's page does. Not
+// the bars, buttons and menus, not while a spot is being chosen, and not while a comment or reply has text in it,
+// which closing would lose.
+function closePanelOutside() {
+    if (state.view !== 'wireframes' || !state.notes || fb.picking) return;
+    if ($$('#rail [data-fb-input]').some(i => i.value.trim())) return;
+    setNotes(false);
+}
+document.addEventListener('click', e => {
+    if (e.target.closest('#view-wireframes') && !e.target.closest('.stage-bar, .opts-bar, button, a, input, select, textarea, label, summary')) closePanelOutside();
+});
 $('#help').addEventListener('click', e => { if (e.target.id === 'help') closeHelp(); });
 document.addEventListener('keydown', e => {
     if (e.key === 'Escape') {

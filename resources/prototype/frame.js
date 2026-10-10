@@ -709,6 +709,10 @@
         }
     }, true);
 
+    // Any other click on the page, so the prototype can close its side panel, as a click on the site's page does. A
+    // comment's pin and a click choosing a spot are stopped before they get here.
+    document.addEventListener('click', function () { post({ type: 'click' }); });
+
     document.addEventListener('keydown', function (e) {
         if (picking && e.key === 'Escape') { pickOn(false); post({ type: 'pick-cancel' }); }
     });

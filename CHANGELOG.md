@@ -2,6 +2,11 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.44 (10 October 2026)
+
+- **A click on the pages closes the prototype's side panel,** Notes or Comments, as a click on the site's page closes its panel: in a frame or on the stage around them. The bars, buttons and menus leave it open, and so do a comment's pin, a click choosing a spot, and a comment or reply with text in it, which closing would lose.
+- **To do on update:** nothing.
+
 ## v0.1.43 (10 October 2026)
 
 - **The Content model has the Sitemap's room at its sides:** 32px, its title bar included. Both have 16px on a phone.
