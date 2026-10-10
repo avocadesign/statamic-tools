@@ -247,6 +247,52 @@ class FeedbackTest extends TestCase
         $team()->postJson("/!/statamic-tools/feedback/comments/{$comment['id']}/decision", ['state' => 'none'])->assertOk()->assertJsonPath('comment.decision', null);
     }
 
+    public function test_only_the_team_can_delete_a_comment_and_never_a_decision(): void
+    {
+        $this->reviewers("reviewers:\n  - name: Jane Client\n    email: jane@example.com\n  - name: Sam Team\n    email: sam@avoca.design\n    team: true\n");
+        $comment = $this->comment();
+        $decision = $this->comment('/about', 'Which photo leads?');
+        $this->store->decide($decision['id'], FeedbackStore::TO_DECIDE, ['name' => 'Sam Team', 'staff' => true]);
+        $delete = fn (string $id) => "/!/statamic-tools/feedback/comments/{$id}/delete";
+        $team = fn () => $this->signedIn(['email' => 'sam@avoca.design']);
+
+        $this->postJson($delete($comment['id']))->assertUnauthorized();
+        $this->signedIn(['email' => 'jane@example.com'])->postJson($delete($comment['id']))->assertForbidden();
+        $team()->postJson($delete($decision['id']))->assertStatus(409);
+        $team()->postJson($delete('01M4ZZ0000000000000000000A'))->assertNotFound();
+        $this->assertFileExists($this->dir.'/comments/'.$comment['id'].'.yaml');
+
+        $team()->postJson($delete($comment['id']))->assertOk()->assertJsonPath('deleted', $comment['id']);
+        $this->assertNull($this->store->find($comment['id']));
+        $this->assertFileDoesNotExist($this->dir.'/comments/'.$comment['id'].'.yaml');
+
+        // Made a comment again, the decision can go.
+        $this->assertFalse($this->store->delete($decision['id']));
+        $this->store->decide($decision['id'], 'none', ['name' => 'Sam Team', 'staff' => true]);
+        $team()->postJson($delete($decision['id']))->assertOk();
+        $this->assertSame([], $this->store->all());
+    }
+
+    public function test_the_command_deletes_a_comment_but_not_a_decision(): void
+    {
+        $comment = $this->comment();
+        $decision = $this->comment('/about', 'Which photo leads?');
+        $this->store->decide($decision['id'], FeedbackStore::TO_DECIDE, ['name' => 'Brendyn', 'staff' => true]);
+
+        $this->artisan('avoca:feedback', ['--delete' => [$decision['id']]])
+            ->expectsOutput("{$decision['id']} is a decision, which is never deleted. Take the decision off with --drop-decision first.")
+            ->assertFailed();
+        $this->artisan('avoca:feedback', ['--delete' => [$comment['id']]])->expectsOutput("Deleted {$comment['id']}.")->assertSuccessful();
+        $this->assertNull($this->store->find($comment['id']));
+        $this->assertNotNull($this->store->find($decision['id']));
+
+        config(['statamic-tools.feedback.key' => 'developer-key']);
+        $this->postJson("/!/statamic-tools/feedback/api/comments/{$decision['id']}/delete", [], ['X-Feedback-Key' => 'developer-key'])->assertStatus(409);
+        $this->store->decide($decision['id'], 'none', ['name' => 'Brendyn', 'staff' => true]);
+        $this->postJson("/!/statamic-tools/feedback/api/comments/{$decision['id']}/delete", [], ['X-Feedback-Key' => 'developer-key'])->assertOk();
+        $this->assertNull($this->store->find($decision['id']));
+    }
+
     public function test_a_prototype_comment_keeps_its_version_page_and_frame_and_lists_apart_from_the_sites(): void
     {
         $this->comment('/about');

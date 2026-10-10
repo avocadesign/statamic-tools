@@ -96,11 +96,15 @@ gets their improvements. What the prototype says is the site's own, one folder p
   folded away, or all the comments on the prototype, filtered to Open or Decisions with those done folded away beneath each page, and switches the pins off and
   on; pointing at a comment shows its pin either way. Opening a comment brings its pin into sight, or takes you to its
   page. An open comment has a slim reply box and one button for the next step: Mark done, Record decision (the team) or
-  Reopen; the team's other actions, Make it a decision and Make a comment, sit in a ⋯ menu. A pin that covers
+  Reopen; the team's other actions, Make it a decision, Make a comment and Delete, sit in a ⋯ menu. Delete asks first,
+  and is for a comment made by mistake, twice or as a test; a decision is made a comment again before it can go, and a
+  deleted comment can be found in git's history once it has been committed. A pin that covers
   something can be dragged to another spot, and pins to the element it's dropped on. A comment belongs to its version,
   and opening one from an earlier version takes you to that version, where it was made. A decision shows in every
   version: one whose page this version doesn't have is listed last in All comments, under the page's old title and
-  marked Not in this version, and one whose element has gone sits where it was made, ringed with a dashed line. The Sitemap and the Content model take comments too, from the Comments button in
+  marked Not in this version, and one whose element has gone sits where it was made, ringed with a dashed line.
+  Add comment and the comment counts take the site's primary button colours, as on the site; Feedback below says how a
+  site sets its own. The Sitemap and the Content model take comments too, from the Comments button in
   their title bars, pinned to a page box or a card; All comments lists them after the pages.
 - **Decisions** come from comments. The team (a control panel login, a reviewer marked `team: true`, or
   `avoca:feedback`) raises a comment as a decision, or ticks Make it a decision as they post, and records what was
@@ -153,10 +157,14 @@ sees anything: the tab only appears in a browser that has signed in to review, o
 
 - **On the page,** it works as the prototype's comments do. A Comments tab on the right edge carries the number still
   open on the site, and opens a panel: this page's comments, with those done folded away, or all the comments, page by
-  page, filtered to Open or Decisions, with those done folded away beneath each page. Add comment asks for a spot on the page, and the comment is pinned to the
+  page, filtered to Open or Decisions, with those done folded away beneath each page. A click on the page outside the
+  panel closes it. Add comment, across the foot of the panel in the site's primary button colours, asks for a spot on
+  the page, and the comment is pinned to the
   element clicked, at that point within it, so its numbered pin follows the element when the layout changes: graphite
   while open, amber for a decision to make, green once done. A pin that covers something can be dragged to another
-  spot. Show comment pins switches them off and on, and pointing at a comment shows its pin either way. For
+  spot. Show comment pins switches them off and on, and pointing at a comment shows its pin either way. The tab's count
+  takes the same colours. A site whose primary colour doesn't suit sets its own in its CSS:
+  `#avoca-feedback { --feedback-accent: #…; --feedback-accent-ink: #…; }`. For
   `avoca:feedback`, each comment also says in words where it is: the page builder block, read from the template
   comments the kit's partials leave in the page, and the nearest heading.
 - **Who.** Someone logged in to the control panel comments as the team, under their Statamic name, and so does a
@@ -209,6 +217,7 @@ php please avoca:feedback --decisions              # only the comments raised as
 php please avoca:feedback --raise=<id> --who="The client"
 php please avoca:feedback --decide=<id> --outcome="Keep the shop in the main menu"
 php please avoca:feedback --write-decisions        # into resources/site/decisions.md, at sign-off
+php please avoca:feedback --delete=<id>            # one made by mistake or as a test; never a decision
 ```
 
 `--from` reads and answers a server's comments over HTTP, sending its `FEEDBACK_KEY` (from `--key`, or this site's

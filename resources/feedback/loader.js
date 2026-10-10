@@ -31,13 +31,15 @@
     var root = host.attachShadow({ mode: 'open' });
     root.innerHTML =
         '<style>' +
-        ':host{all:initial}' +
+        // The count takes the site's primary button colours, or --feedback-accent and --feedback-accent-ink set on
+        // #avoca-feedback in the site's CSS. :host's reset leaves custom properties alone, so they reach in.
+        ':host{all:initial;--accent:var(--feedback-accent,var(--btn-primary-bg,var(--color-primary,#019ac6)));--accent-ink:var(--feedback-accent-ink,var(--btn-primary-text,#fff))}' +
         '.tab{position:fixed;top:50%;right:0;transform:translateY(-50%);z-index:2147483000;display:flex;flex-direction:column;align-items:center;gap:8px;' +
-        'padding:14px 8px;border:0;border-radius:8px 0 0 8px;background:#f2b632;color:#1b1400;cursor:pointer;box-shadow:0 4px 16px rgb(0 0 0/.22);' +
+        'padding:14px 8px;border:0;border-radius:0;background:#12151b;color:#eceef2;cursor:pointer;box-shadow:0 0 0 1px rgb(255 255 255/.14),0 4px 16px rgb(0 0 0/.28);' +
         'font:600 13px/1 system-ui,-apple-system,"Segoe UI",sans-serif;letter-spacing:.02em}' +
-        '.tab:hover{background:#f6c459}.tab:focus-visible{outline:2px solid #1f2430;outline-offset:2px}' +
+        '.tab:hover{background:#232833}.tab:focus-visible{outline:2px solid var(--accent);outline-offset:2px}' +
         '.label{writing-mode:vertical-rl;transform:rotate(180deg)}' +
-        '.count{min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:#1b1400;color:#f2b632;font-size:11px;line-height:20px;text-align:center;box-sizing:border-box}' +
+        '.count{min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:var(--accent);color:var(--accent-ink);font-size:11px;line-height:20px;text-align:center;box-sizing:border-box}' +
         '.count[hidden]{display:none}' +
         '</style>' +
         '<button class="tab" type="button" aria-label="Comments"><span class="count" hidden></span><span class="label">Comments</span></button>';

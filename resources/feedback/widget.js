@@ -18,6 +18,9 @@
         '*,*::before,*::after{box-sizing:border-box}',
         '.fb{--ink:#1f2430;--muted:#5d6475;--line:#e3e5ea;--line-2:#cfd3da;--soft:#f4f5f7;--bg:#fff;--accent:#1f2430;--accent-ink:#fff;',
         '--note:#3d4452;--note-ink:#fff;--amber:#f2b632;--amber-ink:#1b1400;--green:#47cb50;--green-ink:#12151b;--green-text:#1d7a34;--warn:#b54708;',
+        // Add comment takes the site's primary button colours, which a site can override with --feedback-accent and
+        // --feedback-accent-ink on #avoca-feedback. Custom properties reach into the widget; nothing else does.
+        '--add:var(--feedback-accent,var(--btn-primary-bg,var(--color-primary,#019ac6)));--add-ink:var(--feedback-accent-ink,var(--btn-primary-text,#fff));',
         'font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink)}',
         '@media (prefers-color-scheme:dark){.fb{--ink:#eceef2;--muted:#a3a9b6;--line:#2b313c;--line-2:#343a46;--soft:#232833;--bg:#191d25;--accent:#eceef2;--accent-ink:#191d25;--green-text:#76dd7e;--warn:#f08b78}}',
         'button{font:inherit;color:inherit;cursor:pointer}',
@@ -95,6 +98,7 @@
         '.menu[hidden]{display:none}',
         '.menu button{border:0;background:none;text-align:left;padding:7px 10px;border-radius:6px;font-size:13px;color:var(--ink);white-space:nowrap}',
         '.menu button:hover{background:var(--soft)}',
+        '.menu button.danger{color:var(--warn)}',
         '.icon.small{width:26px;height:26px}',
         '.form{display:flex;flex-direction:column;gap:8px}',
         '.form textarea,.form input[type=email],.form input[name=name],.form input[type=password]{width:100%;padding:8px 10px;border:1px solid var(--line-2);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit;resize:vertical}',
@@ -150,11 +154,12 @@
         '.pin.dragging{cursor:grabbing;transition:none;transform:translate(-50%,-50%) scale(1.18)}',
         '.mark{position:fixed;z-index:2147482998;pointer-events:none;border:2px solid #12151b;border-radius:4px;box-shadow:0 0 0 2px rgb(255 255 255/.8);display:none}',
         '.mark.picking{background:rgb(18 21 27/.06)}',
-        // Add comment, floating in yellow at the foot of the page beside the panel while the panel is open.
-        '.float-add{position:fixed;bottom:22px;left:calc((100vw - min(400px,100vw)) / 2);z-index:2147483002;transform:translateX(-50%);display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border:0;border-radius:999px;background:var(--amber);color:var(--amber-ink);font-size:14px;font-weight:700;white-space:nowrap;box-shadow:0 6px 20px rgb(0 0 0/.3)}',
-        '.float-add[hidden]{display:none}',
-        '.float-add:hover{filter:brightness(1.06)}',
-        '@media (max-width:640px){.float-add{left:50%}}',
+        // Add comment, in the site's primary colour across the foot of the panel, above the pins switch.
+        '.add-bar{padding:12px 16px;border-top:1px solid var(--line)}',
+        '.add-bar[hidden]{display:none}',
+        '.add-bar:not([hidden])+.foot{border-top:0;padding-top:0}',
+        '.add-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:10px 16px;border:0;border-radius:10px;background:var(--add);color:var(--add-ink);font-size:14px;font-weight:700;cursor:pointer}',
+        '.add-btn:hover{background:color-mix(in oklab,var(--add) 85%,#000)}',
         '.banner{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:2147483002;display:none;align-items:center;gap:12px;padding:10px 14px;',
         'border-radius:10px;background:#1f2430;color:#fff;box-shadow:0 6px 24px rgb(0 0 0/.25);font-size:13px}',
         '.banner .ghost{background:transparent;color:#fff;border-color:rgb(255 255 255/.35);padding:4px 10px}',
@@ -492,8 +497,9 @@
             '<aside class="panel" role="dialog" aria-label="Comments" aria-modal="false">' +
             '<div class="head"><h2 tabindex="-1">Comments</h2><button type="button" class="icon close" aria-label="Close comments">' +
             '<svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button></div>' +
-            '<div class="bar"></div><div class="body"></div><div class="foot"></div></aside>' +
-            '<button type="button" class="float-add add" hidden><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Add comment</button>';
+            '<div class="bar"></div><div class="body"></div>' +
+            '<div class="add-bar" hidden><button type="button" class="add-btn add"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Add comment</button></div>' +
+            '<div class="foot"></div></aside>';
         root.appendChild(style);
         root.appendChild(wrap);
         ui.wrap = wrap;
@@ -504,10 +510,11 @@
         ui.bar = wrap.querySelector('.bar');
         ui.body = wrap.querySelector('.body');
         ui.foot = wrap.querySelector('.foot');
-        ui.add = wrap.querySelector('.float-add');
+        ui.add = wrap.querySelector('.add-bar');
         ui.heading = wrap.querySelector('.head h2');
 
         wrap.addEventListener('click', onClick);
+        document.addEventListener('click', onOutside);
         wrap.addEventListener('submit', onSubmit);
         wrap.addEventListener('change', onChange);
         wrap.addEventListener('keydown', onKeydown);
@@ -535,8 +542,8 @@
         var focused = active && active.dataset ? active.dataset.keep : null;
 
         ui.panel.classList.toggle('on', state.panel);
-        // Add comment floats in yellow over the page while the panel is open.
-        ui.add.hidden = !(state.panel && signed() && !state.picking);
+        // Add comment sits at the foot of the panel for anyone signed in.
+        ui.add.hidden = !signed();
         var viewer = state.session && state.session.viewer;
         if (!state.session) {
             ui.bar.innerHTML = '';
@@ -691,6 +698,8 @@
         else if (c.decision) { if (staff()) { next = ['decide', 'Record decision']; more.push(['resolve', 'Mark done']); } }
         else next = ['resolve', 'Mark done'];
         if (staff()) more.push(c.decision ? ['drop', 'Make a comment'] : ['raise', 'Make it a decision']);
+        // The team can delete a comment made by mistake or as a test; a decision is made a comment again first.
+        if (staff() && !c.decision) more.push(['delete', 'Delete']);
         return { next: next, more: more };
     }
 
@@ -703,7 +712,7 @@
             (a.next ? '<button type="button" class="ghost small" data-act="' + a.next[0] + '">' + a.next[1] + '</button>' : '') +
             (a.more.length ? '<span class="more-wrap"><button type="button" class="icon small menu-toggle" aria-expanded="false" aria-label="More actions" title="More actions">' +
                 '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="3.5" cy="8" r="1.4" fill="currentColor"/><circle cx="8" cy="8" r="1.4" fill="currentColor"/><circle cx="12.5" cy="8" r="1.4" fill="currentColor"/></svg></button>' +
-                '<span class="menu" hidden>' + a.more.map(function (m) { return '<button type="button" data-act="' + m[0] + '">' + m[1] + '</button>'; }).join('') + '</span></span>' : '');
+                '<span class="menu" hidden>' + a.more.map(function (m) { return '<button type="button" data-act="' + m[0] + '"' + (m[0] === 'delete' ? ' class="danger"' : '') + '>' + m[1] + '</button>'; }).join('') + '</span></span>' : '');
         return (c.decision && c.decision.who ? '<p class="who-decides">Who decides: ' + esc(c.decision.who) + '</p>' : '') +
             (replies ? '<ul class="replies">' + replies + '</ul>' : '') +
             (state.deciding === c.id ? '<form class="form" data-form="outcome"><textarea name="outcome" data-keep="outcome-' + id + '" maxlength="5000" aria-label="What was decided" placeholder="What was decided" required></textarea>' +
@@ -862,6 +871,12 @@
 
     /* ---------- events ---------- */
 
+    // A click on the page, outside the panel and the pins, closes the panel. Choosing a spot stops its own click first.
+    function onOutside(e) {
+        if (!state.panel || state.picking || ours(e)) return;
+        close();
+    }
+
     function onHover(e) {
         var el = e.target.closest && e.target.closest('[data-id], [data-pin]');
         if (el) hover(el.dataset.id || (el.dataset.pin !== 'draft' ? el.dataset.pin : null));
@@ -958,6 +973,18 @@
         }
         if (act === 'raise') return post('decision', { state: 'open' });
         if (act === 'drop') return post('decision', { state: 'none' });
+        if (act === 'delete') {
+            if (!window.confirm('Delete this comment and its replies? It can’t be undone here.')) return;
+            return api('POST', 'comments/' + c.id + '/delete', {})
+                .then(function () {
+                    state.all = state.all.filter(function (x) { return x.id !== c.id; });
+                    if (state.openId === c.id) state.openId = null;
+                    index();
+                    state.error = null;
+                    render();
+                })
+                .catch(function (error) { fail(error, c.id); });
+        }
         if (act === 'decide') {
             state.deciding = c.id;
             render();

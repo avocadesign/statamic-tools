@@ -81,6 +81,27 @@ class PrototypeTest extends TestCase
             ->assertSee('"label":"First look"', false);
     }
 
+    public function test_the_prototypes_actions_take_the_sites_primary_colour_or_its_own(): void
+    {
+        // The primary on its own, with white on it.
+        $this->assertSame(['bg' => 'oklch(53% 0.3 290)', 'ink' => '#fff'], Prototype::accent());
+        $this->get('/prototype')->assertSee(':root { --act: oklch(53% 0.3 290); --act-ink: #fff; }', false);
+
+        // The primary button's colours, followed through the tokens they point at.
+        file_put_contents("{$this->dir}/css/colours.css", "@theme static {\n    --color-primary: #019ac6;\n    --color-ink: #111;\n    --btn-primary-bg: var(--color-primary);\n    --btn-primary-text: var(--color-ink);\n}\n");
+        $this->assertSame(['bg' => '#019ac6', 'ink' => '#111'], Prototype::accent());
+
+        // The site's own, set for its feedback, wins.
+        file_put_contents("{$this->dir}/css/site.css", "@import \"./colours.css\";\n#avoca-feedback { --feedback-accent: var(--color-ink); --feedback-accent-ink: #fff; }\n");
+        $this->assertSame(['bg' => '#111', 'ink' => '#fff'], Prototype::accent());
+
+        // Nothing usable: Avoca's blue, and never anything that could close the style.
+        file_put_contents("{$this->dir}/css/site.css", "@import \"./colours.css\";\n");
+        file_put_contents("{$this->dir}/css/colours.css", "@theme static {\n    --color-primary: red</style><script>alert(1)</script>;\n    --btn-primary-bg: var(--color-missing);\n}\n");
+        $this->assertSame('red</style><script>alert(1)</script>', \Avocadesign\StatamicTools\Site\CssTokens::fromEntry("{$this->dir}/css/site.css")->all()['color-primary']['value']);
+        $this->assertSame(['bg' => '#019ac6', 'ink' => '#fff'], Prototype::accent());
+    }
+
     public function test_the_frames_get_the_sites_own_css_with_the_wireframe_on_top(): void
     {
         $css = Prototype::frameCss();

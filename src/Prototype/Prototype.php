@@ -125,12 +125,14 @@ final class Prototype
             '__AGENCY_URL__' => e($agency['url']),
         ]);
         $about = ['id' => $version['id'], 'label' => $version['label'], 'date' => $version['date'], 'notes' => $version['notes']];
+        $accent = self::accent();
         $title = e($version['label'].' · '.config('app.name').' prototype');
 
         return '<!doctype html><html lang="en"><head><meta charset="utf-8">'
             .'<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="robots" content="noindex, nofollow"><meta name="color-scheme" content="dark"><link rel="icon" href="data:,">'
             ."<title>{$title}</title>"
-            .'<style>'.self::resource('interface.css').'</style></head><body>'."\n"
+            .'<style>'.self::resource('interface.css').'</style>'
+            .'<style>:root { --act: '.$accent['bg'].'; --act-ink: '.$accent['ink'].'; }</style></head><body>'."\n"
             .$interface."\n"
             .'<script type="text/plain" id="frame-css">'."\n".self::frameCss()."\n".'</script>'."\n"
             .'<script type="text/plain" id="frame-js">'."\n".self::resource('frame.js')."\n".'</script>'."\n"
@@ -143,6 +145,41 @@ final class Prototype
             .(string) file_get_contents("{$folder}/pages.js")."\n"
             .self::resource('shell.js')."\n"
             .'</script></body></html>'."\n";
+    }
+
+    /**
+     * The colour of the prototype's actions, Add comment and the comment counts: the site's primary button colours, as
+     * the site's own feedback uses. A site whose primary doesn't suit sets --feedback-accent and --feedback-accent-ink
+     * on #avoca-feedback in its CSS, which changes both. Avoca's blue when the site has neither. Tokens that point at
+     * others are followed to a value, since the prototype's own page doesn't load the site's CSS.
+     *
+     * @return array{bg: string, ink: string}
+     */
+    public static function accent(): array
+    {
+        $entry = (string) config('statamic-tools.site.css_entry', 'resources/css/site.css');
+        $tokens = CssTokens::fromEntry(str_starts_with($entry, '/') ? $entry : base_path($entry));
+        $values = array_map(fn ($token) => trim($token['value']), $tokens->all());
+        // Tailwind's own, which the site's tokens point at without declaring.
+        $values += ['color-white' => '#fff', 'color-black' => '#000'];
+        $own = ($tokens->rule('#avoca-feedback') ?? [])['declarations'] ?? [];
+
+        $resolve = function (?string $value) use ($values): ?string {
+            for ($depth = 0; $value !== null && str_contains($value, 'var(') && $depth < 8; $depth++) {
+                $value = preg_replace_callback('/var\(\s*--([A-Za-z0-9_-]+)\s*(?:,\s*([^()]*))?\)/', fn ($m) => $values[$m[1]] ?? (isset($m[2]) && $m[2] !== '' ? trim($m[2]) : '!'), $value);
+                if (str_contains((string) $value, '!')) {
+                    return null;
+                }
+            }
+
+            // A colour, and nothing that could close the style it goes into.
+            return $value !== null && ! str_contains($value, 'var(') && preg_match('/^[#A-Za-z0-9 .,%()\/+-]+$/', $value) ? $value : null;
+        };
+
+        return [
+            'bg' => $resolve($own['--feedback-accent'] ?? null) ?? $resolve('var(--btn-primary-bg)') ?? $resolve('var(--color-primary)') ?? '#019ac6',
+            'ink' => $resolve($own['--feedback-accent-ink'] ?? null) ?? $resolve('var(--btn-primary-text)') ?? '#fff',
+        ];
     }
 
     /**

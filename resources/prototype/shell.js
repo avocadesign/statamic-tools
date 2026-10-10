@@ -188,7 +188,6 @@ function layoutFrames() {
         $(`#zoom-${name}`).textContent = `${Math.round(f.s * 100)}%`;
         if (f.ready && f.sentZoom !== f.s) { f.sentZoom = f.s; f.el.contentWindow.postMessage({ type: 'zoom', zoom: f.s }, '*'); }
     }
-    if (FB.on) fbAddButton();
 }
 
 /* ---------- Top bar ---------- */
@@ -244,7 +243,6 @@ function renderRail() {
     if (state.view === 'wireframes') body.innerHTML = off ? '' : notesRail();
     else if (fbBoard() && fb.board) body.innerHTML = fbBoardRail();
     else body.innerHTML = '';
-    requestAnimationFrame(fbAddButton);
 }
 
 // The panel's tab: Notes or Comments, or whichever of them the page has.
@@ -940,18 +938,14 @@ function fbPick(on) {
     fbAddButton();
 }
 
-// Add comment floats at the foot of the frames, in yellow, while the Comments panel is open. While a spot is being
+// Add comment, across the foot of the Comments panel above the pins switch, as on the site. While a spot is being
 // chosen it says so, and a click on it stops.
+const fbAddLabel = () => fb.picking ? 'Click the spot you mean<span class="add-cancel">Cancel</span>' : `<svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Add comment`;
 function fbAddButton() {
     const b = $('#fb-add');
-    const pr = parseRoute(state.route);
-    const show = FB.on && fbSigned() && ((state.view === 'wireframes' && state.notes && pageHasNotes(pr) && railTab(pr) === 'comments') || (!!fbBoard() && fb.board));
-    b.hidden = !show;
+    if (!b) return;
     b.setAttribute('aria-pressed', String(fb.picking));
-    b.innerHTML = fb.picking ? 'Click where your comment belongs<span class="float-cancel">Cancel</span>' : `<svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Add comment`;
-    if (!show) return;
-    const r = (fbBoard() ? $(`#view-${state.view}`) : $('#frames-wrap')).getBoundingClientRect();
-    b.style.left = `${r.left + r.width / 2}px`;
+    b.innerHTML = fbAddLabel();
 }
 
 function fbPicked(frame, anchor) {
@@ -1157,6 +1151,14 @@ function fbAct(act, id) {
     }
     else if (act === 'raise') post('decision', { state: 'open' });
     else if (act === 'drop') post('decision', { state: 'none' });
+    else if (act === 'delete') {
+        if (!confirm('Delete this comment and its replies? It can’t be undone here.')) return;
+        fbRun(fbApi('POST', `comments/${id}/delete`, {}).then(() => {
+            fb.comments = fb.comments.filter(c => c.id !== id);
+            if (fb.open === id) fb.open = null;
+            fbBoardPins();
+        }), null, id);
+    }
     else if (act === 'decide') { fb.deciding = id; fbRefresh(); fbFocus(`[data-fb-input="outcome-${id}"]`); }
     else if (act === 'cancel-decide') { fb.deciding = null; fbRefresh(); }
 }
@@ -1250,6 +1252,8 @@ function fbActions(c) {
     else if (c.decision) { if (staff) { next = ['decide', 'Record decision']; more.push(['resolve', 'Mark done']); } }
     else next = ['resolve', 'Mark done'];
     if (staff) more.push(c.decision ? ['drop', 'Make a comment'] : ['raise', 'Make it a decision']);
+    // The team can delete a comment made by mistake or as a test; a decision is made a comment again first.
+    if (staff && !c.decision) more.push(['delete', 'Delete']);
     return { next, more };
 }
 
@@ -1258,7 +1262,7 @@ function fbThread(c) {
     const { next, more } = fbActions(c);
     const acts = fb.deciding === c.id ? '' : `${next ? `<button type="button" class="btn small" data-fb-act="${next[0]}" data-id="${c.id}">${next[1]}</button>` : ''}
         ${more.length ? `<span class="fbc-more"><button type="button" class="icon-btn tiny" data-fb-menu aria-expanded="false" aria-label="More actions" title="More actions">${ICON.more}</button>
-            <span class="fbc-menu" hidden>${more.map(([act, label]) => `<button type="button" data-fb-act="${act}" data-id="${c.id}">${label}</button>`).join('')}</span></span>` : ''}`;
+            <span class="fbc-menu" hidden>${more.map(([act, label]) => `<button type="button" data-fb-act="${act}" data-id="${c.id}"${act === 'delete' ? ' class="danger"' : ''}>${label}</button>`).join('')}</span></span>` : ''}`;
     return `${c.decision && c.decision.who ? `<p class="fbc-who">Who decides: ${esc(c.decision.who)}</p>` : ''}
         ${replies ? `<ul class="fbc-replies">${replies}</ul>` : ''}
         ${fb.deciding === c.id ? `<form class="fb-form" data-fb-form="outcome" data-id="${c.id}">
@@ -1282,7 +1286,8 @@ function fbPanel(key) {
 
 // The pins switch, pinned to the foot of the panel over whatever scrolls beneath it.
 function fbFoot() {
-    return `<div class="fb-foot"><label class="toggle"><input type="checkbox" data-fb-pins${state.pins ? ' checked' : ''}> Show comment pins</label></div>`;
+    return `<div class="fb-foot">${fbSigned() ? `<button type="button" class="add-btn" id="fb-add" aria-pressed="${fb.picking}">${fbAddLabel()}</button>` : ''}
+        <label class="toggle"><input type="checkbox" data-fb-pins${state.pins ? ' checked' : ''}> Show comment pins</label></div>`;
 }
 
 // This page or all feedback, and the Comment button.
@@ -1612,7 +1617,7 @@ fbStart();
 renderSidebar();
 makeFrames();
 setFrames(state.frames);
-new ResizeObserver(() => { if (state.view === 'wireframes') layoutFrames(); if (state.view === 'model') { placeDrawer(); drawRels(); } if (state.view === 'sitemap') sitemapFade(); fbBoardPins(); fbAddButton(); }).observe($('#stage'));
+new ResizeObserver(() => { if (state.view === 'wireframes') layoutFrames(); if (state.view === 'model') { placeDrawer(); drawRels(); } if (state.view === 'sitemap') sitemapFade(); fbBoardPins(); }).observe($('#stage'));
 new ResizeObserver(() => { if (state.view === 'wireframes') layoutFrames(); }).observe($('#frames-wrap'));
 addEventListener('scroll', () => { if (!$('#ent-drawer').hidden) placeDrawer(); }, { passive: true });
 const startView = state.view;

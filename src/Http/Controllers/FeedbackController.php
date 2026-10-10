@@ -241,6 +241,22 @@ class FeedbackController extends Controller
     }
 
     /**
+     * Deletes a comment made by mistake, twice or as a test. Only the team can, and never a decision, which is made a
+     * comment again first.
+     */
+    public function destroy(Request $request, string $id): JsonResponse
+    {
+        $by = $this->authorise($request);
+        abort_unless($by['staff'], 403, 'Only the team can delete a comment.');
+        $comment = $this->store->find($id);
+        abort_unless($comment !== null, 404);
+        abort_if(! empty($comment['decision']), 409, 'A decision can’t be deleted. Make it a comment first.');
+        abort_unless($this->store->delete($id), 500, 'The comment couldn’t be deleted.');
+
+        return $this->json(['deleted' => $id]);
+    }
+
+    /**
      * The person a request acts for. On the command's routes, which skip the session token, that is the team, named by
      * the command, when it sends the server's FEEDBACK_KEY; a server with no key turns them all away. Everywhere else
      * it is the signed-in viewer. Anyone else is turned away.

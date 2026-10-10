@@ -2,6 +2,15 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.43 (10 October 2026)
+
+- **The Content model has the Sitemap's room at its sides:** 32px, its title bar included. Both have 16px on a phone.
+- **The site's Comments tab is black, with square corners,** rather than yellow. Its count, and its ring when focused from the keyboard, take the site's colour, as below.
+- **The team can delete a comment** made by mistake, twice or as a test: Delete, in red in the ⋯ menu, in the prototype and on the site, asks first. Reviewers can't, and a decision can't be deleted until it is made a comment again. `avoca:feedback --delete=<id>` does the same, locally or with `--from`. A deleted comment's file can be found in git's history once it has been committed.
+- **Add comment sits across the foot of the Comments panel,** above Show comment pins, in the prototype, the Sitemap and the Content model included, and on the site, rather than floating over the page. While a spot is being chosen it says Click the spot you mean, with Cancel. On the site, a click on the page outside the panel closes it, and a comment half written is still there when the panel opens again.
+- **Comments take the site's primary colour** rather than yellow, on the site and in the prototype: Add comment, the comment counts and, in the prototype, the outline while choosing a spot and the page options' heading use the primary button's colours, `--btn-primary-bg` and `--btn-primary-text`. A site can set its own for both with `--feedback-accent` and `--feedback-accent-ink` on `#avoca-feedback` in its CSS. With neither, they're Avoca's blue. Amber still marks a decision to make.
+- **To do on update:** nothing.
+
 ## v0.1.42 (10 October 2026)
 
 - **Fixed: the line along the top of the sitemap reaches the first and last pages.** Each column now draws its own piece of it, so it meets every column however wide each is.

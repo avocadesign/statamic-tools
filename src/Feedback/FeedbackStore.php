@@ -212,6 +212,21 @@ final class FeedbackStore
         });
     }
 
+    /**
+     * Deletes a comment and its replies, for one made by mistake, twice or as a test. A decision is never deleted: it's
+     * the record of what was agreed, so it is made a comment again first. Who may delete is the controller's to check.
+     * The file is in git, so a deleted comment can be found in the history once it has been committed.
+     */
+    public function delete(string $id): bool
+    {
+        $comment = $this->find($id);
+        if ($comment === null || ! empty($comment['decision'])) {
+            return false;
+        }
+
+        return @unlink($this->path($id));
+    }
+
     public function reopen(string $id): ?array
     {
         return $this->change($id, fn (array $comment) => [...$comment, 'status' => self::OPEN, 'resolved_by' => null, 'resolved_at' => null]);

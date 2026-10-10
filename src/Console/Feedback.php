@@ -36,6 +36,7 @@ class Feedback extends Command
         {--decide= : Record the decision made on the comment with this ID, with --outcome}
         {--outcome= : What was decided}
         {--drop-decision=* : Take the decision off the comment with this ID}
+        {--delete=* : Delete the comment with this ID, one made by mistake or as a test; never a decision}
         {--write-decisions : Write the decisions into the site, in resources/site/decisions.md}';
 
     protected $description = 'List, reply to and resolve the feedback pinned to the site\'s pages, here or on a server.';
@@ -99,8 +100,13 @@ class Feedback extends Command
                 return self::FAILURE;
             }
         }
+        foreach ((array) $this->option('delete') as $id) {
+            if (! $this->delete($id)) {
+                return self::FAILURE;
+            }
+        }
 
-        if ($this->option('resolve') || $this->option('reopen') || $this->option('reply') || $this->option('raise') || $this->option('decide') || $this->option('drop-decision')) {
+        if ($this->option('resolve') || $this->option('reopen') || $this->option('reply') || $this->option('raise') || $this->option('decide') || $this->option('drop-decision') || $this->option('delete')) {
             return self::SUCCESS;
         }
 
@@ -226,6 +232,44 @@ class Feedback extends Command
             FeedbackStore::DECIDED => "Recorded the decision on {$id}.",
             default => "Took the decision off {$id}.",
         });
+
+        return true;
+    }
+
+    /**
+     * Deletes a comment made by mistake or as a test. A decision is the record of what was agreed, so it is never
+     * deleted: take the decision off with --drop-decision first. Here, the file goes, and stays in git's history.
+     */
+    private function delete(string $id): bool
+    {
+        if ($this->option('from')) {
+            $response = $this->remote()->post($this->endpoint("api/comments/{$id}/delete"));
+            if (! $response->successful()) {
+                $this->error("Couldn't delete {$id}: the server answered {$response->status()}".($response->status() === 409 ? ', because it is a decision. Take the decision off with --drop-decision first.' : '.'));
+
+                return false;
+            }
+        } else {
+            $store = app(FeedbackStore::class);
+            $comment = $store->find($id);
+            if ($comment === null) {
+                $this->error("There is no comment {$id}.");
+
+                return false;
+            }
+            if (! empty($comment['decision'])) {
+                $this->error("{$id} is a decision, which is never deleted. Take the decision off with --drop-decision first.");
+
+                return false;
+            }
+            if (! $store->delete($id)) {
+                $this->error("Couldn't delete {$id}.");
+
+                return false;
+            }
+        }
+
+        $this->info("Deleted {$id}.");
 
         return true;
     }
