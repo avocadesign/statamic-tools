@@ -2,6 +2,11 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.36 (10 October 2026)
+
+- **The recipe says decisions belong in the comments, not the notes.** Notes say what is settled and stay clean and short; a question, a choice or anything still to agree is a comment raised as a decision.
+- **To do on update:** nothing.
+
 ## v0.1.35 (10 October 2026)
 
 - **Page notes' sections sit under full-width lines,** as pages do in All comments, and the content to prepare is a plain numbered list rather than bold items with a bar beside them.

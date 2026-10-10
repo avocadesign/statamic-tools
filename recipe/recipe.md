@@ -114,7 +114,7 @@ The discovery prototype draws each page in `prototype/<version>/pages.js` with t
 
 ### Page notes
 
-Each page's notes in `data.js` are read by the client, so write them in the client's words and keep them short. Each part has one job:
+Each page's notes in `data.js` are read by the client, so write them in the client's words, and keep them clean and short wherever possible. Notes say what is settled. Decisions don't go in them: a question the client needs to answer, a choice between options, or anything still to agree is a comment, raised as a decision, where it can be answered and recorded. Leave out anything the comments or the content model already say. Each part of the notes has one job:
 
 - **The description, `purpose`,** says what the page is for. Write `How to get in touch, with contact form and contact details`, not `How to get in touch, with the contact form and the contact details from Site Details.`
 - **The content to prepare, `content`,** lists only what the client has to supply, not what the site already does. For a contact page: the contact details, the email to send the form to, and any extra questions they'd like to ask in the form.
