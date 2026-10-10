@@ -112,8 +112,9 @@ return [
         // The cookie that remembers who is commenting. The prototype's sign-in sets the same one, so a name given in
         // either place works in both.
         'cookie' => 'prototype',
-        // Under storage/, one YAML file per comment and its replies.
-        'path' => 'app/feedback',
+        // One YAML file per comment and its replies, in git with the rest of the content: made locally they go up with a
+        // push, and made on a server whose content is edited there, its git script commits them. Relative to the site.
+        'path' => 'content/feedback',
         // Who hears about new comments and replies from reviewers: the reviewers marked team: true, and these
         // addresses, comma separated. One digest email every digest_minutes, sent by Laravel's scheduler.
         'notify' => env('FEEDBACK_NOTIFY'),

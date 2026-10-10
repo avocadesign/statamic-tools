@@ -6,9 +6,11 @@ use Illuminate\Support\Str;
 use Statamic\Facades\YAML;
 
 /**
- * Comments pinned to the site's pages, one YAML file each under storage/, holding the comment, where on the page it
- * was made, its replies and whether it is resolved. No database and no outside service: a review's comments stay on
- * the server they were made on, and avoca:feedback reads them.
+ * Comments pinned to the site's pages, one YAML file each in content/feedback, holding the comment, where on the page
+ * it was made, its replies and whether it is resolved. No database and no outside service. They are in git with the
+ * rest of the content: made locally, they go up with a push; made on a server whose content is edited there, the
+ * server's git script commits them and they come down with a pull. One file per comment, named by its ID, so comments
+ * made in two places never clash.
  */
 final class FeedbackStore
 {
@@ -27,7 +29,36 @@ final class FeedbackStore
 
     public static function make(): self
     {
-        return new self(storage_path((string) config('statamic-tools.feedback.path', 'app/feedback')));
+        $path = (string) config('statamic-tools.feedback.path', 'content/feedback');
+        $store = new self(str_starts_with($path, '/') ? $path : base_path($path));
+        // Comments made before they moved into git, under storage/app/feedback, move across the first time they're read.
+        $store->adopt(storage_path('app/feedback'));
+
+        return $store;
+    }
+
+    /** Moves the comments in an earlier folder into this one, leaving any this one already has. */
+    public function adopt(string $from): int
+    {
+        if (rtrim($from, '/') === rtrim($this->directory, '/') || ! is_dir($from)) {
+            return 0;
+        }
+
+        $moved = 0;
+        foreach (glob($from.'/*.yaml') ?: [] as $file) {
+            $id = basename($file, '.yaml');
+            if (! $this->valid($id) || is_file($this->path($id))) {
+                continue;
+            }
+            if (! is_dir($this->directory)) {
+                mkdir($this->directory, 0755, true);
+            }
+            if (@rename($file, $this->path($id))) {
+                $moved++;
+            }
+        }
+
+        return $moved;
     }
 
     public function directory(): string

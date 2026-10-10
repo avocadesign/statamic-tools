@@ -176,6 +176,10 @@ a.vm-i:hover, .vm-i.on { background: var(--surface-2); }
 .display-menu { position: absolute; z-index: 65; top: calc(100% + 8px); right: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; width: max-content; padding: 12px 14px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); }
 .menu-h { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: -4px; }
 .frames-wrap { flex: 1; min-height: 0; overflow: auto; padding: 16px; }
+/* Desktop on its own fills the stage edge to edge, as a page in a browser does, with no frame around it. */
+.frames-wrap.solo-desktop { padding: 0; overflow: hidden; }
+.frames-wrap.solo-desktop .device-label { display: none; }
+.frames-wrap.solo-desktop .browser { border: 0; border-radius: 0; box-shadow: none; }
 
 /* Page options: a bar above the frames on pages that have any, folding to one line of what's showing. */
 .opts-bar { border-bottom: 1px solid var(--line); background: var(--surface); }
@@ -209,10 +213,6 @@ a.vm-i:hover, .vm-i.on { background: var(--surface-2); }
 .device-name .dims { color: var(--muted); font-weight: 500; opacity: 0; transition: opacity .15s; }
 .device-label:hover .dims, .device-label.show-dims .dims, .device-name:focus-visible .dims { opacity: 1; }
 .browser { background: var(--surface); border: 1px solid var(--line-2); border-radius: 10px; overflow: hidden; box-shadow: var(--shadow); }
-.bar { height: 34px; display: flex; align-items: center; gap: 10px; padding: 0 12px; border-bottom: 1px solid var(--line); background: var(--surface-2); }
-.dots { display: flex; gap: 6px; }
-.dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--line-2); display: block; }
-.url { flex: 1; min-width: 0; height: 22px; display: flex; align-items: center; padding: 0 10px; border-radius: 6px; background: var(--surface); border: 1px solid var(--line); font: 12px var(--mono); color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .viewport { position: relative; overflow: hidden; background: #fff; }
 .viewport iframe { position: absolute; top: 0; left: 0; border: 0; transform-origin: 0 0; background: #fff; }
 

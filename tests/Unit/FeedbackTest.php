@@ -3,6 +3,7 @@
 namespace Avocadesign\StatamicTools\Tests\Unit;
 
 use Avocadesign\StatamicTools\Console\Feedback;
+use Avocadesign\StatamicTools\Feedback\Digest;
 use Avocadesign\StatamicTools\Feedback\FeedbackSettings;
 use Avocadesign\StatamicTools\Feedback\FeedbackStore;
 use Avocadesign\StatamicTools\Http\Middleware\InjectFeedbackWidget;
@@ -30,6 +31,7 @@ class FeedbackTest extends TestCase
         mkdir($this->dir);
         $this->store = new FeedbackStore($this->dir.'/comments');
         $this->app->instance(FeedbackStore::class, $this->store);
+        $this->app->instance(Digest::class, new Digest($this->store, $this->dir.'/digest.json'));
         // Tests run outside a local environment, where feedback needs a password to be on.
         config([
             'statamic-tools.feedback.enabled' => true,
@@ -254,15 +256,19 @@ class FeedbackTest extends TestCase
         $this->assertSame(['prototype', '2', 'contact', '/contact', 'mobile'], [$comment['context'], $comment['version'], $comment['page'], $comment['route'], $comment['frame']]);
         $this->assertSame(['Chapters' => 'Report years'], $comment['options']);
 
+        // A site's own device, such as a tablet, is a frame like any other; anything else isn't.
+        $this->signedIn()->postJson('/!/statamic-tools/feedback/comments', [...$payload, 'frame' => 'tablet'])->assertCreated()->assertJsonPath('comment.frame', 'tablet');
+        $this->signedIn()->postJson('/!/statamic-tools/feedback/comments', [...$payload, 'frame' => 'Big screen!'])->assertUnprocessable();
+
         // A reviewer who isn't the team can't raise a decision as they post.
         $this->signedIn()->postJson('/!/statamic-tools/feedback/comments', [...$payload, 'decision' => true])->assertForbidden();
 
         $this->signedIn()->getJson('/!/statamic-tools/feedback/comments?scope=all')->assertJsonCount(1, 'comments')->assertJsonPath('comments.0.url', '/about');
-        $this->signedIn()->getJson('/!/statamic-tools/feedback/comments?context=prototype&version=2&page=contact')->assertJsonCount(1, 'comments');
+        $this->signedIn()->getJson('/!/statamic-tools/feedback/comments?context=prototype&version=2&page=contact')->assertJsonCount(2, 'comments');
         $this->signedIn()->getJson('/!/statamic-tools/feedback/comments?context=prototype&version=1')->assertJsonCount(0, 'comments');
         // The prototype's list, which its count comes from, never holds the site's comments, and the site's count
         // never holds the prototype's, even on the same path.
-        $this->signedIn()->getJson('/!/statamic-tools/feedback/comments?context=prototype')->assertJsonCount(1, 'comments')->assertJsonPath('comments.0.context', 'prototype');
+        $this->signedIn()->getJson('/!/statamic-tools/feedback/comments?context=prototype')->assertJsonCount(2, 'comments')->assertJsonPath('comments.0.context', 'prototype');
         $this->signedIn()->getJson('/!/statamic-tools/feedback/count?url=/contact')->assertJson(['open' => 0]);
         $this->signedIn()->getJson('/!/statamic-tools/feedback/count?url=/about')->assertJson(['open' => 1]);
     }
@@ -332,6 +338,23 @@ class FeedbackTest extends TestCase
 
         $this->artisan('avoca:feedback:notify')->expectsOutputToContain('Nobody to tell')->assertSuccessful();
         Mail::assertNothingSent();
+    }
+
+    public function test_comments_from_before_they_moved_into_git_move_across(): void
+    {
+        $old = new FeedbackStore($this->dir.'/old');
+        $first = $old->create(['url' => '/about', 'body' => 'Before'], self::PERSON);
+        $second = $old->create(['url' => '/about', 'body' => 'Also before'], self::PERSON);
+        file_put_contents($this->dir.'/old/notes.txt', 'not a comment');
+        // One already here stays as it is.
+        $this->store->create(['url' => '/', 'body' => 'Here'], self::PERSON);
+        copy($this->dir."/old/{$first['id']}.yaml", $this->dir."/comments/{$first['id']}.yaml");
+
+        $this->assertSame(1, $this->store->adopt($this->dir.'/old'));
+        $this->assertSame(['Before', 'Also before', 'Here'], array_values(array_intersect(['Before', 'Also before', 'Here'], array_column($this->store->all(), 'body'))));
+        $this->assertFileDoesNotExist($this->dir."/old/{$second['id']}.yaml");
+        $this->assertFileExists($this->dir.'/old/notes.txt');
+        $this->assertSame(0, $this->store->adopt($this->dir.'/old'));
     }
 
     public function test_a_prototype_comment_links_into_its_version(): void

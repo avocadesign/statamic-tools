@@ -6,12 +6,13 @@ use Illuminate\Support\Carbon;
 
 /**
  * What the team hears about: comments and replies reviewers have made since the last digest, and who to tell. The
- * team's own comments and replies are left out, since they made them. The time of the last digest is kept beside the
- * comments, so nothing is told twice and nothing is missed between runs.
+ * team's own comments and replies are left out, since they made them. The time of the last digest is kept in storage,
+ * out of git, so nothing is told twice and nothing is missed between runs.
  */
 final class Digest
 {
-    public function __construct(private FeedbackStore $store)
+    /** @param  string|null  $state  Where the time of the last digest is kept: in storage, out of git, by default. */
+    public function __construct(private FeedbackStore $store, private ?string $state = null)
     {
     }
 
@@ -40,8 +41,8 @@ final class Digest
 
     public function markSent(Carbon $until): void
     {
-        if (! is_dir($this->store->directory())) {
-            mkdir($this->store->directory(), 0755, true);
+        if (! is_dir(dirname($this->statePath()))) {
+            mkdir(dirname($this->statePath()), 0755, true);
         }
         file_put_contents($this->statePath(), json_encode(['sent_at' => $until->toIso8601String()]), LOCK_EX);
     }
@@ -88,8 +89,9 @@ final class Digest
         return max(1, (int) config('statamic-tools.feedback.digest_minutes', 10));
     }
 
+    // Kept apart from the comments, which are in git, so a digest never makes a commit of its own.
     private function statePath(): string
     {
-        return $this->store->directory().'/.digest.json';
+        return $this->state ?? storage_path('app/feedback-digest.json');
     }
 }

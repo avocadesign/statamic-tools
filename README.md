@@ -103,8 +103,8 @@ gets their improvements. What the prototype says is the site's own, one folder p
   `avoca:feedback`) raises a comment as a decision, or ticks Make it a decision as they post, and records what was
   decided. At sign-off, `php please avoca:feedback --write-decisions` copies them into `resources/site/decisions.md`.
 - **Page options.** A page can be shown more than one way, for reviewers to compare before choosing: `OPTIONS` in
-  `data.js`, by page. A bar above the frames shows the choices on pages that have them and folds to one line of what's
-  showing. A choice redraws the page, which reads it with `option('id')`, in both frames or the one it names, or sets
+  `data.js`, by page. A bar above the frames shows them on pages that have them, folded to one line of what's showing
+  until Show options opens it. A choice redraws the page, which reads it with `option('id')`, in both frames or the one it names, or sets
   the timeline's layout with `mode: true`; the frame's `<html>` carries `data-option-<id>` for CSS, and a comment
   records which choices were showing.
 - **Notes.** The Notes button opens the page's notes beside the comments, with every section open. A page without notes
@@ -112,6 +112,10 @@ gets their improvements. What the prototype says is the site's own, one folder p
 - **The content model is the team's** until it is shared: a control panel login or a reviewer marked `team: true` sees
   the tab, marked Team, and nobody else does. `PROTOTYPE_CONTENT_MODEL=everyone` shows it to everyone; `off` hides it
   from everyone. It hides the tab, not the data: `data.js` is in the page either way.
+- **Display options** choose the frames, whether they scroll together, and the comment pins. Frames show just the
+  page, with no browser bar. Both shows the desktop as a 1440 by 900 laptop scaled to fit beside the phone. Desktop on
+  its own fills the stage edge to edge at full size, so the page lays out at the width it has. A site that needs
+  another size, such as a tablet, adds it with `DEVICES` in `data.js`; it shows on its own.
 - **The site's name** is `APP_NAME`, unless `PROJECT.name` in `data.js` gives one. The interface is always dark, so the
   white pages stand out.
 - **On and off.** On for local and staging, off everywhere else, unless `PROTOTYPE_ENABLED` says otherwise. A 404 when
@@ -176,9 +180,13 @@ sees anything: the tab only appears in a browser that has signed in to review, o
   leaves out what the team said itself. Laravel's scheduler sends it, so the server needs
   `* * * * * cd /path/to/site && php artisan schedule:run` in cron; `php please avoca:feedback:notify --dry-run` says
   who would be told what. Reviewers aren't emailed. `avoca:site:check` warns when feedback is on and nobody would hear.
-- **Stored** as one YAML file per comment in `storage/app/feedback`, with no database and no outside service. The file
-  holds the page, its entry, the element, the spot within it, the block, the width it was made at, the replies and the
-  status.
+- **Stored in git,** as one YAML file per comment in `content/feedback`, with no database and no outside service. The
+  file holds the page, its entry, the element, the spot within it, the block, the width it was made at, the replies,
+  the status and any decision. Comments made locally go up with a push; on a server whose content is edited there, its
+  git script commits them with the rest of the content and they come down with a pull. Each file is named by its
+  comment's ID, so comments made in two places never clash. Comments saved in `storage/app/feedback` by an earlier
+  version move across the first time they're read. Reviewers' names and words go into the site's history, so keep
+  feedback for private repositories.
 - **Weight.** Switched off, nothing is added to any page and the code that would add it is never registered, so
   production is untouched. Switched on, a page gets one deferred script of about 4 KB (under 2 KB compressed) and
   shows nothing more to a visitor. The tab appears for reviewers, and the widget, about 14 KB compressed, loads on the

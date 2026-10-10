@@ -37,7 +37,7 @@ class FeedbackNotify extends Command
             return self::SUCCESS;
         }
 
-        $digest = new Digest($store);
+        $digest = app(Digest::class);
         // Comments keep their time to the second, so a digest covers whole seconds: one made during this second waits
         // for the next digest rather than slipping between the two.
         $until = now()->subSecond()->startOfSecond();

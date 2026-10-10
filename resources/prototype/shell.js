@@ -8,12 +8,13 @@ const state = Object.assign({
     view: 'wireframes', route: '/', frames: 'both', pins: true, rail: 'notes',
     journey: JOURNEYS[0]?.id, step: -1, modes: { desktop: 'pinned', mobile: 'swipe' }, entity: null,
     sync: true, notes: false, side: false, railTab: 'notes', fbList: 'page', fbShow: 'open', fbScope: 'version',
-    opts: {}, optsOpen: true
+    opts: {}, optsOpen: false
 }, (() => { try { return JSON.parse(localStorage.getItem(STORE) || '{}'); } catch (e) { return {}; } })());
 state.step = -1;
-// Page notes and journeys start collapsed on every visit, whatever was open last time.
+// Page notes, journeys and page options start collapsed on every visit, whatever was open last time.
 state.notes = false;
 state.side = false;
+state.optsOpen = false;
 state.entity = null;  // the content model opens with nothing selected
 // Which tabs this viewer has. The server says, from PROTOTYPE_CONTENT_MODEL and who is viewing: the content model is
 // the team's unless it's shared. Opened as a file or an Artifact, everything shows.
@@ -21,7 +22,7 @@ const VIEWS = Object.assign({ model: true, model_team_only: false }, window.PROT
 // A view saved by an older prototype, or one this viewer doesn't have, opens the pages instead.
 if (!['wireframes', 'sitemap', 'model'].includes(state.view) || (state.view === 'model' && !VIEWS.model)) state.view = 'wireframes';
 function save() {
-    try { localStorage.setItem(STORE, JSON.stringify({ view: state.view, route: state.route, frames: state.frames, pins: state.pins, modes: state.modes, entity: state.entity, journey: state.journey, sync: state.sync, railTab: state.railTab, fbList: state.fbList, fbShow: state.fbShow, fbScope: state.fbScope, opts: state.opts, optsOpen: state.optsOpen, welcomed: state.welcomed })); } catch (e) { /* storage unavailable */ }
+    try { localStorage.setItem(STORE, JSON.stringify({ view: state.view, route: state.route, frames: state.frames, pins: state.pins, modes: state.modes, entity: state.entity, journey: state.journey, sync: state.sync, railTab: state.railTab, fbList: state.fbList, fbShow: state.fbShow, fbScope: state.fbScope, opts: state.opts, welcomed: state.welcomed })); } catch (e) { /* storage unavailable */ }
 }
 const pagesFor = id => ROUTES.filter(r => (NOTES[r.key]?.fed || []).includes(id));
 
@@ -39,11 +40,24 @@ const FR = {
     mobile: { w: 390, h: 844, s: 1, ready: false, el: null }
 };
 
+// Other devices a site adds, such as a tablet: DEVICES in data.js. None by default. Each shows on its own, never in
+// Both, and comments made on it are kept for it.
+const EXTRA = (typeof DEVICES === 'undefined' ? [] : DEVICES).filter(d => d && /^[a-z][a-z0-9-]{0,19}$/.test(d.id)
+    && !['both', 'desktop', 'mobile'].includes(d.id) && d.width > 0 && d.height > 0);
+EXTRA.forEach(d => { FR[d.id] = { w: d.width, h: d.height, s: 1, ready: false, el: null, extra: true }; });
+
 function makeFrames() {
+    EXTRA.forEach(d => {
+        $('#frames').insertAdjacentHTML('beforeend', `<div class="device" id="dev-${d.id}" hidden>
+            <div class="device-label"><button type="button" class="device-name" aria-expanded="false">${esc(d.label || d.id)} <span class="dims" id="lab-${d.id}"></span></button><span class="zoom" id="zoom-${d.id}"></span></div>
+            <div class="browser"><div class="viewport" id="vp-${d.id}"></div></div>
+        </div>`);
+        $('#frame-pick').insertAdjacentHTML('beforeend', `<button type="button" data-frames="${d.id}" aria-pressed="false">${esc(d.label || d.id)}</button>`);
+    });
     for (const name of Object.keys(FR)) {
         const f = document.createElement('iframe');
         f.name = name;
-        f.title = `${name === 'desktop' ? 'Desktop' : 'Mobile'} prototype`;
+        f.title = `${DEVICE[name] || name} prototype`;
         f.srcdoc = FRAME_DOC;
         FR[name].el = f;
         $(`#vp-${name}`).appendChild(f);
@@ -80,8 +94,6 @@ function navigate(route, opts = {}) {
     if (fb.draft && fb.draft.page !== parseRoute(route).key) fb.draft = null;
     renderOptions();
     fbSendPins();
-    $('#url-desktop').textContent = route;
-    $('#url-mobile').textContent = route;
     const pr = parseRoute(route);
     $('#page-title').textContent = pr.r.title;
     $('#page-path').textContent = pr.path;
@@ -123,21 +135,31 @@ window.addEventListener('message', e => {
 function layoutFrames() {
     const area = $('#frames-wrap');
     const narrow = window.innerWidth <= 1000;
-    const W = area.clientWidth - 32;
-    const H = area.clientHeight - 32;
-    let show = state.frames;
+    // A device the site has since taken out shows both.
+    let show = state.frames === 'both' || FR[state.frames] ? state.frames : 'both';
     // Both frames need room for the phone at 55% and the laptop at 30%.
-    if (show === 'both' && (narrow || W < 390 * 0.55 + 44 + 1440 * 0.3)) show = 'mobile';
-    $('#dev-desktop').hidden = show === 'mobile';
-    $('#dev-mobile').hidden = show === 'desktop';
+    if (show === 'both' && (narrow || area.clientWidth - 32 < 390 * 0.55 + 44 + 1440 * 0.3)) show = 'mobile';
+    // Frames show just the page, with no browser bar. On its own the desktop fills the stage, edge to edge at full size.
+    area.classList.toggle('solo-desktop', show === 'desktop');
+    const W = area.clientWidth - (show === 'desktop' ? 0 : 32);
+    const H = area.clientHeight - (show === 'desktop' ? 0 : 32);
+    Object.keys(FR).forEach(name => { $(`#dev-${name}`).hidden = !(show === name || (show === 'both' && !FR[name].extra)); });
     // During a journey, fade the other device, but only while both are on screen.
     const jd = state.step >= 0 && show === 'both' ? activeJourney().device : null;
     $('#dev-desktop').classList.toggle('dim', jd === 'mobile');
     $('#dev-mobile').classList.toggle('dim', jd === 'desktop');
 
-    const label = 26, bar = 34, phoneChrome = bar + 2;
+    const label = 26, bar = 0, phoneChrome = 2;
     const D = FR.desktop, M = FR.mobile;
-    if (!narrow) {
+    if (FR[show] && FR[show].extra) {
+        // Another device, on its own: as large as fits, up to its full size.
+        const E = FR[show];
+        E.s = narrow ? Math.min(1, W / E.w) : Math.min(1, Math.max(0.3, Math.min(W / E.w, (H - label - 2) / E.h)));
+    } else if (show === 'desktop') {
+        D.w = Math.max(320, Math.floor(W));
+        D.h = Math.max(320, Math.floor(narrow ? window.innerHeight - area.getBoundingClientRect().top : H));
+        D.s = 1;
+    } else if (!narrow) {
         M.w = 390; M.h = 844;
         const fitH = (H - label - phoneChrome) / M.h;
         M.s = show === 'both'
@@ -153,7 +175,7 @@ function layoutFrames() {
         M.s = Math.min(1, (W - 20) / M.w);
         D.w = 1440; D.s = Math.min(1, W / D.w); D.h = 900;
     }
-    for (const name of ['desktop', 'mobile']) {
+    for (const name of Object.keys(FR)) {
         const f = FR[name];
         if (!f.el) continue;
         f.el.style.width = f.w + 'px';
@@ -288,12 +310,14 @@ function pageNotes(pr) {
 const ICON = {
     mobile: '<svg width="14" height="16" viewBox="0 0 14 16" aria-hidden="true"><rect x="2.5" y="1" width="9" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M6 12.5h2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
     desktop: '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2" width="13" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M6 14h4M8 11v3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
+    tablet: '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="1.5" width="11" height="13" rx="1.8" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M7 12.2h2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
     panel: '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M6 2.5v11" stroke="currentColor" stroke-width="1.4"/></svg>',
     close: '<svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
     more: '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="3.5" cy="8" r="1.4" fill="currentColor"/><circle cx="8" cy="8" r="1.4" fill="currentColor"/><circle cx="12.5" cy="8" r="1.4" fill="currentColor"/></svg>',
     chev: '<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 };
 const DEVICE = { mobile: 'Mobile', desktop: 'Desktop' };
+EXTRA.forEach(d => { DEVICE[d.id] = d.label || d.id; });
 const activeJourney = () => JOURNEYS.find(x => x.id === state.journey) || JOURNEYS[0];
 
 const narrowMQ = matchMedia('(max-width: 1000px)');
@@ -1136,10 +1160,10 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden && fb
 
 // Ways a page can be shown, for reviewers to compare before choosing: OPTIONS in data.js, by page. Each switches both
 // frames, or the one its frame names; one marked mode sets the timeline's layout. The bar above the frames shows them
-// on pages that have any, folding to one line of what's showing, and a comment records which were showing.
+// on pages that have any, folded to one line of what's showing until opened, and a comment records which were showing.
 const PAGE_OPTIONS = typeof OPTIONS === 'undefined' ? {} : OPTIONS;
 const pageOptions = key => (PAGE_OPTIONS[key] || []).filter(o => o && o.id && Array.isArray(o.choices) && o.choices.length);
-const optsOpen = () => state.optsOpen !== false;
+const optsOpen = () => state.optsOpen === true;
 
 function optionValue(key, o) {
     const v = ((state.opts || {})[key] || {})[o.id];
@@ -1304,8 +1328,13 @@ function setFrames(f) {
     state.frames = f;
     save();
     $$('#frame-pick [data-frames]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.frames === f)));
+    // The button says what's showing: Display: Both, Desktop, Mobile or another device the site adds.
+    $('#display-label').textContent = `Display: ${f !== 'both' && DEVICE[f] ? DEVICE[f] : 'Both'}`;
     layoutFrames();
 }
+
+// A click inside a frame never reaches this page, but it takes the focus from it, so open menus close then too.
+window.addEventListener('blur', () => { displayMenu(false); versionMenu(false); fbMenus(); });
 
 $('#sync').addEventListener('change', e => {
     state.sync = e.target.checked;

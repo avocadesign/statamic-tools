@@ -57,7 +57,7 @@
                         <div class="display">
                             <button type="button" class="btn" id="display-btn" aria-haspopup="true" aria-expanded="false" aria-controls="display-menu">
                                 <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4.5h7M12 4.5h2M2 11.5h2M7 11.5h7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="10.5" cy="4.5" r="1.6" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="5.5" cy="11.5" r="1.6" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
-                                <span>Display options</span>
+                                <span id="display-label">Display: Both</span>
                             </button>
                             <div class="display-menu" id="display-menu" hidden>
                                 <p class="menu-h">Show</p>
@@ -78,14 +78,12 @@
                         <div class="device" id="dev-desktop">
                             <div class="device-label"><button type="button" class="device-name" aria-expanded="false">Desktop <span class="dims" id="lab-desktop"></span></button><span class="zoom" id="zoom-desktop"></span></div>
                             <div class="browser">
-                                <div class="bar"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="url" id="url-desktop">/</span></div>
                                 <div class="viewport" id="vp-desktop"></div>
                             </div>
                         </div>
                         <div class="device" id="dev-mobile">
                             <div class="device-label"><button type="button" class="device-name" aria-expanded="false">Mobile <span class="dims" id="lab-mobile"></span></button><span class="zoom" id="zoom-mobile"></span></div>
                             <div class="browser">
-                                <div class="bar"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="url" id="url-mobile">/</span></div>
                                 <div class="viewport" id="vp-mobile"></div>
                             </div>
                         </div>

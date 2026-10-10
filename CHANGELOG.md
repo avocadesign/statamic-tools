@@ -2,6 +2,16 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.29 (10 October 2026)
+
+- **The page options bar starts folded,** to one line of what's showing, on every visit, like page notes and journeys. Show options opens it.
+- **Frames are just the page.** The browser bar and its address are gone from every frame; the page's address is beside its title above. Display: Desktop shows the page edge to edge at full size in all the room it has, with no frame or label, so the page lays out at that width and follows the window as it's resized. Both keeps the desktop as a 1440 by 900 laptop scaled to fit beside the phone.
+- **Sites can add other devices,** such as a tablet, with `DEVICES` in `data.js`: none by default. Each becomes a choice in Display options, shown on its own, and comments made on it are kept for it.
+- **Menus close when you click into a page,** as they do for a click anywhere else: Display options, the version menu and a comment's ⋯ menu.
+- **The Display options button says what's showing:** Display: Both, Display: Desktop or Display: Mobile.
+- **Comments are in git.** They are kept in `content/feedback`, one file per comment, rather than `storage/app/feedback`, which git ignores. Comments made locally go up with a push; on a server whose content is edited there, its git script commits them with the rest of the content, so they come down with a pull rather than only through `avoca:feedback --from`. The digest's record of when it last sent stays in storage, so it never makes a commit. Comments saved in storage by an earlier version move across the first time they're read.
+- **To do on update:** nothing, unless a site's repository is public: comments, with reviewers' names, now go into its history.
+
 ## v0.1.28 (10 October 2026)
 
 - **The page options bar is just the options,** each name above its choices, and Close or Show options to fold it: no line asking reviewers to try each, and no note beside an option's name, which only invited "to decide". Decisions are made in the comments.

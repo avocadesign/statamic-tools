@@ -163,7 +163,7 @@ class FeedbackController extends Controller
             'version' => ['nullable', 'string', 'max:40', 'regex:/^[A-Za-z0-9-]+$/'],
             'page' => ['nullable', 'string', 'max:100'],
             'route' => ['nullable', 'string', 'max:300'],
-            'frame' => ['nullable', 'in:desktop,mobile'],
+            'frame' => ['nullable', 'string', 'max:20', 'regex:/^[a-z][a-z0-9-]*$/'],
             'decision' => ['nullable', 'boolean'],
             'who' => ['nullable', 'string', 'max:120'],
             'options' => ['nullable', 'array', 'max:12'],
@@ -213,7 +213,7 @@ class FeedbackController extends Controller
         $input = $request->validate([
             'anchor' => ['required', 'array'],
             ...self::ANCHOR,
-            'frame' => ['nullable', 'in:desktop,mobile'],
+            'frame' => ['nullable', 'string', 'max:20', 'regex:/^[a-z][a-z0-9-]*$/'],
         ]);
         $anchor = Arr::only($input['anchor'], array_map(fn ($rule) => substr($rule, 7), array_keys(self::ANCHOR)));
 
