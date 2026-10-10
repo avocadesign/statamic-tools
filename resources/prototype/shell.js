@@ -995,9 +995,10 @@ function fbCompose() {
     </form>`;
 }
 
+// A comment is labelled only Comment or Decision; the colour says where it stands, with a tick once it's done.
 function fbState(c) {
-    if (fbIsDone(c)) return '<span class="fbc-state done">Done</span>';
-    return c.decision ? `<span class="fbc-state decide">Decision to make${c.decision.who ? `: ${esc(c.decision.who)}` : ''}</span>` : '';
+    const kind = fbIsDone(c) ? 'done' : c.decision ? 'decide' : 'comment';
+    return `<span class="fbc-state ${kind}">${fbIsDone(c) ? '✓ ' : ''}${c.decision ? 'Decision' : 'Comment'}</span>`;
 }
 
 function fbCard(c) {
@@ -1008,10 +1009,11 @@ function fbCard(c) {
     const author = (c.author || {}).name || 'Someone';
     const replies = c.replies || [];
     return `<article class="fbc fbc--${kind}${open ? ' is-open' : ''}" data-fb="${c.id}">
-        <button type="button" class="fbc-head" data-fb-toggle="${c.id}" aria-expanded="${open}">
+        <button type="button" class="fbc-head" data-fb-toggle="${c.id}" aria-expanded="${open}" aria-label="${open ? 'Close' : 'Open'} comment ${n || ''} from ${esc(author)}">
             <span class="fbc-n fbc-n--${kind}">${n || '•'}</span>
             <span class="fbc-meta"><b>${esc(author)}</b><span>${fbDate(c.created_at)}${c.version !== VERSION.id ? ` · ${esc(fbVersionLabel(c.version))}` : ''}</span></span>
             ${fbState(c)}
+            <span class="fbc-chev" aria-hidden="true">${ICON.chev}</span>
         </button>
         <div class="fbc-main">
             <p class="fbc-body${open ? '' : ' clamp'}">${esc(c.body)}</p>
@@ -1042,7 +1044,8 @@ function fbThread(c) {
     const acts = fb.deciding === c.id ? '' : `${next ? `<button type="button" class="btn small" data-fb-act="${next[0]}" data-id="${c.id}">${next[1]}</button>` : ''}
         ${more.length ? `<span class="fbc-more"><button type="button" class="icon-btn tiny" data-fb-menu aria-expanded="false" aria-label="More actions" title="More actions">${ICON.more}</button>
             <span class="fbc-menu" hidden>${more.map(([act, label]) => `<button type="button" data-fb-act="${act}" data-id="${c.id}">${label}</button>`).join('')}</span></span>` : ''}`;
-    return `${replies ? `<ul class="fbc-replies">${replies}</ul>` : ''}
+    return `${c.decision && c.decision.who ? `<p class="fbc-who">Who decides: ${esc(c.decision.who)}</p>` : ''}
+        ${replies ? `<ul class="fbc-replies">${replies}</ul>` : ''}
         ${fb.deciding === c.id ? `<form class="fb-form" data-fb-form="outcome" data-id="${c.id}">
             <textarea class="fb-input" data-fb-input="outcome-${c.id}" rows="2" maxlength="5000" placeholder="What was decided" aria-label="What was decided" required></textarea>
             <div class="fb-row"><button type="submit" class="btn small primary">Record decision</button><button type="button" class="link-btn" data-fb-act="cancel-decide" data-id="${c.id}">Cancel</button></div>

@@ -18,8 +18,8 @@
     var invited = params.has('review');
     var known = false;
     try { known = localStorage.getItem('avoca-feedback') === '1'; } catch (e) { /* storage unavailable */ }
-    var open = script.getAttribute('data-feedback-open') === '1';
-    if (!known && !named && !invited && !open) return;
+    var listed = script.getAttribute('data-feedback-open') === '1';
+    if (!known && !named && !invited && !listed) return;
 
     var base = script.getAttribute('data-feedback');
     var version = script.getAttribute('data-feedback-version') || '';

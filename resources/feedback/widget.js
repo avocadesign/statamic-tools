@@ -38,6 +38,7 @@
         '.scope{display:flex;align-items:center;justify-content:space-between;gap:8px}',
         '.scope p{margin:0;display:flex;flex-wrap:wrap;align-items:baseline;gap:6px;font-size:13px;color:var(--muted)}',
         '.scope b{color:var(--ink)}',
+        '.scope .add{flex:none;white-space:nowrap}',
         '.toggle{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--ink);user-select:none}',
         '.toggle input{accent-color:var(--accent);width:15px;height:15px;margin:0}',
         '.chips{display:flex;flex-wrap:wrap;gap:6px}',
@@ -53,13 +54,20 @@
         '.card.is-open{background:var(--soft);border-color:var(--line-2)}',
         '.card--decide{border-left:3px solid var(--amber)}',
         '.card--done{border-left:3px solid var(--green)}',
-        '.card-head{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;width:100%;padding:10px 12px 4px;border:0;background:transparent;text-align:left}',
+        '.card-head{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:10px;align-items:center;width:100%;padding:10px 12px 4px;border:0;background:transparent;text-align:left}',
         '.num{flex:none;display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:11px;background:var(--note);color:var(--note-ink);font:700 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace}',
         '.num--decide{background:var(--amber);color:var(--amber-ink)}',
         '.num--done{background:var(--green);color:var(--green-ink)}',
         '.num--draft{background:var(--accent);color:var(--accent-ink)}',
         '.by{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;min-width:0;font-size:12px;color:var(--muted)}',
         '.by b{font-size:13px;color:var(--ink)}',
+        '.by time{white-space:nowrap}',
+        '.who-decides{margin:0;font-size:12px;color:var(--muted)}',
+        // Open and close: the chevron points down on a closed comment and up on an open one.
+        '.chev{display:grid;place-items:center;width:20px;height:20px;color:var(--muted)}',
+        '.chev svg{transition:transform .2s}',
+        '.card-head[aria-expanded=true] .chev svg{transform:rotate(180deg)}',
+        '.card-head:hover .chev{color:var(--ink)}',
         '.badge{padding:0 6px;border-radius:9px;background:var(--soft);color:var(--muted);font-size:11px;font-weight:600}',
         '.state{padding:1px 8px;border:1px solid var(--line-2);border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap;color:var(--muted)}',
         '.state.decide{border-color:var(--amber);color:var(--warn)}',
@@ -613,9 +621,9 @@
             '<div class="row"><button class="primary">Post</button><button type="button" class="ghost cancel-compose">Cancel</button></div></form>';
     }
 
+    // A comment is labelled only Comment or Decision; the colour says where it stands, with a tick once it's done.
     function stateBadge(c) {
-        if (done(c)) return '<span class="state done">Done</span>';
-        return c.decision ? '<span class="state decide">Decision to make' + (c.decision.who ? ': ' + esc(c.decision.who) : '') + '</span>' : '';
+        return '<span class="state ' + (done(c) ? 'done' : c.decision ? 'decide' : 'comment') + '">' + (done(c) ? '✓ ' : '') + (c.decision ? 'Decision' : 'Comment') + '</span>';
     }
 
     function by(person, time) {
@@ -631,8 +639,9 @@
         var d = c.decision;
         var replies = c.replies || [];
         return '<article class="card card--' + k + (open ? ' is-open' : '') + (hotId() === c.id ? ' hot' : '') + '" data-id="' + esc(c.id) + '">' +
-            '<button type="button" class="card-head toggle" aria-expanded="' + open + '">' +
-            '<span class="num num--' + k + '">' + (n || '·') + '</span>' + by(c.author, c.created_at) + stateBadge(c) + '</button>' +
+            '<button type="button" class="card-head toggle" aria-expanded="' + open + '" aria-label="' + (open ? 'Close' : 'Open') + ' comment ' + (n || '') + ' from ' + esc((c.author || {}).name || 'someone') + '">' +
+            '<span class="num num--' + k + '">' + (n || '·') + '</span>' + by(c.author, c.created_at) + stateBadge(c) +
+            '<span class="chev" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M3 4.5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>' +
             '<div class="card-main"><p class="text' + (open ? '' : ' clamp') + '">' + esc(c.body) + '</p>' +
             (decided(c) ? '<div class="outcome"><b>Decided</b><p>' + esc(d.outcome) + '</p><small>' + esc((d.decided_by || {}).name || '') + (d.decided_at ? ' · ' + esc(ago(d.decided_at)) : '') + '</small></div>' : '') +
             (!open && replies.length ? '<p class="more">' + replies.length + (replies.length === 1 ? ' reply' : ' replies') + '</p>' : '') +
@@ -662,7 +671,8 @@
             (a.more.length ? '<span class="more-wrap"><button type="button" class="icon small menu-toggle" aria-expanded="false" aria-label="More actions" title="More actions">' +
                 '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="3.5" cy="8" r="1.4" fill="currentColor"/><circle cx="8" cy="8" r="1.4" fill="currentColor"/><circle cx="12.5" cy="8" r="1.4" fill="currentColor"/></svg></button>' +
                 '<span class="menu" hidden>' + a.more.map(function (m) { return '<button type="button" data-act="' + m[0] + '">' + m[1] + '</button>'; }).join('') + '</span></span>' : '');
-        return (replies ? '<ul class="replies">' + replies + '</ul>' : '') +
+        return (c.decision && c.decision.who ? '<p class="who-decides">Who decides: ' + esc(c.decision.who) + '</p>' : '') +
+            (replies ? '<ul class="replies">' + replies + '</ul>' : '') +
             (state.deciding === c.id ? '<form class="form" data-form="outcome"><textarea name="outcome" data-keep="outcome-' + id + '" maxlength="5000" aria-label="What was decided" placeholder="What was decided" required></textarea>' +
                 '<div class="row"><button class="primary">Record decision</button><button type="button" class="link" data-act="cancel-decide">Cancel</button></div></form>' : '') +
             '<form class="form reply" data-form="reply"><textarea name="body" data-keep="reply-' + id + '" rows="1" maxlength="5000" aria-label="Reply" placeholder="Reply" required></textarea>' +

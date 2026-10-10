@@ -2,6 +2,14 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.30 (10 October 2026)
+
+- **A comment is labelled only Comment or Decision,** in the prototype and on the site. The colour says where it stands: plain while open, amber for a decision to make, green with a tick once done. Who decides, when the team gives it with `avoca:feedback --who`, shows as a line inside the open comment rather than in the label, and the date no longer wraps beside a long label.
+- **Comments have an open and close chevron** at the right of their header: down on a closed comment, up on an open one.
+- **Add comment stays on one line** in the Comments panel.
+- **Fixed: the site's Comments tab opens again.** Since v0.1.26 a click on the tab, or a `?review` or `?feedback=` link, failed with "open is not a function": the loader's new setting for a reviewers list took the name of the function that opens the panel. Pins and the count, which start another way, still worked.
+- **To do on update:** nothing.
+
 ## v0.1.29 (10 October 2026)
 
 - **The page options bar starts folded,** to one line of what's showing, on every visit, like page notes and journeys. Show options opens it.
