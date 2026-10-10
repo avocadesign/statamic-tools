@@ -537,4 +537,4 @@ Before a new site's first sign-off, check that the client's logo has replaced th
 - **Form emails.** Send a test submission through the site's form and open the email it sends. The logo at the top must be the client's. If it is still the agency's, `form_mail_logo` in `lang/<locale>/strings.php` points at `public/agencies/`: swap it as [Forms](#forms) describes, in every language the site uses.
 - **The site header.** `resources/views/components/_logo.antlers.html` must show the client's SVG, not the agency's from `public/agencies/`.
 
-The control panel keeps the agency's logo, so leave that one. If the client's logo hasn't arrived yet, say so in the sign-off note rather than letting the site go to the client with the agency's.
+`php please avoca:site:check` warns while either one still points at `public/agencies/`, but never fails on it, even with `--strict`, because the agency's logo is expected while a site is being built. The control panel keeps the agency's logo, so leave that one. If the client's logo hasn't arrived yet, say so in the sign-off note rather than letting the site go to the client with the agency's.

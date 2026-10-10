@@ -2,6 +2,15 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.17 (10 October 2026)
+
+The recipe covers designs from Paper, and the site check catches the agency's logo left in place.
+
+- `avoca:site:check` warns while form emails or the site header still show the agency's logo. The kit points both at `public/agencies/<AGENCY>` until the client's logo arrives, and a site must not reach client sign-off like that. Form emails are checked in every language the site uses, through `form_mail_logo` in `lang/<language>/strings.php`; the header through `resources/views/components/_logo.antlers.html`. It is a warning and never fails, even with `--strict`, because the agency's logo is expected while a site is being built. The control panel keeps the agency's logo and is never mentioned.
+- The recipe's review step 5 checks both logos before a new site's first sign-off, and the Forms section says how to swap the form email logo.
+- The recipe gains a Designs from Paper section: the two artboard widths, the site's tokens as Paper tokens on the way up, and on the way back down a rule for every value, with a conversion table so nothing reaches a template as an arbitrary pixel or colour value.
+- **Nothing to do on update.** A site that still shows the agency's logo gets two new warnings until the client's logo is in.
+
 ## v0.1.16 (6 October 2026)
 
 - `/site/style` reads a breakpoint set in px as px. It took every breakpoint for rem and multiplied it by 16, so a site with `--breakpoint-md: 768px` listed its section spacing and content widths from "12288px and up". Breakpoints in rem or em read as before.

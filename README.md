@@ -13,7 +13,7 @@ The machinery Avoca Design sites share: reference pages for clients, plus the ch
 - `php please avoca:site:catalogue`: writes the site's AI block catalogue.
 - `php please avoca:make:collection`: makes a collection with a page builder or custom blueprint, a listing block, editor access and a record an AI agent finishes it from.
 - `php please avoca:site:permissions`: gives the editor role the permissions for every collection, taxonomy, navigation, global set and asset container that isn't opted out. `--dry-run` lists what it would add.
-- `php please avoca:site:check`: checks the reference pages, guidance files and catalogue against the fieldsets. Add `--strict` in CI to fail on missing guidance or a stale catalogue, or `--stubs` to create guidance files for blocks and sets that have none. It also warns when a library item the site hasn't installed uses a handle the site already has.
+- `php please avoca:site:check`: checks the reference pages, guidance files and catalogue against the fieldsets. Add `--strict` in CI to fail on missing guidance or a stale catalogue, or `--stubs` to create guidance files for blocks and sets that have none. It also warns when a library item the site hasn't installed uses a handle the site already has, and while form emails or the site header still show the agency's logo rather than the client's.
 - `php please avoca:check-name {handle}`: says whether a handle is free for a new block, set or collection, as [Names](#names) describes.
 
 On production the reference pages are only visible to a logged-in Statamic user.

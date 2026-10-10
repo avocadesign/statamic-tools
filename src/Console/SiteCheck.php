@@ -5,6 +5,7 @@ namespace Avocadesign\StatamicTools\Console;
 use Avocadesign\StatamicTools\Library\Names;
 use Avocadesign\StatamicTools\Permissions\EditorAccess;
 use Avocadesign\StatamicTools\Permissions\PermissionSets;
+use Avocadesign\StatamicTools\Site\AgencyLogo;
 use Avocadesign\StatamicTools\Site\Blocks;
 use Avocadesign\StatamicTools\Site\Catalogue;
 use Avocadesign\StatamicTools\Site\Llms;
@@ -109,6 +110,13 @@ class SiteCheck extends Command
             ->map(fn ($collection) => $collection->handle())
             ->values()->all();
         foreach (Llms::problems(is_string($llms) ? $llms : null, $routed) as $problem) {
+            $this->line('  <fg=yellow>!</> '.$problem);
+            $warnings++;
+        }
+
+        // The kit shows the agency's logo in form emails and the site header until the client's arrives, and a site must
+        // not reach client sign-off like that. Always a warning: it is expected while a site is being built.
+        foreach (AgencyLogo::check() as $problem) {
             $this->line('  <fg=yellow>!</> '.$problem);
             $warnings++;
         }
