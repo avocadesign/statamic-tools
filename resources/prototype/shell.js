@@ -308,13 +308,15 @@ function renderSidebar() {
         $('#side-scroll').innerHTML = `<button type="button" class="fold-tab" data-side="open" aria-label="Show journeys" title="Show journeys">${ICON.panel}<span class="fold-tab-label">Journeys</span></button>`;
         return;
     }
-    const journeys = JOURNEYS.map(j => {
+    // Each journey is numbered, says who takes it, and shows its device as a small icon on the right.
+    const journeys = JOURNEYS.map((j, i) => {
         const on = live && j.id === state.journey;
         const open = on && state.jopen !== false;
         return `<li>
             <button type="button" class="jbtn" data-journey="${j.id}" aria-pressed="${on}"${on ? ` aria-expanded="${open}"` : ''}>
-                <span class="jicon">${ICON[j.device]}</span>
-                <span><b>${esc(j.name)}</b><small>${on && !open ? `Step ${state.step + 1} of ${j.steps.length}: ${esc(j.steps[state.step].t)}` : `<span class="jdev">${DEVICE[j.device]}</span> · ${esc(j.who)}`}</small></span>
+                <span class="jnum">${i + 1}</span>
+                <span><b>${esc(j.name)}</b><small>${on && !open ? `Step ${state.step + 1} of ${j.steps.length}: ${esc(j.steps[state.step].t)}` : esc(j.who)}</small></span>
+                <span class="jdevice" title="${DEVICE[j.device] || ''}">${ICON[j.device] || ''}<span class="vh">, on ${(DEVICE[j.device] || '').toLowerCase()}</span></span>
                 ${on ? `<span class="jchev">${ICON.chev}</span>` : ''}
             </button>
             ${open ? `<div class="jpanel">

@@ -2,6 +2,11 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.27 (10 October 2026)
+
+- **Journeys are numbered,** with who takes each one under its name and its device as a small icon on the right, rather than the words Mobile or Desktop. The journey being followed has its number filled in.
+- **To do on update:** nothing.
+
 ## v0.1.26 (10 October 2026)
 
 - **Page options in the prototype.** A page can be shown more than one way for reviewers to compare, from `OPTIONS` in `data.js`: a bar above the frames shows the choices on pages that have them, and folds to one line of what's showing. A choice redraws the page in both frames, or in the one it names, or sets the timeline's layout with `mode: true`. `pages.js` reads it with the new `option('id')` helper, the frame carries `data-option-<id>` for CSS, and a comment records which choices were showing. It replaces the timeline switch in page notes (`tryit`), which only one site's timeline used.
