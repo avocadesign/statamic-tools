@@ -1,0 +1,109 @@
+<div class="app">
+    <header class="topbar">
+        <button type="button" class="nav-toggle" id="nav-toggle" aria-controls="sidebar" aria-expanded="false" aria-label="Journeys">
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            <span class="lbl">Journeys</span>
+        </button>
+        <div class="brand">
+            <strong id="brand-name"></strong>
+            <span id="brand-sub"></span>
+        </div>
+        <div class="version">
+            <button type="button" class="version-btn" id="version-btn" aria-haspopup="true" aria-expanded="false" aria-controls="version-menu"></button>
+            <div class="version-menu" id="version-menu" hidden></div>
+        </div>
+        <nav class="seg tabs" role="tablist" aria-label="View" id="views">
+            <button type="button" role="tab" data-view="wireframes" aria-selected="true">Prototype</button>
+            <button type="button" role="tab" data-view="sitemap" aria-selected="false">Sitemap</button>
+            <button type="button" role="tab" data-view="model" aria-selected="false">Content model</button>
+            <button type="button" role="tab" data-view="decisions" aria-selected="false">Decisions<span class="count" id="dec-count"></span></button>
+        </nav>
+        <div class="viewer" id="viewer" hidden></div>
+        <button type="button" class="icon-btn theme-btn" id="theme-toggle"></button>
+        <button type="button" class="btn help-btn" id="help-open" aria-label="How to use">
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M6.2 6.2a1.9 1.9 0 1 1 2.6 1.8c-.5.2-.8.6-.8 1.1v.4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="8" cy="11.6" r=".9" fill="currentColor"/></svg>
+            <span class="lbl">How to use</span>
+        </button>
+    </header>
+
+    <div class="body">
+        <aside class="sidebar" id="sidebar" aria-label="Journeys">
+            <div class="side-scroll" id="side-scroll"></div>
+            <a class="agency" href="__AGENCY_URL__" target="_blank" rel="noopener" title="Prepared by __AGENCY_NAME__">
+                <span class="agency-logo light"><!--AGENCY_LOGO--></span>
+                <span class="agency-logo dark"><!--AGENCY_LOGO_DARK--></span>
+                <span class="agency-text"><b>Prepared by __AGENCY_NAME__</b><span id="prepared"></span></span>
+            </a>
+        </aside>
+        <div class="scrim" id="scrim" hidden></div>
+
+        <main class="stage" id="stage">
+            <section class="view wf-view" id="view-wireframes" aria-label="Prototype">
+                <div class="stage-bar">
+                    <div class="page-id">
+                        <h1 id="page-title">Home</h1>
+                        <span class="path" id="page-path">/</span>
+                    </div>
+                    <div class="stage-tools" id="wf-tools">
+                        <div class="seg" id="frame-pick" aria-label="Show">
+                            <button type="button" data-frames="both" aria-pressed="true">Both</button>
+                            <button type="button" data-frames="desktop" aria-pressed="false">Desktop</button>
+                            <button type="button" data-frames="mobile" aria-pressed="false">Mobile</button>
+                        </div>
+                        <label class="toggle"><input type="checkbox" id="sync" checked> Scroll together</label>
+                        <label class="toggle"><input type="checkbox" id="annotate" checked> Decision numbers</label>
+                    </div>
+                </div>
+                <div class="frames-wrap" id="frames-wrap">
+                    <div class="frames" id="frames">
+                        <div class="device" id="dev-desktop">
+                            <div class="device-label"><b>Desktop</b><span id="lab-desktop"></span></div>
+                            <div class="browser">
+                                <div class="bar"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="url" id="url-desktop">/</span></div>
+                                <div class="viewport" id="vp-desktop"></div>
+                            </div>
+                        </div>
+                        <div class="device" id="dev-mobile">
+                            <div class="device-label"><b>Mobile</b><span id="lab-mobile"></span></div>
+                            <div class="phone">
+                                <div class="screen">
+                                    <div class="bar"><span class="url" id="url-mobile">/</span></div>
+                                    <div class="viewport" id="vp-mobile"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <section class="view" id="view-sitemap" aria-label="Sitemap" hidden></section>
+            <section class="view" id="view-model" aria-label="Content model" hidden></section>
+            <section class="view" id="view-decisions" aria-label="Decisions" hidden></section>
+        </main>
+
+        <aside class="rail" id="rail" aria-label="Notes">
+            <div class="rail-body" id="rail-body"></div>
+        </aside>
+    </div>
+</div>
+
+<div class="help" id="help" hidden>
+    <div class="help-card" role="dialog" aria-modal="true" aria-labelledby="help-title" tabindex="-1">
+        <div class="help-head">
+            <h2 id="help-title">How to use this prototype</h2>
+            <button type="button" class="icon-btn" id="help-close" aria-label="Close">
+                <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            </button>
+        </div>
+        <p class="help-lede">This prototype shows what goes on each page and how people move through the site. It isn’t the final look: that comes with the design.</p>
+        <ol class="help-steps">
+            <li><b>Follow a journey, or look around.</b> A journey on the left walks you through the site the way a particular visitor would, one step at a time: press Next, or click the link on the page. To look around, click links on the pages, or open any page from the Sitemap tab.</li>
+            <li><b>Each page shows twice.</b> On desktop and on mobile. Scroll either one; with “Scroll together” on, the other follows.</li>
+            <li><b>Grey boxes and [bracketed words] are placeholders.</b> Photos and writing still to come.</li>
+            <li><b>Numbered circles are decisions.</b> <span class="pinnum">4</span> still to decide, <span class="pinnum agreed">8</span> decided. Click one to read it.</li>
+            <li><b>Page notes</b> say what each page is for and what content it needs. Open them from the strip on the right, or click a numbered circle.</li>
+            <li><b>The tabs at the top</b> show the whole sitemap, the content behind the site, and every decision in one list.</li>
+        </ol>
+        <div class="help-foot"><button type="button" class="btn primary" id="help-done">Got it</button></div>
+    </div>
+</div>
+<div class="toast" id="toast" role="status" hidden></div>

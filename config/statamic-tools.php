@@ -83,6 +83,17 @@ return [
         'sample_images_container' => 'images',
     ],
 
+    // The discovery prototype, at /prototype. Its interface is the add-on's; what it says is the site's own, in
+    // prototype/<version>/: data.js, pages.js and version.json.
+    'prototype' => [
+        // On for local and staging when PROTOTYPE_ENABLED isn't set, off everywhere else. Set it to override.
+        'enabled' => env('PROTOTYPE_ENABLED'),
+        // The site's prototype folder.
+        'path' => 'prototype',
+        // The Tailwind the frames compile the site's CSS with, when the site's node_modules doesn't say.
+        'tailwind' => '4.3.3',
+    ],
+
     // Feedback: comments pinned to the site's pages, for a review on local or staging. Off unless FEEDBACK_ENABLED is
     // true, in every environment: switched off, nothing is added to any page and nothing extra runs on a request.
     // Anywhere but a local machine it also needs PROTOTYPE_PASSWORD, and stays off without one.

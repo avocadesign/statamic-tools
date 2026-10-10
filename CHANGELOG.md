@@ -2,6 +2,17 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.21 (10 October 2026)
+
+The discovery prototype moves into the add-on, so every site gets its improvements.
+
+- **The add-on serves `/prototype`:** the route, the switch, the sign-in and the interface. On for local and staging, off everywhere else, unless `PROTOTYPE_ENABLED` says otherwise; a 404 when off or when the site has no `prototype` folder. Signing in is the same as for feedback, in the same cookie: the password when `PROTOTYPE_PASSWORD` is set, an email on the reviewers list when the site keeps one, or nothing with neither.
+- **The site keeps only what the prototype says,** one folder per version: `data.js`, `pages.js` and `version.json` with `format: 2`. The page helpers, such as `pageHeader()`, `img()` and `pin()`, come from the add-on as function declarations a site's `pages.js` can redefine.
+- **The frames use the site's real CSS.** The add-on inlines `resources/css/site.css` and its imports, and Tailwind's browser build compiles it in each frame at the version the site builds with, so the pages lay out exactly as the site does. A wireframe layer on top greys the brand colours and adds the placeholders, markers and patterns.
+- **A new look,** in the feedback widget's palette: graphite on cool greys, system fonts with nothing loaded from outside, and the same controls, with focus rings only for the keyboard. The sign-in page matches.
+- **`php please avoca:prototype:version 2`** starts a version as a copy of the newest, replacing `new-version.sh` and its Python. A version from before the move, a folder with a built `index.html` and no `data.js`, is served exactly as it was built.
+- **To do on update:** nothing until a site removes its own copy of the prototype (`app/Http/Controllers/PrototypeController.php`, its middleware, `config/prototype.php`, its routes, sign-in view and tests): while that controller is there, the site keeps serving its own copy. The starter kit no longer ships it.
+
 ## v0.1.20 (10 October 2026)
 
 Feedback gets tighter control over who can see and use it.

@@ -15,6 +15,7 @@ The machinery Avoca Design sites share: reference pages for clients, plus the ch
 - `php please avoca:site:permissions`: gives the editor role the permissions for every collection, taxonomy, navigation, global set and asset container that isn't opted out. `--dry-run` lists what it would add.
 - `php please avoca:site:check`: checks the reference pages, guidance files and catalogue against the fieldsets. Add `--strict` in CI to fail on missing guidance or a stale catalogue, or `--stubs` to create guidance files for blocks and sets that have none. It also warns when a library item the site hasn't installed uses a handle the site already has, and while form emails or the site header still show the agency's logo rather than the client's, and when feedback is switched on in production.
 - `php please avoca:check-name {handle}`: says whether a handle is free for a new block, set or collection, as [Names](#names) describes.
+- `php please avoca:prototype:version {version}`: starts a new version of the site's prototype as a copy of the newest. See [Prototype](#prototype).
 - `php please avoca:feedback`: lists, replies to and resolves the comments people pinned to the site's pages during a review, here or on a server. See [Feedback](#feedback).
 
 On production the reference pages are only visible to a logged-in Statamic user.
@@ -66,6 +67,36 @@ The paths are set in `config/statamic-tools.php`.
 - Run it by hand, not from a deploy script: it exits non-zero when it refuses.
 
 The package still holds the script at `vendor/avocadesign/statamic-tools/scripts/server-git.sh`, so a server set up before this and pointing at that path keeps working.
+
+## Prototype
+
+The site's discovery prototype, at `/prototype`: every page in a desktop and a mobile frame, with page notes, user
+journeys, the sitemap, the content model and the decisions still to make. The interface, the route and the sign-in are
+the add-on's, so every site gets their improvements. What the prototype says is the site's own, one folder per version:
+
+| File | What it holds |
+| --- | --- |
+| `prototype/<version>/data.js` | The project, who decides, decisions, audiences, page notes, journeys, the content model and the sitemap. |
+| `prototype/<version>/pages.js` | The site's header and footer as the prototype draws them, its pages and its routes. |
+| `prototype/<version>/version.json` | `format: 2`, the label, the date, the notes on what changed, and `"default": true` to open it at `/prototype`. |
+
+- **The frames use the site's real CSS.** The add-on inlines the site's stylesheet, from `resources/css/site.css`
+  and everything it imports, and Tailwind's browser build compiles it in each frame, at the Tailwind version the site
+  builds with, so the pages lay out exactly as the site does. A wireframe layer on top holds the brand colour at a dark
+  grey, turns any other brand colour grey at its own lightness, and adds the placeholders, markers and patterns a
+  prototype draws. The browser build loads from jsDelivr, so the prototype needs a connection.
+- **Helpers.** `pages.js` draws its pages with the add-on's helpers, such as `pageHeader()`, `img()`, `btn()`, `pin()`
+  and `coming()`. They are function declarations, so a site's `pages.js` can redefine one.
+- **On and off.** On for local and staging, off everywhere else, unless `PROTOTYPE_ENABLED` says otherwise. A 404 when
+  off, and when the site has no `prototype` folder.
+- **Signing in** is the same as for feedback, in the same cookie: the password when `PROTOTYPE_PASSWORD` is set, an
+  email on `resources/site/reviewers.yaml` when the site lists its reviewers, and nothing at all with neither.
+- **Versions.** `php please avoca:prototype:version 2` starts version 2 as a copy of the newest, dated today; `--label`
+  names it. `/prototype` opens the default version, `/prototype/2` that one, and the version menu lists them all. Leave
+  earlier versions as they were: a version shared with a client never changes. A version from before the prototype
+  moved into the add-on, a folder with a built `index.html` and no `data.js`, is served exactly as it was built.
+- **A site that still has its own copy,** `app/Http/Controllers/PrototypeController.php`, keeps serving that until the
+  copy is removed with its middleware, `config/prototype.php`, its routes and its sign-in view.
 
 ## Feedback
 
