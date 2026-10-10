@@ -1057,7 +1057,7 @@ function fbThread(c) {
         ${fbError(c.id)}`;
 }
 
-// Comments: this page's, or all the feedback on the prototype. Signing in comes first.
+// Comments: this page's, or all the comments on the prototype. Signing in comes first.
 function fbPanel(pr) {
     if (!fb.session) return '<p class="note-line">Loading the comments…</p>';
     if (!fbSigned()) return `<section class="fb-section">${fbSignIn()}</section>`;
@@ -1074,7 +1074,7 @@ function fbScopeBar() {
     const all = state.fbList === 'all';
     const open = fbFiltered('open', 'version').length;
     return `<div class="fb-h">
-        <p class="fb-scope">${all ? '<button type="button" class="link-btn" data-fb-list="page">This page</button>' : '<b>This page</b>'}<span aria-hidden="true">·</span>${all ? '<b>All feedback</b>' : `<button type="button" class="link-btn" data-fb-list="all">All feedback${open ? ` (${open} open)` : ''}</button>`}</p>
+        <p class="fb-scope">${all ? '<button type="button" class="link-btn" data-fb-list="page">This page</button>' : '<b>This page</b>'}<span aria-hidden="true">·</span>${all ? '<b>All comments</b>' : `<button type="button" class="link-btn" data-fb-list="all">All comments${open ? ` (${open} open)` : ''}</button>`}</p>
         <button type="button" class="btn small" data-fb-act="comment" aria-pressed="${fb.picking}">Add comment</button>
     </div>`;
 }
@@ -1119,7 +1119,7 @@ function fbAll() {
         <div class="fb-filters" role="group" aria-label="Show">${FB_FILTERS.map(([k, label]) => { const n = fbFiltered(k, scope).length; return `<button type="button" class="chip-btn" data-fb-filter="${k}" aria-pressed="${show === k}">${label}${n ? ` <span class="muted">${n}</span>` : ''}</button>`; }).join('')}</div>
         ${VERSIONS.length > 1 ? `<label class="toggle"><input type="checkbox" id="fb-versions"${scope === 'all' ? ' checked' : ''}> Comments on earlier versions too</label>` : ''}
         ${groups.length ? groups.map(([key, cs]) => `<div class="fb-group">
-            <div class="fb-group-h"><h3>${esc(title(key))}</h3>${key === here ? '<span class="fb-here">Showing</span>' : route(key) ? `<button type="button" class="link-btn" data-go="${esc(route(key))}">Open page</button>` : ''}</div>
+            <div class="fb-group-h"><h3>${key !== here && route(key) ? `<button type="button" class="fb-page" data-go="${esc(route(key))}">${esc(title(key))}<span aria-hidden="true">→</span></button>` : esc(title(key))}</h3>${key === here ? '<span class="fb-here">Showing</span>' : ''}</div>
             ${cs.map(c => fbCard(c)).join('')}
         </div>`).join('') : `<p class="note-line">${FB_EMPTY[show]}</p>`}
     </section>`;

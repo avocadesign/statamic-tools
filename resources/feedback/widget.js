@@ -1,6 +1,6 @@
 /*
  * Avoca feedback: the widget, which works as the prototype's comments do. A panel on the right lists this page's
- * comments, or all the feedback on the site filtered to open, to decide or done. Add comment asks for a spot on the
+ * comments, or all the comments on the site filtered to open, to decide or done. Add comment asks for a spot on the
  * page: the comment is pinned to the element clicked, at that point within it, so its numbered pin follows the element
  * when the layout changes, and a pin that covers something can be dragged to another spot. Pins are graphite while
  * open, amber for a decision to make and green once done. The team can raise a comment as a decision and record what
@@ -120,7 +120,11 @@
         '.group{display:flex;flex-direction:column;gap:8px;padding-top:10px;border-top:1px solid var(--line)}',
         '.group-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px}',
         '.group-h h3{margin:0;font-size:14px;font-weight:600;overflow-wrap:anywhere}',
-        '.group-h span{color:var(--muted);font-size:12px;white-space:nowrap}',
+        '.group-h > span{color:var(--muted);font-size:12px;white-space:nowrap}',
+        '.page{display:inline-flex;align-items:baseline;gap:6px;color:inherit;text-decoration:none}',
+        '.page span{color:var(--muted);transition:transform .15s}',
+        '.page:hover{text-decoration:underline;text-underline-offset:3px}',
+        '.page:hover span{color:var(--ink);transform:translateX(2px)}',
         '.foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;padding:10px 16px;border-top:1px solid var(--line)}',
         '.foot:empty{display:none}',
         '.who{margin:0;color:var(--muted);font-size:12px}',
@@ -574,7 +578,7 @@
         var open = state.all.filter(isOpen).length;
         return '<div class="scope"><p>' +
             (all ? '<button type="button" class="link" data-scope="page">This page</button>' : '<b>This page</b>') + '<span aria-hidden="true">·</span>' +
-            (all ? '<b>All feedback</b>' : '<button type="button" class="link" data-scope="all">All feedback' + (open ? ' (' + open + ' open)' : '') + '</button>') +
+            (all ? '<b>All comments</b>' : '<button type="button" class="link" data-scope="all">All comments' + (open ? ' (' + open + ' open)' : '') + '</button>') +
             '</p><button type="button" class="ghost small add" aria-pressed="' + state.picking + '">Add comment</button></div>' +
             (all ? '<div class="chips" role="group" aria-label="Show">' + FILTERS.map(function (f) {
                 var n = filtered(f[0]).length;
@@ -610,8 +614,9 @@
         return order.map(function (url) {
             var cs = groups[url].sort(byNumber);
             var title = cs[0].title || url;
-            return '<div class="group"><div class="group-h"><h3>' + esc(title) + '</h3>' +
-                (url === path() ? '<span>This page</span>' : '<a class="link" href="' + esc(url) + '">Go to page</a>') + '</div>' +
+            // Another page's heading takes you there.
+            return '<div class="group"><div class="group-h"><h3>' + (url === path() ? esc(title) : '<a class="page" href="' + esc(url) + '">' + esc(title) + '<span aria-hidden="true">→</span></a>') + '</h3>' +
+                (url === path() ? '<span>This page</span>' : '') + '</div>' +
                 cs.map(card).join('') + '</div>';
         }).join('');
     }

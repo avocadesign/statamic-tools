@@ -93,7 +93,7 @@ gets their improvements. What the prototype says is the site's own, one folder p
   side panel; Add comment asks for a spot on either frame, and the comment's numbered pin sits on the element clicked in
   both frames: graphite while open, amber for a decision to make, green once done. Done is one thing to a reviewer, a
   decision made or a comment resolved, so the panel says Done for both. It lists this page's comments, with those done
-  folded away, or all the feedback on the prototype, filtered to open, to decide or done, and switches the pins off and
+  folded away, or all the comments on the prototype, filtered to open, to decide or done, and switches the pins off and
   on; pointing at a comment shows its pin either way. Opening a comment brings its pin into sight, or takes you to its
   page. An open comment has a slim reply box and one button for the next step: Mark done, Record decision (the team) or
   Reopen; the team's other actions, Make it a decision and Make a comment, sit in a ⋯ menu. A pin that covers
@@ -148,7 +148,7 @@ sees anything: the tab only appears in a browser that has signed in to review, o
 `?feedback=<id>` link.
 
 - **On the page,** it works as the prototype's comments do. A Comments tab on the right edge carries the number still
-  open on the site, and opens a panel: this page's comments, with those done folded away, or all the feedback, page by
+  open on the site, and opens a panel: this page's comments, with those done folded away, or all the comments, page by
   page, filtered to open, to decide or done. Add comment asks for a spot on the page, and the comment is pinned to the
   element clicked, at that point within it, so its numbered pin follows the element when the layout changes: graphite
   while open, amber for a decision to make, green once done. A pin that covers something can be dragged to another

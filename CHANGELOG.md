@@ -2,6 +2,12 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.33 (10 October 2026)
+
+- **All feedback reads All comments** in the Comments panel, in the prototype and on the site.
+- **In All comments, another page's heading takes you there,** with an arrow beside it, in place of an Open page or Go to page link. The page you're on stays plain.
+- **To do on update:** nothing.
+
 ## v0.1.32 (10 October 2026)
 
 - **Only decisions are labelled,** in the prototype and on the site: the Comment label goes, and Decision sits over the card's top right corner, amber while it's to make and green with a tick once done.

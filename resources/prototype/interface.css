@@ -420,6 +420,11 @@ button.node:hover { border-color: var(--ink); }
 .fb-group-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .rail .fb-group-h h3 { margin: 0; font-size: 14px; font-weight: 600; text-transform: none; letter-spacing: 0; color: var(--ink); }
 .fb-here { font-size: 12px; color: var(--muted); }
+/* Another page's heading takes you there. */
+.fb-page { display: inline-flex; align-items: baseline; gap: 6px; border: 0; background: none; padding: 0; font: inherit; color: inherit; text-align: left; }
+.fb-page span { color: var(--muted); transition: transform .15s; }
+.fb-page:hover { text-decoration: underline; text-underline-offset: 3px; }
+.fb-page:hover span { color: var(--ink); transform: translateX(2px); }
 
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 70; max-width: min(460px, calc(100% - 32px)); padding: 10px 14px; border-radius: 10px; background: var(--sel); color: var(--sel-ink); font-size: 13px; box-shadow: var(--shadow); }
 .note-line { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; color: var(--muted); }
