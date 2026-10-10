@@ -2,6 +2,11 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.23 (10 October 2026)
+
+- **The prototype's guide says it isn't designed at all:** the design comes after the prototype is approved, rather than "it isn't the final look".
+- **To do on update:** nothing.
+
 ## v0.1.22 (10 October 2026)
 
 The prototype's decisions come from its comments, and its interface is reworked around them.
