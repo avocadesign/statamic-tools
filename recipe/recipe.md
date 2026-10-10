@@ -114,13 +114,15 @@ The discovery prototype draws each page in `prototype/<version>/pages.js` with t
 
 ### Page notes
 
-Each page's notes in `data.js` are read by the client, so write them in the client's words, and keep them clean and short wherever possible. Notes say what is settled. Decisions don't go in them: a question the client needs to answer, a choice between options, or anything still to agree is a comment, raised as a decision, where it can be answered and recorded. Leave out anything the comments or the content model already say. Each part of the notes has one job:
+Each page's notes in `data.js` are read by the client. They are only a high-level description of the page and a description of its content as displayed, in the client's words. They don't say what's undecided, and they don't say what's decided either.
 
-- **The description, `purpose`,** says what the page is for. Write `How to get in touch, with contact form and contact details`, not `How to get in touch, with the contact form and the contact details from Site Details.`
-- **The content to prepare, `content`,** lists only what the client has to supply, not what the site already does. For a contact page: the contact details, the email to send the form to, and any extra questions they'd like to ask in the form.
-- **Notes are per page.** Nothing that applies to every page goes in a page's notes, and nothing describes what the prototype already shows: the header, menus, phone menu and footer are drawn on every page, and the Sitemap tab lists the menus. Anything to agree about them is a comment pinned on them.
-- **Site-wide notes, `SITEWIDE`, are for the rare point every page shares that the pages can't show,** in a sentence or two. They appear once, in the Sitemap's panel beside the menus. Most sites leave them empty.
-- **The technical notes** say how the page is built. Where its content comes from is the page's links into the content model, `fed`, which the notes show as Content comes from: link to the model rather than saying it again in the text. Write the text, `tech`, as plain sentences, not bullets, and only what the links don't say, such as `Form submissions go to the email address in Site Details.` This is the only part that names things in the control panel.
+- **Description, `purpose`:** one line on what the page is for, such as `How to get in touch, with contact form and contact details`.
+- **Content, `content`:** the page's sections in the order they're displayed, each with a few words on what it shows, including what comes from collections. For a contact page: the email addresses, each with a copy button; then a line sending people to each partner's page. It is not a to-do list for the client.
+- **Anything still to agree** is a comment raised as a decision, never a note.
+- **Anything already decided** lives in its decision comment's outcome. Notes don't repeat it, and don't say "Decided:".
+- **Advice and reminders don't go in the notes,** for example "get permission for every name" or "its share image is the one most posts will show". Leave them out, or make them a plain comment if they matter.
+- **Technical notes, `tech`,** only say how something is built that the page itself doesn't show: a control panel switch, anchors, what has to load above the fold. They never restate a decision. Write them as plain sentences. Where content comes from is the page's links into the content model, `fed`, shown beside them as Content comes from, so the text doesn't say it again.
+- **The header and footer** are described once, in `SITEWIDE.content`, the same way as a page's content, and show on the Sitemap tab below the tree, beside the menus, never in each page's notes.
 
 ### Background colours
 

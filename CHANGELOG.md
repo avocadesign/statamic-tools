@@ -2,6 +2,14 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.38 (10 October 2026)
+
+- **Page notes describe the page and nothing else:** one line on what it's for, and its content as displayed, section by section in order, under On this page (was Content to prepare). Considerations are retired from the notes panel and the `data.js` template; the recipe says anything still to agree is a decision comment, anything decided lives in its outcome, advice and reminders stay out, and technical notes only say how something is built that the page doesn't show.
+- **`SITEWIDE.content` describes the header and footer as displayed,** like a page's content, on the Sitemap tab. `SITEWIDE.consider` still shows there until it's renamed.
+- **The sitemap's room sits above its scroll bar,** which runs along the foot of the canvas, with more room above Home. While it runs off the right edge it fades there, and gains room on the right so its last column scrolls clear of the fade.
+- **The Sitemap tab has no side panel.** What it held is on the page: the intro joins the description under the heading, and the menus, the header and footer, where the source documents go and what changed since the proposal sit in columns below the tree, which now has the full width.
+- **To do on update:** in `data.js`, rename `SITEWIDE.consider` to `content`, take `consider` out of each page's notes, and rewrite `content` as what the page shows.
+
 ## v0.1.37 (10 October 2026)
 
 - **Site-wide notes show once, in the Sitemap's panel,** under Header and footer beside the menus, rather than in every page's notes. A page now has notes, and a Notes button, only when it has something of its own.

@@ -229,14 +229,14 @@ function renderRail() {
     // On the pages, the panel stays out of sight until the Notes or Comments button opens it, and a page with nothing
     // for it has none. The other views always show their panel.
     const off = state.view === 'wireframes' && (!state.notes || !pageHasNotes(pr));
-    $('.body').classList.toggle('rail-off', off);
+    // The Sitemap has its whole width: what its panel said is on the page, below the tree.
+    $('.body').classList.toggle('rail-off', off || state.view === 'sitemap');
     const open = state.view === 'wireframes' && !off;
     $('#notes-btn').hidden = !pageHasOwnNotes(pr);
     $('#notes-btn').setAttribute('aria-expanded', String(open && tab === 'notes'));
     $('#fb-comment').setAttribute('aria-expanded', String(open && tab === 'comments'));
     if (state.view !== 'wireframes' || state.step < 0) $$('.device').forEach(d => d.classList.remove('dim'));
     if (state.view === 'wireframes') body.innerHTML = off ? '' : notesRail();
-    else if (state.view === 'sitemap') body.innerHTML = sitemapRail();
     else if (state.view === 'model') body.innerHTML = modelRail();
     else body.innerHTML = '';
     requestAnimationFrame(fbAddButton);
@@ -255,10 +255,10 @@ function togglePanel(tab) {
     if (tab === 'comments') fbRefresh();
 }
 
-// Whether a page has notes of its own. Notes for every page are shown once, in the Sitemap's panel, never on each page.
+// Whether a page has notes of its own. The header and footer are described once, on the Sitemap tab, never on each page.
 function pageHasOwnNotes(pr) {
-    const n = Object.assign({ purpose: '', aud: [], content: [], consider: [], tech: [], fed: [] }, NOTES[pr.key]);
-    return Boolean(n.purpose || n.aud.length || n.content.length || n.consider.length || n.tech.length || (VIEWS.model && n.fed.length));
+    const n = Object.assign({ purpose: '', aud: [], content: [], tech: [], fed: [] }, NOTES[pr.key]);
+    return Boolean(n.purpose || n.aud.length || n.content.length || n.tech.length || (VIEWS.model && n.fed.length));
 }
 // The panel shows for a page with notes, and for every page with feedback on, for its comments.
 const pageHasNotes = pr => FB.on || pageHasOwnNotes(pr);
@@ -279,11 +279,15 @@ function notesRail() {
         ${tab === 'notes' ? pageNotes(pr) : fbPanel(pr)}`;
 }
 
-// Page notes: what the page is for, considerations, the content to prepare, the header and footer, and technical notes.
+// A page's content as displayed: each part in order, with a few words on what it shows.
+function contentList(items) {
+    return `<ol class="content-list">${items.map(c => Array.isArray(c) ? c : [String(c), '']).map(([part, what]) => `<li>${esc(part)}${what ? `<span>${esc(what)}</span>` : ''}</li>`).join('')}</ol>`;
+}
+
+// Page notes: what the page is for, what's on it, and how it's built where the page doesn't show it.
 function pageNotes(pr) {
-    const n = Object.assign({ purpose: '', aud: [], content: [], consider: [], tech: [], fed: [] }, NOTES[pr.key]);
+    const n = Object.assign({ purpose: '', aud: [], content: [], tech: [], fed: [] }, NOTES[pr.key]);
     const r = pr.r;
-    const bullets = list => `<ul class="bullets">${list.map(c => `<li>${esc(c)}</li>`).join('')}</ul>`;
     // Technical notes read as plain sentences; the content model links say where content comes from.
     const sentences = list => `<div class="tech">${list.map(c => `<p>${esc(c)}</p>`).join('')}</div>`;
     // Each section opens with the notes; any can be folded away.
@@ -295,12 +299,8 @@ function pageNotes(pr) {
             ${aud.length ? `<div class="badges">${aud.map(a => `<span class="badge aud" title="${esc(AUD[a][1])}">${AUD[a][0]}</span>`).join('')}</div>` : ''}
             ${n.purpose ? `<p class="purpose">${esc(n.purpose)}</p>` : ''}
         </div>
-        ${n.consider.length ? `<section>
-            <h3>Considerations</h3>
-            ${bullets(n.consider)}
-        </section>` : ''}
         <div class="folds">
-            ${n.content.length ? fold('Content to prepare', n.content.length, `<ol class="content-list">${n.content.map(c => `<li>${esc(c[0])}${c[1] ? `<span>${esc(c[1])}</span>` : ''}</li>`).join('')}</ol>`) : ''}
+            ${n.content.length ? fold('On this page', n.content.length, contentList(n.content)) : ''}
             ${n.tech.length || fed ? fold('Technical notes', '', `
                 ${n.tech.length ? sentences(n.tech) : ''}
                 ${fed ? `<div><p class="fold-h">Content comes from</p><div class="chips">${fed}</div></div>` : ''}`) : ''}
@@ -444,7 +444,7 @@ function smKids(kids) {
 function renderSitemap() {
     $('#view-sitemap').innerHTML = `<div class="canvas">
         <div class="canvas-head">
-            <div><h2>Sitemap</h2><p>The pages the site will have. Those with a dashed outline are our suggestions: say what you think in the feedback on the page. Select a page to open it.</p></div>
+            <div><h2>Sitemap</h2><p>The pages the site will have. ${esc(PROJECT.sitemapIntro || 'Those with a dashed outline are our suggestions: say what you think in the comments on the page.')} Select a page to open it.</p></div>
             <div class="legend">
                 <span><i class="sw"></i>Agreed</span>
                 <span><i class="sw s"></i>Suggested</span>
@@ -455,23 +455,40 @@ function renderSitemap() {
             <div class="sm-root">${smNode(SITEMAP_ROOT, true)}</div>
             <div class="sm-cols${SITEMAP.length === 1 ? ' one' : ''}">${SITEMAP.map(c => `<div class="sm-col">${smNode(c, true)}${c.kids ? smKids(c.kids) : ''}</div>`).join('')}</div>
         </div></div>
+        ${sitemapInfo()}
     </div>`;
+    sitemapFade();
 }
-function sitemapRail() {
+
+// While the sitemap runs off the right edge, it fades there to say so, and gains room on the right so its last
+// column scrolls clear of the fade.
+function sitemapFade() {
+    const sx = $('#view-sitemap .scroll-x');
+    if (!sx) return;
+    if (!sx.dataset.fade) {
+        sx.dataset.fade = '1';
+        sx.addEventListener('scroll', sitemapFade, { passive: true });
+    }
+    sx.classList.toggle('overflows', sx.scrollWidth > sx.clientWidth + 1 + (sx.classList.contains('overflows') ? 56 : 0));
+    sx.classList.toggle('fade-right', sx.scrollWidth - sx.clientWidth - sx.scrollLeft > 1);
+}
+// Below the tree, in columns: the menus, the header and footer as displayed, where the source documents go, and what
+// changed since the proposal. SITEWIDE.consider is SITEWIDE.content's name before v0.1.38.
+function sitemapInfo() {
     const footer = SITEMAP.flatMap(c => [c, ...(c.kids || [])]).filter(c => c.nav === 'footer' || c.foot);
-    // Anything for every page that the pages can't show, once, beside the menus.
-    const sitewide = [...(SITEWIDE.consider || []), ...(SITEWIDE.tech || [])];
-    return `
-        <div class="rail-head"><h2>About the sitemap</h2><p class="purpose" style="font-size:14px">${esc(PROJECT.sitemapIntro)}</p></div>
+    const parts = SITEWIDE.content || SITEWIDE.consider || [];
+    const tech = SITEWIDE.tech || [];
+    return `<div class="sm-info">
         <section><h3>Menus</h3>
             <div class="navs">
                 <div><p style="font-weight:600;margin-bottom:6px">Main</p><ol>${NAV.map(n => `<li>${esc(n.t)}${n.kids ? ' ▾' : ''}</li>`).join('')}</ol></div>
                 <div><p style="font-weight:600;margin-bottom:6px">Footer</p><ol>${(FOOTER_NAV.length ? FOOTER_NAV.map(l => l[0]) : footer.map(c => c.t)).map(t => `<li>${esc(t)}</li>`).join('')}</ol></div>
             </div>
         </section>
-        ${sitewide.length ? `<section><h3>Header and footer</h3><div class="tech">${sitewide.map(t => `<p>${esc(t)}</p>`).join('')}</div></section>` : ''}
+        ${parts.length || tech.length ? `<section><h3>Header and footer</h3>${parts.length ? contentList(parts) : ''}${tech.length ? `<div class="tech">${tech.map(t => `<p>${esc(t)}</p>`).join('')}</div>` : ''}</section>` : ''}
         ${SOURCE_MAP.length ? `<section><h3>Where the source documents go</h3>${sourceMap()}</section>` : ''}
-        ${CHANGES.length ? `<section><h3>What changed since the proposal</h3>${changesList()}</section>` : ''}`;
+        ${CHANGES.length ? `<section><h3>What changed since the proposal</h3>${changesList()}</section>` : ''}
+    </div>`;
 }
 function sourceMap() {
     return `<ul class="changes">${SOURCE_MAP.map(r => `<li><b>${esc(r[0])}</b><span>${esc(r[1])}</span>${r[2] ? `<button type="button" class="chip-btn" data-go="${r[2]}" style="grid-row:1/span 2">Open</button>` : ''}</li>`).join('')}</ul>`;
@@ -1400,7 +1417,7 @@ fbStart();
 renderSidebar();
 makeFrames();
 setFrames(state.frames);
-new ResizeObserver(() => { if (state.view === 'wireframes') layoutFrames(); if (state.view === 'model') drawRels(); }).observe($('#stage'));
+new ResizeObserver(() => { if (state.view === 'wireframes') layoutFrames(); if (state.view === 'model') drawRels(); if (state.view === 'sitemap') sitemapFade(); }).observe($('#stage'));
 new ResizeObserver(() => { if (state.view === 'wireframes') layoutFrames(); }).observe($('#frames-wrap'));
 const startView = state.view;
 navigate(state.route || '/', { stay: true });

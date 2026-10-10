@@ -285,10 +285,22 @@ a.vm-i:hover, .vm-i.on { background: var(--surface-2); }
 .sw { width: 18px; height: 12px; border-radius: 3px; border: 1.5px solid var(--line-2); background: var(--surface); display: inline-block; }
 .sw.s { border-style: dashed; border-color: var(--sugg-line); background: var(--sugg-bg); }
 .sw.c { box-shadow: 3px 3px 0 -1px var(--surface), 3px 3px 0 0 var(--line-2); }
-.scroll-x { overflow-x: auto; padding-bottom: 8px; }
+/* The sitemap's room sits above its scroll bar, which runs along the foot of the canvas. While it runs off the right
+   edge it fades there, leaving the scroll bar clear, and gains room on the right so its last column scrolls past the
+   fade. */
+.scroll-x { overflow-x: auto; padding-bottom: 24px; }
+.scroll-x.overflows .sm { padding-right: 56px; box-sizing: content-box; }
+.scroll-x.fade-right {
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 56px), transparent), linear-gradient(#000, #000);
+    mask-image: linear-gradient(to right, #000 calc(100% - 56px), transparent), linear-gradient(#000, #000);
+    -webkit-mask-size: 100% calc(100% - 14px), 100% 14px; mask-size: 100% calc(100% - 14px), 100% 14px;
+    -webkit-mask-position: top, bottom; mask-position: top, bottom;
+    -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+}
+#view-sitemap .canvas { padding-bottom: 4px; }
 /* --cols is the number of top level pages, set on .sm by the shell. */
 .sm { --cols: 7; min-width: calc(var(--cols) * 170px); display: flex; flex-direction: column; align-items: center; }
-.sm-root { position: relative; padding-bottom: 28px; }
+.sm-root { position: relative; margin-top: 16px; padding-bottom: 28px; }
 .sm-root::after { content: ""; position: absolute; left: 50%; bottom: 0; height: 28px; width: 2px; background: var(--line-2); }
 /* Each column is at least wide enough for its longest word, and the sitemap scrolls sideways when they need more room. */
 .sm-cols { position: relative; display: grid; grid-template-columns: repeat(var(--cols), minmax(min-content, 1fr)); gap: 16px; width: 100%; padding-top: 24px; }
@@ -313,6 +325,11 @@ button.node:hover { border-color: var(--ink); }
 .node .nu { font: 11px var(--mono); color: var(--muted); overflow-wrap: normal; }
 .node .nm { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
 .tag { font: 500 10.5px/1.5 var(--mono); padding: 0 5px; border-radius: 4px; background: var(--surface-2); border: 1px solid var(--line); color: var(--ink-2); }
+/* Below the sitemap's tree: its menus, header and footer, sources and changes, in columns. */
+.sm-info { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 28px 40px; margin: 8px -28px 0; padding: 24px 28px 28px; border-top: 1px solid var(--line); }
+.sm-info h3 { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 12px; }
+.sm-info section { display: flex; flex-direction: column; gap: 10px; }
+.sm-info section > h3 { margin-bottom: 2px; }
 .navs { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .navs ol { padding-left: 18px; display: flex; flex-direction: column; gap: 3px; }
 
