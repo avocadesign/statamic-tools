@@ -52,14 +52,15 @@
         '.card:not(.is-open){cursor:pointer}',
         '.card:hover,.card.hot{border-color:var(--line-2)}',
         '.card.is-open{background:var(--soft);border-color:var(--line-2)}',
-        '.card--decide{border-left:3px solid var(--amber)}',
         '.card--done{border-left:3px solid var(--green)}',
         '.card-head{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:10px;align-items:center;width:100%;padding:10px 12px 4px;border:0;background:transparent;text-align:left}',
         '.num{flex:none;display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:11px;background:var(--note);color:var(--note-ink);font:700 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace}',
         '.num--decide{background:var(--amber);color:var(--amber-ink)}',
         '.num--done{background:var(--green);color:var(--green-ink)}',
         '.num--draft{background:var(--accent);color:var(--accent-ink)}',
-        '.by{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;min-width:0;font-size:12px;color:var(--muted)}',
+        // Who wrote it, with the time below.
+        '.by{display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:0;font-size:12px;line-height:1.35;color:var(--muted)}',
+        '.by .name{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px}',
         '.by b{font-size:13px;color:var(--ink)}',
         '.by time{white-space:nowrap}',
         '.who-decides{margin:0;font-size:12px;color:var(--muted)}',
@@ -70,7 +71,7 @@
         '.card-head:hover .chev{color:var(--ink)}',
         '.badge{padding:0 6px;border-radius:9px;background:var(--soft);color:var(--muted);font-size:11px;font-weight:600}',
         '.state{padding:1px 8px;border:1px solid var(--line-2);border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap;color:var(--muted)}',
-        '.state.decide{border-color:var(--amber);color:var(--warn)}',
+        '.state.decide{color:var(--warn)}',
         '.state.done{border-color:var(--green);color:var(--green-text)}',
         '.card-main{display:flex;flex-direction:column;gap:8px;padding:0 12px 12px 44px}',
         '.text{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}',
@@ -628,7 +629,7 @@
 
     function by(person, time) {
         var name = (person && person.name) || 'Someone';
-        return '<span class="by"><b>' + esc(name) + '</b>' + (person && person.staff ? '<span class="badge">team</span>' : '') +
+        return '<span class="by"><span class="name"><b>' + esc(name) + '</b>' + (person && person.staff ? '<span class="badge">team</span>' : '') + '</span>' +
             '<time datetime="' + esc(time) + '">' + esc(ago(time)) + '</time></span>';
     }
 

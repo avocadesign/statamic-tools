@@ -108,7 +108,20 @@ Don't edit this file in `vendor/`. If a step is wrong, missing or contradicted b
 - Check a token change on `/site/style`, then on `/site/content`, before you change any block.
 - If the site's blocks can reach a design through tokens and display settings, build it that way. A more complex design needs a new block: follow the decision order below.
 
-## Prototype page options
+## The prototype
+
+The discovery prototype draws each page in `prototype/<version>/pages.js` with the site's own CSS, in frames set on a dark interface. The README's Prototype section has the files and the format.
+
+### Background colours
+
+The interface around the frames is near-black (`#12151b`), and the frames sit straight on it, so a page's backgrounds have to stand apart from the interface as well as from each other.
+
+- **White, light greys and medium greys are all fine,** and so are darkish greys, down to about `gray-700` (an OKLCH lightness of around 0.37) or the wireframe's primary colour, which is held at 0.34.
+- **Nothing darker.** `gray-800`, `gray-900`, black, and the Dark colour scheme, which uses `--color-dark` (`gray-900`), sit too close to the interface: where a dark band meets the frame's edge, the page seems to end.
+- **A dark band still reads as dark** beside white at `gray-600` or `gray-700`, so the page shows the contrast the design intends without the real near-black.
+- **Check each page with the side panels closed,** in both frames: every section's edge should be clear against the interface.
+
+### Page options
 
 A page that could be built more than one way, where the client should compare the ways before choosing, gets options rather than a second page: `OPTIONS` in the prototype's `data.js`, which show in a bar above the frames. The README's Prototype section has the format.
 

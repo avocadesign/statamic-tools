@@ -2,6 +2,13 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.31 (10 October 2026)
+
+- **The recipe says which background colours to use in the prototype:** white, light and medium greys, and darkish greys down to about `gray-700`, but nothing darker, the Dark scheme included, since the interface around the frames is near-black and a dark band there makes the page seem to end. The page options guidance moves under the same new prototype section.
+- **Decisions lose their yellow borders,** in the prototype and on the site: the label is amber text in the same grey outline as Comment, and the card no longer has a yellow edge. The amber number still marks a decision to make.
+- **A comment's time sits below its author's name,** in the prototype and on the site, replies included.
+- **To do on update:** nothing.
+
 ## v0.1.30 (10 October 2026)
 
 - **A comment is labelled only Comment or Decision,** in the prototype and on the site. The colour says where it stands: plain while open, amber for a decision to make, green with a tick once done. Who decides, when the team gives it with `avoca:feedback --who`, shows as a line inside the open comment rather than in the label, and the date no longer wraps beside a long label.
