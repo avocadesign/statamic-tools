@@ -99,6 +99,7 @@ Don't edit this file in `vendor/`. If a step is wrong, missing or contradicted b
 - **The same form can appear on several pages.** The Form block chooses the form and carries its own heading and text, so a service page and a contact page can each show the same form saying different things around it.
 - **Submissions go to the Site Details email.** The kit's form sends to `{{ site_details:email ?? config:mail:from:address }}` and replies from it, so the client changes where enquiries land in one place, and a new site needs no edit to the form at all. Fill that field in before a site goes live: empty, it falls back to the site's own sending address.
 - **A second form needs a decision, not a workaround.** It means Statamic Pro on that site, which costs money. Put it in the plan and ask the developer, before building anything that assumes it.
+- **Form emails carry the agency's logo until the client's replaces it.** The kit points `form_mail_logo` in `lang/<locale>/strings.php` at `public/agencies/<AGENCY>/logo.png`, the logo of the company running the project, set by `AGENCY` in `.env`. As soon as the client's logo is in hand during development, ask the developer whether to swap it in: put a PNG of it in `public/visuals/` (email clients don't show SVG) and point `form_mail_logo` at it in every language the site uses. Do the same for the site header placeholder in `resources/views/components/_logo.antlers.html`, with the SVG. The control panel keeps the agency's logo. A site must not reach client sign-off still sending the agency's logo.
 
 ### Colours and design tokens
 
@@ -530,3 +531,10 @@ In the description, give the option you chose and why, the check output, the rev
 ### 5. Client sign-off on the staging preview
 
 A change is finished when the client has signed it off on the staging preview. Write a short note the developer can send: what changed and where to see it, using the names the client sees in the control panel, never handles. If the client asks for changes, go back to step 1.
+
+Before a new site's first sign-off, check that the client's logo has replaced the agency's in the two places the kit puts the agency's:
+
+- **Form emails.** Send a test submission through the site's form and open the email it sends. The logo at the top must be the client's. If it is still the agency's, `form_mail_logo` in `lang/<locale>/strings.php` points at `public/agencies/`: swap it as [Forms](#forms) describes, in every language the site uses.
+- **The site header.** `resources/views/components/_logo.antlers.html` must show the client's SVG, not the agency's from `public/agencies/`.
+
+The control panel keeps the agency's logo, so leave that one. If the client's logo hasn't arrived yet, say so in the sign-off note rather than letting the site go to the client with the agency's.
