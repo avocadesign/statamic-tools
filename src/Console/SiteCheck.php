@@ -121,6 +121,12 @@ class SiteCheck extends Command
             $warnings++;
         }
 
+        // Feedback is for a review on local or staging. Left on in production it puts a widget on every page.
+        if (app()->isProduction() && config('statamic-tools.feedback.enabled')) {
+            $this->line('  <fg=yellow>!</> feedback is switched on in production, so every page shows the widget: set FEEDBACK_ENABLED=false once the review is over');
+            $warnings++;
+        }
+
         // The AI block catalogue the site commits must match what its fieldsets and guidance produce now.
         $catalogue = Catalogue::relativePath();
         $problem = match (true) {

@@ -2,6 +2,18 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.19 (10 October 2026)
+
+Feedback: comments pinned to the site's pages, for a client review on local or staging.
+
+- **Off unless `FEEDBACK_ENABLED=true`,** in every environment. Switched off, the code that adds anything to a page is never registered and every feedback route is a 404, so production pages don't change by a byte. Switched on, a page gets one deferred script under 4 KB and a Feedback tab with the open count; the widget loads on the first click. It sits outside Statamic's static cache, so cached copies never hold it.
+- **Pinned to the page.** Add feedback asks for a spot, and the comment is pinned to the element clicked, at that point within it, so its numbered pin follows the element. Each comment says in words where it is, such as "Form block, "Name", near "Contact us"", reading the block from the template comments the kit's partials already leave in the page.
+- **Threads, resolving and who.** Replies, resolve and reopen, recording who resolved it and when. Someone logged in to the control panel comments as the team; anyone else gives a name, and the password when `PROTOTYPE_PASSWORD` is set, in the prototype's own sign-in cookie, so one name works in both.
+- **Stored as files,** one YAML file per comment in `storage/app/feedback`. No database, no outside service.
+- **`php please avoca:feedback`** lists open comments in words with their element, or as JSON, and resolves, reopens and replies. `--from` does the same with a server's comments over HTTP, sending its password, so comments made on staging reach a developer's machine. `?feedback=<id>` on a page opens that comment.
+- `avoca:site:check` warns when feedback is switched on in production. The README has a Feedback section, and the recipe's review step 5 says how to run a client review with it.
+- **Nothing to do on update.** Feedback stays off until a site switches it on.
+
 ## v0.1.18 (10 October 2026)
 
 The recipe's Designs from Paper section, rewritten after testing it against Paper itself.

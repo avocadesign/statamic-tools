@@ -4,6 +4,7 @@ namespace Avocadesign\StatamicTools;
 
 use Avocadesign\StatamicTools\Library\SampleImages;
 use Avocadesign\StatamicTools\Console\CheckName;
+use Avocadesign\StatamicTools\Console\Feedback;
 use Avocadesign\StatamicTools\Console\SiteCatalogue;
 use Avocadesign\StatamicTools\Console\SiteCheck;
 use Avocadesign\StatamicTools\Console\LibraryInstall;
@@ -13,6 +14,8 @@ use Avocadesign\StatamicTools\Console\SiteInstall;
 use Avocadesign\StatamicTools\Console\SiteScript;
 use Avocadesign\StatamicTools\Console\SiteUrls;
 use Avocadesign\StatamicTools\Console\SitePermissions;
+use Avocadesign\StatamicTools\Feedback\FeedbackStore;
+use Avocadesign\StatamicTools\Http\Middleware\InjectFeedbackWidget;
 use Avocadesign\StatamicTools\Permissions\GrantEditorAccess;
 use Statamic\Events\AssetContainerCreated;
 use Statamic\Events\CollectionCreated;
@@ -25,10 +28,12 @@ class ServiceProvider extends AddonServiceProvider
 {
     protected $routes = [
         'web' => __DIR__.'/../routes/web.php',
+        'actions' => __DIR__.'/../routes/actions.php',
     ];
 
     protected $commands = [
         CheckName::class,
+        Feedback::class,
         LibraryInstall::class,
         LibraryList::class,
         MakeCollection::class,
@@ -56,6 +61,14 @@ class ServiceProvider extends AddonServiceProvider
         $this->app->bindIf(SampleImages::class, fn () => SampleImages::make());
 
         $this->mergeConfigFrom(__DIR__.'/../config/statamic-tools.php', 'statamic-tools');
+
+        $this->app->bindIf(FeedbackStore::class, fn () => FeedbackStore::make());
+
+        // Feedback adds its loader to the site's pages only while it is switched on. Off, the middleware is never
+        // registered, so no request runs it. First in the group, it works outside the static cache.
+        if (config('statamic-tools.feedback.enabled')) {
+            $this->app['router']->prependMiddlewareToGroup('statamic.web', InjectFeedbackWidget::class);
+        }
 
         // The /site pages must never be served from the static cache.
         $prefix = config('statamic-tools.site.prefix', 'site');

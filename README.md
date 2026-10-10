@@ -13,8 +13,9 @@ The machinery Avoca Design sites share: reference pages for clients, plus the ch
 - `php please avoca:site:catalogue`: writes the site's AI block catalogue.
 - `php please avoca:make:collection`: makes a collection with a page builder or custom blueprint, a listing block, editor access and a record an AI agent finishes it from.
 - `php please avoca:site:permissions`: gives the editor role the permissions for every collection, taxonomy, navigation, global set and asset container that isn't opted out. `--dry-run` lists what it would add.
-- `php please avoca:site:check`: checks the reference pages, guidance files and catalogue against the fieldsets. Add `--strict` in CI to fail on missing guidance or a stale catalogue, or `--stubs` to create guidance files for blocks and sets that have none. It also warns when a library item the site hasn't installed uses a handle the site already has, and while form emails or the site header still show the agency's logo rather than the client's.
+- `php please avoca:site:check`: checks the reference pages, guidance files and catalogue against the fieldsets. Add `--strict` in CI to fail on missing guidance or a stale catalogue, or `--stubs` to create guidance files for blocks and sets that have none. It also warns when a library item the site hasn't installed uses a handle the site already has, and while form emails or the site header still show the agency's logo rather than the client's, and when feedback is switched on in production.
 - `php please avoca:check-name {handle}`: says whether a handle is free for a new block, set or collection, as [Names](#names) describes.
+- `php please avoca:feedback`: lists, replies to and resolves the comments people pinned to the site's pages during a review, here or on a server. See [Feedback](#feedback).
 
 On production the reference pages are only visible to a logged-in Statamic user.
 
@@ -65,6 +66,49 @@ The paths are set in `config/statamic-tools.php`.
 - Run it by hand, not from a deploy script: it exits non-zero when it refuses.
 
 The package still holds the script at `vendor/avocadesign/statamic-tools/scripts/server-git.sh`, so a server set up before this and pointing at that path keeps working.
+
+## Feedback
+
+Comments pinned to the site's pages, for a review on local or staging. Off unless `FEEDBACK_ENABLED=true` is in the
+site's `.env`, in every environment, so switch it on for the site being reviewed and off again after sign-off.
+
+```
+FEEDBACK_ENABLED=true
+PROTOTYPE_PASSWORD=
+```
+
+- **On the page.** A Feedback tab on the right edge, with the number of open comments on that page. Its panel lists the
+  comments on this page or every page, open or resolved. Add feedback asks for a spot on the page, and the comment is
+  pinned to the element clicked, at that point within it, so its numbered pin follows the element when the layout
+  changes. Each comment says in words where it is: the page builder block, read from the template comments the kit's
+  partials leave in the page, and the nearest heading.
+- **Who.** Someone logged in to the control panel comments as the team, under their Statamic name. Anyone else gives
+  their name the first time, and the password when `PROTOTYPE_PASSWORD` is set. A cookie remembers them for 30 days.
+  It is the prototype's sign-in cookie, so a name given in either place works in both, and changing the password signs
+  everyone out of both. The name is what they typed: anyone with the password could claim another.
+- **Replies and resolving.** Anyone signed in can reply, resolve and reopen. A resolved comment records who resolved it
+  and when.
+- **Stored** as one YAML file per comment in `storage/app/feedback`, with no database and no outside service. The file
+  holds the page, its entry, the element, the spot within it, the block, the width it was made at, the replies and the
+  status.
+- **Weight.** Switched off, nothing is added to any page and the code that would add it is never registered, so
+  production is untouched. Switched on, a page gets one deferred script of under 4 KB, the tab, and the widget loads on
+  the first click. It works outside Statamic's static cache, so cached copies never hold it; full static caching
+  serves pages without PHP, so review with half measure or none. `avoca:site:check` warns when it is on in production.
+
+For a developer, or Claude working for one:
+
+```
+php please avoca:feedback                          # open comments on this site, in words
+php please avoca:feedback --all --json             # every comment, as JSON
+php please avoca:feedback --resolve=<id> --as=Claude
+php please avoca:feedback --reply=<id> --message="Done, have a look"
+php please avoca:feedback --from=https://staging.example.com --password=…
+```
+
+`--from` reads and answers a server's comments over HTTP, sending its `PROTOTYPE_PASSWORD`, which is how comments made on
+staging reach a developer's machine. A server with no password set can't be read that way. Opening a page with
+`?feedback=<id>` opens the panel on that comment and scrolls to its spot.
 
 ## Guidance files
 

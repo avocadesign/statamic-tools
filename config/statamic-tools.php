@@ -82,4 +82,20 @@ return [
         // and installing replaces the marker with an image this container already has, as library/README.md describes.
         'sample_images_container' => 'images',
     ],
+
+    // Feedback: comments pinned to the site's pages, for a review on local or staging. Off unless FEEDBACK_ENABLED is
+    // true, in every environment: switched off, nothing is added to any page and nothing extra runs on a request.
+    'feedback' => [
+        'enabled' => (bool) env('FEEDBACK_ENABLED', false),
+        // The prototype's password. With one set, commenting asks for it, and the feedback command can read and resolve
+        // a server's comments from another machine by sending it.
+        'password' => env('PROTOTYPE_PASSWORD'),
+        // The cookie that remembers who is commenting. The prototype's sign-in sets the same one, so a name given in
+        // either place works in both.
+        'cookie' => 'prototype',
+        // Under storage/, one YAML file per comment and its replies.
+        'path' => 'app/feedback',
+        // Front-end pages that never get the widget.
+        'exclude' => [],
+    ],
 ];

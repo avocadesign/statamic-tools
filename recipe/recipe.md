@@ -566,6 +566,8 @@ In the description, give the option you chose and why, the check output, the rev
 
 A change is finished when the client has signed it off on the staging preview. Write a short note the developer can send: what changed and where to see it, using the names the client sees in the control panel, never handles. If the client asks for changes, go back to step 1.
 
+For a review on staging, the developer can switch on feedback with `FEEDBACK_ENABLED=true` in staging's `.env`, and set `PROTOTYPE_PASSWORD` so only the client can comment. The client pins comments to the pages, and you read them with `php please avoca:feedback --from=<staging address>`: each says the page, the block and the nearest heading, and gives the element. Treat every comment as a change request for step 1, reply to say what you did, and resolve it with `--resolve=<id> --as=Claude` once the change is on staging. A comment you can't act on gets a reply, not a resolve. Switch feedback off again after sign-off. The README's Feedback section has the rest.
+
 Before a new site's first sign-off, check that the client's logo has replaced the agency's in the two places the kit puts the agency's:
 
 - **Form emails.** Send a test submission through the site's form and open the email it sends. The logo at the top must be the client's. If it is still the agency's, `form_mail_logo` in `lang/<locale>/strings.php` points at `public/agencies/`: swap it as [Forms](#forms) describes, in every language the site uses.
