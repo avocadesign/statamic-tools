@@ -183,13 +183,13 @@ a.vm-i:hover, .vm-i.on { background: var(--surface-2); }
 .opts-head { width: 100%; display: flex; align-items: center; gap: 12px; padding: 9px 16px; border: 0; background: none; text-align: left; }
 .opts-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--pin); white-space: nowrap; }
 .opts-sum { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; color: var(--ink-2); }
-.opts-chev { margin-left: auto; color: var(--muted); display: grid; transition: transform .2s; }
-.opts-head[aria-expanded="false"] .opts-chev { transform: rotate(-90deg); }
-.opts-body { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 24px; padding: 0 16px 12px; }
-.opt { display: flex; align-items: center; gap: 10px; }
+.opts-act { margin-left: auto; flex: none; font-size: 12.5px; font-weight: 600; color: var(--ink-2); text-decoration: underline; text-decoration-color: var(--line-2); text-underline-offset: 3px; }
+.opts-head:hover .opts-act { color: var(--ink); text-decoration-color: currentColor; }
+.opts-body { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 24px; padding: 0 16px 12px; }
+/* Each option's name sits above its choices. */
+.opt { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
 .opt-l { font-size: 12.5px; font-weight: 600; white-space: nowrap; }
 .opt .seg button { padding: 4px 10px; font-size: 12.5px; }
-.opts-hint { flex-basis: 100%; font-size: 12.5px; color: var(--muted); }
 .fbc-opts { font-size: 12px; color: var(--muted); }
 
 /* Journey bar: the step narrative, right beside the frames */

@@ -1194,12 +1194,11 @@ function renderOptions() {
     const open = optsOpen();
     const summary = opts.map(o => `${o.label}: ${choiceLabel(o, optionValue(key, o))}`).join('  ·  ');
     bar.innerHTML = `<button type="button" class="opts-head" data-opts-toggle aria-expanded="${open}">
-            <span class="opts-title">Options on this page</span>${open ? '' : `<span class="opts-sum">${esc(summary)}</span>`}<span class="opts-chev">${ICON.chev}</span>
+            <span class="opts-title">Options on this page</span>${open ? '' : `<span class="opts-sum">${esc(summary)}</span>`}<span class="opts-act">${open ? 'Close' : 'Show options'}</span>
         </button>
         ${open ? `<div class="opts-body">
-            ${opts.map(o => `<div class="opt"><span class="opt-l">${esc(o.label)}${o.note ? ` <span class="muted">${esc(o.note)}</span>` : ''}</span>
+            ${opts.map(o => `<div class="opt"><span class="opt-l">${esc(o.label)}</span>
                 <div class="seg" role="group" aria-label="${esc(o.label)}">${o.choices.map(([v, l]) => `<button type="button" data-opt="${esc(o.id)}" data-value="${esc(v)}" aria-pressed="${optionValue(key, o) === v}">${esc(l)}</button>`).join('')}</div></div>`).join('')}
-            <p class="opts-hint">Try each, then say which you prefer.${FB.on ? ' <button type="button" class="link-btn" data-fb-act="comment">Add comment</button>' : ''}</p>
         </div>` : ''}`;
     if (state.view === 'wireframes') requestAnimationFrame(layoutFrames);
 }

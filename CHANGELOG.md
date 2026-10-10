@@ -2,6 +2,12 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.28 (10 October 2026)
+
+- **The page options bar is just the options,** each name above its choices, and Close or Show options to fold it: no line asking reviewers to try each, and no note beside an option's name, which only invited "to decide". Decisions are made in the comments.
+- **The recipe says how to write page options:** a word or two for each name and choice, no question in the label, two or three real alternatives, and out of the next version once decided.
+- **To do on update:** a site whose `data.js` gives an option a `note` can drop it; it no longer shows.
+
 ## v0.1.27 (10 October 2026)
 
 - **Journeys are numbered,** with who takes each one under its name and its device as a small icon on the right, rather than the words Mobile or Desktop. The journey being followed has its number filled in.

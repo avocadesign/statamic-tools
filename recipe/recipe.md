@@ -108,6 +108,16 @@ Don't edit this file in `vendor/`. If a step is wrong, missing or contradicted b
 - Check a token change on `/site/style`, then on `/site/content`, before you change any block.
 - If the site's blocks can reach a design through tokens and display settings, build it that way. A more complex design needs a new block: follow the decision order below.
 
+## Prototype page options
+
+A page that could be built more than one way, where the client should compare the ways before choosing, gets options rather than a second page: `OPTIONS` in the prototype's `data.js`, which show in a bar above the frames. The README's Prototype section has the format.
+
+- **Name each option and each choice in a word or two:** `Chapters`, with `Who decides` and `Report years`. The bar sets them side by side and comments quote them, so a sentence makes both harder to read.
+- **Leave the question out.** No "to decide", "decision 4" or "which do you prefer" in a label. Reviewers say which they prefer in a comment, and the team raises the decision there.
+- **Offer two or three real alternatives,** each one you would be happy to build, with the one you'd recommend as the default.
+- **Limit an option to one frame** with `frame` when it only matters on a phone or a desktop. `mode: true` is only for the timeline's layout.
+- **Once it's decided,** draw the page the chosen way in the next version and take the option out.
+
 ## Designs from Paper
 
 Some sites are designed in Paper between the prototype and the build. The prototype's pages go up into a Paper file, the design is done there, and it comes back down into the site. That only works when Paper and the site use the same names, so the Paper file holds the site's own design tokens, and anything that comes back as a plain number is turned into the site's token, utility or setting before it reaches a template. Commands that move the tokens each way are planned. Until they exist, do it by hand with Paper's tools, as below.
