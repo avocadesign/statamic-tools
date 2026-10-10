@@ -2,6 +2,18 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.18 (10 October 2026)
+
+The recipe's Designs from Paper section, rewritten after testing it against Paper itself.
+
+- **Check Paper first.** Paper is changing quickly, so the section opens by sending whoever works with it to Paper's build log and roadmap, and to the tools its MCP offers, with a list of the features it works around (themes and tokens with `calc()` and `color-mix()`, CSS grid, native Tailwind, components, rich text, remote MCP, per-file permissions, the scale tool) and what each would change once released.
+- **Before anything goes up:** the client's colours, a warning when the site has no font of its own (Paper stands Inter in), and the type scale settled in the site. During design the scale's numbers change in the site and the new sizes go to Paper in the same step; a single size is never edited in Paper.
+- **The whole theme goes up, not only what the site uses:** every text size at desktop and phone width (phone sizes as `--phone-text-*`), every spacing step from 0 to 384px, Tailwind's line heights and letter spacing, the radii and the breakpoints. Each value has one token per Tailwind group, because Paper turns a typed value into the class of the one token that has it and gives up when two share it.
+- **Colours are linked the way the site links them,** set in order from their sources, Tailwind's own included, so changing `--color-primary` in Paper moves everything built on it. A `color-mix()` colour can't be linked in Paper yet and goes up plain, with its formula in the description.
+- **Images, layer names, and two new pages.** Images go in as local files. Only layer names survive, so they say what each part is. A Colour schemes page shows each scheme for checking, and a Components page holds every button style and state, measured against the site's own buttons.
+- **Coming back down:** Paper's Tailwind export is a first draft, layer names are read from the tree, phone sizes come from their tokens, a button is the site's partial with only its rounding class carried over, and the type scale's numbers match the kit's corrected scale.
+- **Nothing to do on update.** The recipe is all that changed.
+
 ## v0.1.17 (10 October 2026)
 
 The recipe covers designs from Paper, and the site check catches the agency's logo left in place.
