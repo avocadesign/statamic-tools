@@ -2,6 +2,13 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.42 (10 October 2026)
+
+- **Fixed: the line along the top of the sitemap reaches the first and last pages.** Each column now draws its own piece of it, so it meets every column however wide each is.
+- **The sitemap has more room:** 32px at its sides, its title bar included, 32px between columns, and 16px between pages stacked in a column. When it's wider than the screen it scrolls right to the edges, and its last column ends 32px clear once scrolled to the end, so it no longer needs extra room on the right.
+- **Comments on something this version doesn't have.** Opening a comment from an earlier version, in All comments with Comments on earlier versions too, takes you to that version with the comment open and its pin where it was made, rather than to the same page in this version, where its pin didn't show. A decision whose page this version doesn't have is listed last in All comments, under the page's old title and marked Not in this version; opening it keeps you where you are, with the comment open, rather than taking you to the home page. A pin on the Sitemap or the Content model whose page box or card has gone sits where it was made, ringed with a dashed line, as pins on the pages already were.
+- **To do on update:** nothing.
+
 ## v0.1.41 (10 October 2026)
 
 - **The content model's drawer makes room for itself.** Where there's space, the diagram moves over while the drawer is open, beside the Comments panel too, so no card is ever under it, and takes the full width back when it closes. On a narrow screen it still covers the diagram.

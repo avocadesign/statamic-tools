@@ -288,10 +288,8 @@ a.vm-i:hover, .vm-i.on { background: var(--surface-2); }
 .sw.s { border-style: dashed; border-color: var(--sugg-line); background: var(--sugg-bg); }
 .sw.c { box-shadow: 3px 3px 0 -1px var(--surface), 3px 3px 0 0 var(--line-2); }
 /* The sitemap's room sits above its scroll bar, which runs along the foot of the canvas. While it runs off the right
-   edge it fades there, leaving the scroll bar clear, and gains room on the right so its last column scrolls past the
-   fade. */
+   edge it fades there, leaving the scroll bar clear. */
 .scroll-x { overflow-x: auto; padding-bottom: 24px; }
-.scroll-x.overflows .sm { padding-right: 56px; box-sizing: content-box; }
 .scroll-x.fade-right {
     -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 56px), transparent), linear-gradient(#000, #000);
     mask-image: linear-gradient(to right, #000 calc(100% - 56px), transparent), linear-gradient(#000, #000);
@@ -301,9 +299,13 @@ a.vm-i:hover, .vm-i.on { background: var(--surface-2); }
 }
 /* The sitemap and the content model sit on the main background, with no panel around them. */
 #view-sitemap .canvas, #view-model .canvas { position: relative; padding: 20px 16px 4px; background: none; border: 0; border-radius: 0; min-height: 0; }
+/* The Sitemap has 32px at its sides. Its tree scrolls to the stage's edges but rests 32px in, so its last column
+   ends 32px clear of the edge, and of the fade, once scrolled to the end. */
+#view-sitemap .board-bar, #view-sitemap .canvas { padding-left: 32px; padding-right: 32px; }
+#view-sitemap .scroll-x { margin: 0 -32px; }
 #view-model .model > svg text { stroke: var(--bg); }
-#view-sitemap .sm-info, #view-model .sm-info { margin: 8px -16px 0; padding: 24px 16px 28px; }
-#view-model .sm-info { margin-top: 32px; }
+#view-sitemap .sm-info { margin: 8px -32px 0; padding: 24px 32px 28px; }
+#view-model .sm-info { margin: 32px -16px 0; padding: 24px 16px 28px; }
 #view-model .counts { max-width: 280px; }
 /* Comment pins on the Sitemap and the Content model, on their page boxes and cards. */
 .board-pins { position: absolute; inset: 0; z-index: 6; overflow: hidden; pointer-events: none; }
@@ -311,29 +313,34 @@ a.vm-i:hover, .vm-i.on { background: var(--surface-2); }
 .bpin--decide { background: var(--pin); color: var(--pin-ink); }
 .bpin--decided, .bpin--resolved { background: var(--ok); color: var(--ok-ink); }
 .bpin--draft { background: var(--sel); color: var(--sel-ink); }
+/* Its page box or card has gone since: the pin sits where the comment was made, ringed with a dashed line. */
+.bpin--moved { outline: 2px dashed var(--ink-2); outline-offset: 2px; }
 .bpin:hover, .bpin.is-hot { transform: translate(-50%, -50%) scale(1.18); z-index: 1; }
 /* Choosing a spot on them: a crosshair, and the page box or card under it outlined. */
 .board-picking .canvas, .board-picking .canvas * { cursor: crosshair !important; }
 .board-picking .canvas [data-sm]:hover, .board-picking .canvas [data-ent]:hover { outline: 2px solid var(--pin); outline-offset: 2px; }
 /* --cols is the number of top level pages, set on .sm by the shell. */
-.sm { --cols: 7; min-width: calc(var(--cols) * 170px); display: flex; flex-direction: column; align-items: center; }
+.sm { --cols: 7; width: min-content; min-width: max(100%, calc(var(--cols) * 188px + 32px)); padding: 0 32px; display: flex; flex-direction: column; align-items: center; }
 .sm-root { position: relative; margin-top: 16px; padding-bottom: 28px; }
 .sm-root::after { content: ""; position: absolute; left: 50%; bottom: 0; height: 28px; width: 2px; background: var(--line-2); }
 /* Each column is at least wide enough for its longest word, and the sitemap scrolls sideways when they need more room. */
-.sm-cols { position: relative; display: grid; grid-template-columns: repeat(var(--cols), minmax(min-content, 1fr)); gap: 16px; width: 100%; padding-top: 24px; }
-.sm-cols::before { content: ""; position: absolute; top: 0; left: calc(100% / (2 * var(--cols))); right: calc(100% / (2 * var(--cols))); height: 2px; background: var(--line-2); }
+.sm-cols { --gap: 32px; position: relative; display: grid; grid-template-columns: repeat(var(--cols), minmax(min-content, 1fr)); gap: var(--gap); width: 100%; padding-top: 24px; }
 /* A single page sits straight below Home, with no branch. */
 .sm-cols.one { width: auto; min-width: 220px; }
-.sm-cols.one::before { display: none; }
 .sm-col { position: relative; display: flex; flex-direction: column; align-items: stretch; }
 .sm-col::before { content: ""; position: absolute; top: -24px; left: 50%; height: 24px; width: 2px; background: var(--line-2); }
+/* The line along the top, drawn by the columns so it meets the first and last however wide each is: every column
+   carries it halfway into the gap on each side, and the first and last only from their middle. */
+.sm-col::after { content: ""; position: absolute; top: -24px; left: calc(var(--gap) / -2); right: calc(var(--gap) / -2); height: 2px; background: var(--line-2); }
+.sm-col:first-child::after { left: 50%; }
+.sm-col:last-child::after { right: 50%; }
 /* A page's children hang from a line that starts at its box and stops at the last child's branch: each child draws
    its branch and the line down to it, and every child but the last carries the line on past itself. */
-.sm-kids { list-style: none; display: flex; flex-direction: column; gap: 10px; margin-left: 10px; padding: 10px 0 0 14px; }
+.sm-kids { --vgap: 16px; list-style: none; display: flex; flex-direction: column; gap: var(--vgap); margin-left: 10px; padding: var(--vgap) 0 0 14px; }
 .sm-kids > li { position: relative; }
 .sm-kids > li::before { content: ""; position: absolute; left: -14px; top: 20px; width: 14px; height: 2px; background: var(--line-2); }
-.sm-kids > li::after { content: ""; position: absolute; left: -14px; top: -10px; bottom: 0; width: 2px; background: var(--line-2); }
-.sm-kids > li:last-child::after { bottom: auto; height: 32px; }
+.sm-kids > li::after { content: ""; position: absolute; left: -14px; top: calc(var(--vgap) * -1); bottom: 0; width: 2px; background: var(--line-2); }
+.sm-kids > li:last-child::after { bottom: auto; height: calc(var(--vgap) + 22px); }
 .node { position: relative; display: flex; flex-direction: column; gap: 4px; width: 100%; text-align: left; padding: 10px 12px; border-radius: 8px; border: 1.5px solid var(--line-2); background: var(--surface); font-size: 13px; }
 button.node:hover { border-color: var(--ink); }
 .node.top { border-width: 2px; border-color: var(--ink); }

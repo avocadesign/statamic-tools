@@ -481,8 +481,7 @@ function renderSitemap() {
     fbBoardPins();
 }
 
-// While the sitemap runs off the right edge, it fades there to say so, and gains room on the right so its last
-// column scrolls clear of the fade.
+// While the sitemap runs off the right edge, it fades there to say so.
 function sitemapFade() {
     const sx = $('#view-sitemap .scroll-x');
     if (!sx) return;
@@ -490,7 +489,6 @@ function sitemapFade() {
         sx.dataset.fade = '1';
         sx.addEventListener('scroll', () => { sitemapFade(); fbBoardPins(); }, { passive: true });
     }
-    sx.classList.toggle('overflows', sx.scrollWidth > sx.clientWidth + 1 + (sx.classList.contains('overflows') ? 56 : 0));
     sx.classList.toggle('fade-right', sx.scrollWidth - sx.clientWidth - sx.scrollLeft > 1);
 }
 // Below the tree, in columns: the menus, the header and footer as displayed, where the source documents go, and what
@@ -738,6 +736,10 @@ const fbIsDone = c => fbIsDecided(c) || c.status === 'resolved';
 // Open on a page: comments still open, and decisions still to make.
 const fbOpenOn = key => fbPage(key).filter(c => c.status === 'open' && !fbIsDecided(c)).length;
 const fbVersionLabel = id => (VERSIONS.find(v => v.id === id) || {}).label || `Version ${id}`;
+// A page this version doesn't have: a decision carried over from a version that had it.
+const fbGone = key => !boardOf(key) && !ROUTES.some(r => r.key === key);
+// A comment, not a decision, made on another version that's still served: it opens there, where its pin was made.
+const fbElsewhere = c => c.version !== VERSION.id && !c.decision && !!(VERSIONS.find(v => v.id === c.version) || {}).url;
 const fbDate = iso => {
     const d = new Date(iso);
     return isNaN(d) ? '' : `${d.toLocaleDateString('en-NZ', { day: 'numeric', month: 'short' })}, ${d.toLocaleTimeString('en-NZ', { hour: 'numeric', minute: '2-digit' })}`;
@@ -869,6 +871,7 @@ function fbBoardPins() {
         let el = null;
         try { el = p.a.selector ? canvas.querySelector(p.a.selector) : null; } catch (e) { el = null; }
         let x, y;
+        const moved = !el && !!p.a.selector && p.id !== 'draft';
         if (el) {
             const r = el.getBoundingClientRect();
             x = r.left - cr.left + (p.a.x == null ? 0.5 : p.a.x) * r.width;
@@ -877,7 +880,7 @@ function fbBoardPins() {
             x = (p.a.page_x == null ? 0.5 : p.a.page_x) * cr.width;
             y = p.a.page_y;
         } else return '';
-        return `<button type="button" class="bpin bpin--${p.kind}${hot === p.id ? ' is-hot' : ''}" data-bpin="${p.id}" style="left:${x}px;top:${y}px" aria-label="${p.id === 'draft' ? 'Your new comment' : `Comment ${p.n}`}">${p.n}</button>`;
+        return `<button type="button" class="bpin bpin--${p.kind}${moved ? ' bpin--moved' : ''}${hot === p.id ? ' is-hot' : ''}" data-bpin="${p.id}" style="left:${x}px;top:${y}px" aria-label="${p.id === 'draft' ? 'Your new comment' : `Comment ${p.n}${moved ? ', where it was made: what it was on has gone' : ''}`}">${p.n}</button>`;
     }).join('');
 }
 
@@ -1000,7 +1003,7 @@ function fbOpen(id) {
 // there.
 function fbToggle(id) {
     const c = fb.comments.find(x => x.id === id);
-    if (fb.open !== id && c && c.page !== fbHere()) { fbShow(id); return; }
+    if (fb.open !== id && c && (c.page !== fbHere() || fbElsewhere(c))) { fbShow(id); return; }
     fb.open = fb.open === id ? null : id;
     fb.deciding = null;
     fbRefresh();
@@ -1036,6 +1039,18 @@ function fbOpenBoard(view) {
 function fbShow(id) {
     const c = fb.comments.find(x => x.id === id);
     if (!c) return;
+    if (fbElsewhere(c)) { location.href = `${VERSIONS.find(v => v.id === c.version).url}?comment=${encodeURIComponent(id)}`; return; }
+    // A page this version doesn't have can't be opened, so you stay where you are, with the comment open in All comments.
+    if (fbGone(c.page)) {
+        fb.open = id;
+        state.fbList = 'all';
+        if (fbBoard()) fb.board = true;
+        else { state.notes = true; state.railTab = 'comments'; }
+        save();
+        fbRefresh();
+        requestAnimationFrame(() => { const el = $(`#rail [data-fb="${id}"]`); if (el) el.scrollIntoView({ block: 'nearest' }); });
+        return;
+    }
     const boardView = boardOf(c.page);
     if (boardView) {
         fb.open = id;
@@ -1309,9 +1324,9 @@ function fbAll() {
     // Done beneath: every comment done, or with Decisions, the decisions made.
     const done = fbFiltered('done', scope).filter(c => show === 'open' || c.decision);
     const pages = [...list, ...done].map(c => c.page);
-    const keys = [...ROUTES.map(r => r.key), ...new Set(pages.filter(k => !ROUTES.some(r => r.key === k) && !boardOf(k))), ...Object.values(BOARDS).map(b => b.key)];
+    const keys = [...ROUTES.map(r => r.key), ...Object.values(BOARDS).map(b => b.key), ...new Set(pages.filter(fbGone))];
     const groups = keys.map(key => [key, list.filter(c => c.page === key).sort(byNum), done.filter(c => c.page === key).sort(byNum)]).filter(([, cs, ds]) => cs.length || ds.length);
-    const title = key => boardOf(key) ? BOARDS[boardOf(key)].label : (ROUTES.find(r => r.key === key) || {}).title || key;
+    const title = key => boardOf(key) ? BOARDS[boardOf(key)].label : (ROUTES.find(r => r.key === key) || {}).title || ([...list, ...done].find(c => c.page === key && c.title) || {}).title || key;
     const route = key => { const r = ROUTES.find(x => x.key === key); return r ? sampleRoute(r) : null; };
     const here = fbHere();
     // Another page's heading, or the Sitemap's or the Content model's, takes you there.
@@ -1321,7 +1336,7 @@ function fbAll() {
         <div class="fb-filters" role="group" aria-label="Show">${FB_FILTERS.map(([k, label]) => { const n = fbFiltered(k, scope).length; return `<button type="button" class="chip-btn" data-fb-filter="${k}" aria-pressed="${show === k}">${label}${n ? ` <span class="muted">${n}</span>` : ''}</button>`; }).join('')}</div>
         ${VERSIONS.length > 1 ? `<label class="toggle"><input type="checkbox" id="fb-versions"${scope === 'all' ? ' checked' : ''}> Comments on earlier versions too</label>` : ''}
         ${groups.length ? groups.map(([key, cs, ds]) => `<div class="fb-group">
-            <div class="fb-group-h"><h3>${key !== here && go(key) ? `<button type="button" class="fb-page" ${go(key)}>${esc(title(key))}<span aria-hidden="true">→</span></button>` : esc(title(key))}</h3>${key === here ? '<span class="fb-here">Showing</span>' : ''}</div>
+            <div class="fb-group-h"><h3>${key !== here && go(key) ? `<button type="button" class="fb-page" ${go(key)}>${esc(title(key))}<span aria-hidden="true">→</span></button>` : esc(title(key))}</h3>${key === here ? '<span class="fb-here">Showing</span>' : fbGone(key) ? '<span class="fb-here">Not in this version</span>' : ''}</div>
             ${cs.map(c => fbCard(c)).join('')}
             ${ds.length ? `<details class="fold fb-resolved"${ds.some(c => c.id === fb.open) ? ' open' : ''}><summary>Done <span class="fold-n">${ds.length}</span></summary><div>${ds.map(c => fbCard(c)).join('')}</div></details>` : ''}
         </div>`).join('') : `<p class="note-line">${FB_EMPTY[show]}</p>`}

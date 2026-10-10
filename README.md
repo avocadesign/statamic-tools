@@ -97,8 +97,10 @@ gets their improvements. What the prototype says is the site's own, one folder p
   on; pointing at a comment shows its pin either way. Opening a comment brings its pin into sight, or takes you to its
   page. An open comment has a slim reply box and one button for the next step: Mark done, Record decision (the team) or
   Reopen; the team's other actions, Make it a decision and Make a comment, sit in a ⋯ menu. A pin that covers
-  something can be dragged to another spot, and pins to the element it's dropped on. A comment belongs to its version;
-  a decision shows in every version. The Sitemap and the Content model take comments too, from the Comments button in
+  something can be dragged to another spot, and pins to the element it's dropped on. A comment belongs to its version,
+  and opening one from an earlier version takes you to that version, where it was made. A decision shows in every
+  version: one whose page this version doesn't have is listed last in All comments, under the page's old title and
+  marked Not in this version, and one whose element has gone sits where it was made, ringed with a dashed line. The Sitemap and the Content model take comments too, from the Comments button in
   their title bars, pinned to a page box or a card; All comments lists them after the pages.
 - **Decisions** come from comments. The team (a control panel login, a reviewer marked `team: true`, or
   `avoca:feedback`) raises a comment as a decision, or ticks Make it a decision as they post, and records what was
