@@ -297,7 +297,10 @@ a.vm-i:hover, .vm-i.on { background: var(--surface-2); }
     -webkit-mask-position: top, bottom; mask-position: top, bottom;
     -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
 }
-#view-sitemap .canvas { padding-bottom: 4px; }
+/* The sitemap and the content model sit on the main background, with no panel around them. */
+#view-sitemap .canvas, #view-model .canvas { padding: 12px 12px 4px; background: none; border: 0; border-radius: 0; }
+#view-model .model > svg text { stroke: var(--bg); }
+#view-sitemap .sm-info { margin: 8px -12px 0; padding: 24px 12px 28px; }
 /* --cols is the number of top level pages, set on .sm by the shell. */
 .sm { --cols: 7; min-width: calc(var(--cols) * 170px); display: flex; flex-direction: column; align-items: center; }
 .sm-root { position: relative; margin-top: 16px; padding-bottom: 28px; }
@@ -466,6 +469,7 @@ button.node:hover { border-color: var(--ink); }
     .app { height: auto; min-height: 100%; }
     .body { grid-template-columns: minmax(0, 1fr); }
     .nav-toggle { display: inline-flex; }
+    .nav-toggle[hidden] { display: none; }
     .side-collapse { display: none; }
     .rail.mini .rail-body { padding: 12px 16px; align-items: stretch; }
     .fold-tab { flex-direction: row; justify-content: center; width: 100%; padding: 10px 12px; }

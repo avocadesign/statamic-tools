@@ -200,6 +200,7 @@ function setView(v) {
     $$('.view').forEach(s => { s.hidden = s.id !== `view-${v}`; });
     if (v === 'sitemap') renderSitemap();
     if (v === 'model') renderModel();
+    renderSidebar();
     renderRail();
     if (v === 'wireframes') requestAnimationFrame(layoutFrames);
 }
@@ -325,9 +326,16 @@ const sideCollapsed = () => state.side === false && !narrowMQ.matches;
 
 function renderSidebar() {
     const live = state.step >= 0;
-    const collapsed = sideCollapsed();
+    // Journeys are for the pages: on the Sitemap and the Content model the strip keeps only the agency's logo.
+    const away = state.view !== 'wireframes';
+    const collapsed = sideCollapsed() || (away && !narrowMQ.matches);
     $('.body').classList.toggle('side-off', collapsed);
     $('#sidebar').classList.toggle('mini', collapsed);
+    $('#nav-toggle').hidden = away;
+    if (away) {
+        $('#side-scroll').innerHTML = '';
+        return;
+    }
     if (collapsed) {
         $('#side-scroll').innerHTML = `<button type="button" class="fold-tab" data-side="open" aria-label="Show journeys" title="Show journeys">${ICON.panel}<span class="fold-tab-label">Journeys</span></button>`;
         return;

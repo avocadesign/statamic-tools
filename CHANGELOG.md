@@ -2,6 +2,12 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.39 (10 October 2026)
+
+- **The sitemap and the content model sit on the main background,** with no panel around them.
+- **Journeys only show with the pages.** On the Sitemap and Content model tabs the left strip keeps only the agency's logo, and on narrow screens the Journeys button hides.
+- **To do on update:** nothing.
+
 ## v0.1.38 (10 October 2026)
 
 - **Page notes describe the page and nothing else:** one line on what it's for, and its content as displayed, section by section in order, under On this page (was Content to prepare). Considerations are retired from the notes panel and the `data.js` template; the recipe says anything still to agree is a decision comment, anything decided lives in its outcome, advice and reminders stay out, and technical notes only say how something is built that the page doesn't show.
