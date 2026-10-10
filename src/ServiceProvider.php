@@ -14,6 +14,7 @@ use Avocadesign\StatamicTools\Console\SiteInstall;
 use Avocadesign\StatamicTools\Console\SiteScript;
 use Avocadesign\StatamicTools\Console\SiteUrls;
 use Avocadesign\StatamicTools\Console\SitePermissions;
+use Avocadesign\StatamicTools\Feedback\FeedbackSettings;
 use Avocadesign\StatamicTools\Feedback\FeedbackStore;
 use Avocadesign\StatamicTools\Http\Middleware\InjectFeedbackWidget;
 use Avocadesign\StatamicTools\Permissions\GrantEditorAccess;
@@ -64,9 +65,10 @@ class ServiceProvider extends AddonServiceProvider
 
         $this->app->bindIf(FeedbackStore::class, fn () => FeedbackStore::make());
 
-        // Feedback adds its loader to the site's pages only while it is switched on. Off, the middleware is never
-        // registered, so no request runs it. First in the group, it works outside the static cache.
-        if (config('statamic-tools.feedback.enabled')) {
+        // Feedback adds its loader to the site's pages only while it is on: switched on, and with a password anywhere
+        // but a local machine. Off, the middleware is never registered, so no request runs it. First in the group, it
+        // works outside the static cache.
+        if (FeedbackSettings::active()) {
             $this->app['router']->prependMiddlewareToGroup('statamic.web', InjectFeedbackWidget::class);
         }
 

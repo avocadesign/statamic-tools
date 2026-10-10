@@ -2,7 +2,9 @@
 
 namespace Avocadesign\StatamicTools\Http\Controllers;
 
+use Avocadesign\StatamicTools\Feedback\FeedbackSettings;
 use Avocadesign\StatamicTools\Feedback\FeedbackStore;
+use Avocadesign\StatamicTools\Feedback\Reviewers;
 use Avocadesign\StatamicTools\Feedback\Viewer;
 use Avocadesign\StatamicTools\Site\Blocks;
 use Illuminate\Http\JsonResponse;
@@ -12,8 +14,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 /**
  * What the feedback widget and the avoca:feedback command talk to. The widget signs people in and reads and writes
- * comments as them. The command sends the password instead of a cookie, from any machine, so a developer's Claude can
- * read and resolve a staging site's comments. Everything here is a 404 unless FEEDBACK_ENABLED is true.
+ * comments as them. The command sends the developer's FEEDBACK_KEY instead of a cookie, from any machine, so a
+ * developer's Claude can read and resolve a staging site's comments. Everything here is a 404 unless feedback is on.
  */
 class FeedbackController extends Controller
 {
@@ -43,22 +45,40 @@ class FeedbackController extends Controller
         return $this->json([
             'viewer' => Viewer::current($request),
             'needs_password' => Viewer::needsPassword(),
+            'needs_email' => Reviewers::listed(),
             'token' => csrf_token(),
         ]);
     }
 
+    /**
+     * With a list of reviewers, an email on it; without one, any name. The password too, when there is one. A listed
+     * reviewer is shown by the list's name for them, never one they type.
+     */
     public function signIn(Request $request): JsonResponse
     {
+        $listed = Reviewers::listed();
         $input = $request->validate([
-            'name' => ['required', 'string', 'max:80'],
+            'name' => [$listed ? 'nullable' : 'required', 'string', 'max:80'],
+            'email' => [$listed ? 'required' : 'nullable', 'string', 'max:254'],
             'password' => [Viewer::needsPassword() ? 'required' : 'nullable', 'string'],
         ], [
             'name.required' => 'Enter your name.',
+            'email.required' => 'Enter your email address.',
             'password.required' => 'Enter the password.',
         ]);
 
         if (Viewer::needsPassword() && ! Viewer::passwordMatches((string) $input['password'])) {
             return $this->json(['errors' => ['password' => ['That password isn’t right.']]], 422);
+        }
+
+        if ($listed) {
+            $person = Reviewers::find((string) $input['email']);
+            if (! $person) {
+                return $this->json(['errors' => ['email' => ['That email isn’t on the list of reviewers. Check it, or ask whoever sent you the link.']]], 422);
+            }
+
+            return $this->json(['viewer' => ['name' => $person['name'], 'staff' => false]])
+                ->withCookie(Viewer::signIn($person['name'], $person['email']));
         }
 
         return $this->json(['viewer' => ['name' => trim($input['name']), 'staff' => false]])
@@ -70,9 +90,11 @@ class FeedbackController extends Controller
         return $this->json(['viewer' => null])->withCookie(Viewer::signOut());
     }
 
-    /** The open count for one page, for the tab's badge. */
+    /** The open count for one page, for the tab's badge: only for someone signed in, so it tells nobody else anything. */
     public function count(Request $request): JsonResponse
     {
+        $this->authorise($request);
+
         return $this->json(['open' => count($this->store->all($this->path($request->query('url')), FeedbackStore::OPEN))]);
     }
 
@@ -144,18 +166,18 @@ class FeedbackController extends Controller
     }
 
     /**
-     * The person a request acts for: the signed-in viewer, or, for the command, whoever it names when it sends the
-     * right password. Anyone else is turned away.
+     * The person a request acts for. On the command's routes, which skip the session token, that is the team, named by
+     * the command, when it sends the server's FEEDBACK_KEY; a server with no key turns them all away. Everywhere else
+     * it is the signed-in viewer. Anyone else is turned away.
      *
      * @return array{name: string, staff: bool}
      */
     private function authorise(Request $request): array
     {
-        $given = $request->header('X-Feedback-Password');
-        // The command's routes skip the session token, so they take the password and nothing else.
-        abort_if($request->routeIs('*feedback.api.*') && (! is_string($given) || $given === ''), 403, 'Send the password.');
-        if (is_string($given) && $given !== '') {
-            abort_unless(Viewer::passwordMatches($given), 403, 'That password isn’t right.');
+        if ($request->routeIs('*feedback.api.*')) {
+            $key = FeedbackSettings::key();
+            abort_if($key === '', 403, 'This server has no FEEDBACK_KEY, so feedback can’t be read from another machine.');
+            abort_unless(hash_equals($key, (string) $request->header('X-Feedback-Key')), 403, 'That key isn’t right.');
             $name = trim((string) $request->header('X-Feedback-Name', 'Developer'));
 
             return ['name' => $name !== '' ? mb_substr($name, 0, 80) : 'Developer', 'staff' => true];

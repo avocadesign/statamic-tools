@@ -13,11 +13,15 @@
     var css = [
         ':host{all:initial}',
         '*,*::before,*::after{box-sizing:border-box}',
-        '.fb{--ink:#1f2430;--muted:#5d6475;--line:#e3e5ea;--soft:#f5f6f8;--bg:#fff;--accent:#5b5bd6;--accent-ink:#fff;--ok:#1f8a5b;--warn:#b54708;',
+        '.fb{--ink:#1f2430;--muted:#5d6475;--line:#e3e5ea;--soft:#f4f5f7;--bg:#fff;--accent:#1f2430;--accent-ink:#fff;--ok:#8b919c;--warn:#b54708;',
         'font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink)}',
-        '@media (prefers-color-scheme:dark){.fb{--ink:#eceef2;--muted:#a3a9b6;--line:#343a46;--soft:#232833;--bg:#191d25}}',
+        '@media (prefers-color-scheme:dark){.fb{--ink:#eceef2;--muted:#a3a9b6;--line:#343a46;--soft:#232833;--bg:#191d25;--accent:#eceef2;--accent-ink:#191d25;--ok:#6d7480}}',
         'button{font:inherit;color:inherit;cursor:pointer}',
-        'button:focus-visible,textarea:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}',
+        'button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}',
+        // The heading takes focus when the panel opens so a screen reader starts there; it needs no ring. Text fields
+        // show focus with their border, like any form field.
+        '[tabindex="-1"]:focus{outline:none}',
+        'textarea:focus,input:focus{outline:none;border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}',
         '.panel{position:fixed;top:0;right:0;bottom:0;z-index:2147483001;width:min(400px,100vw);display:flex;flex-direction:column;background:var(--bg);',
         'border-left:1px solid var(--line);box-shadow:-12px 0 32px rgb(0 0 0/.12);transform:translateX(100%);transition:transform .2s ease;visibility:hidden}',
         '.panel.on{transform:none;visibility:visible}',
@@ -71,12 +75,12 @@
         '.error{color:var(--warn);font-size:13px}',
         '.pins{position:fixed;inset:0;z-index:2147482999;pointer-events:none}',
         '.pin{position:fixed;transform:translate(-50%,-50%);pointer-events:auto;display:grid;place-items:center;min-width:26px;height:26px;padding:0 7px;',
-        'border:2px solid #fff;border-radius:13px;background:#5b5bd6;color:#fff;font:700 12px/1 system-ui,sans-serif;box-shadow:0 2px 8px rgb(0 0 0/.3)}',
-        '.pin.resolved{background:#1f8a5b}',
+        'border:2px solid var(--bg);border-radius:13px;background:var(--accent);color:var(--accent-ink);font:700 12px/1 system-ui,sans-serif;box-shadow:0 2px 8px rgb(0 0 0/.3)}',
+        '.pin.resolved{background:var(--ok)}',
         '.pin.moved{border-style:dashed}',
         '.pin.hot{transform:translate(-50%,-50%) scale(1.25);z-index:1}',
-        '.pin.draft{background:#1f2430}',
-        '.mark{position:fixed;z-index:2147482998;pointer-events:none;border:2px solid #5b5bd6;border-radius:4px;background:rgb(91 91 214/.08);display:none}',
+        '.pin.draft{background:var(--muted)}',
+        '.mark{position:fixed;z-index:2147482998;pointer-events:none;border:2px solid var(--accent);border-radius:4px;background:color-mix(in srgb,var(--accent) 7%,transparent);display:none}',
         '.banner{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:2147483002;display:none;align-items:center;gap:12px;padding:10px 14px;',
         'border-radius:10px;background:#1f2430;color:#fff;box-shadow:0 6px 24px rgb(0 0 0/.25);font-size:13px}',
         '.banner .ghost{background:transparent;color:#fff;border-color:rgb(255 255 255/.35);padding:4px 10px}',
@@ -313,7 +317,10 @@
     /* ---------- data ---------- */
 
     function loadSession() {
-        return api('GET', 'session').then(function (data) { state.session = data; });
+        return api('GET', 'session').then(function (data) {
+            state.session = data;
+            if (data.viewer) state.ctx.remember(true);
+        });
     }
 
     function loadPage() {
@@ -419,9 +426,13 @@
 
     function signInForm() {
         var needs = state.session && state.session.needs_password;
+        var listed = state.session && state.session.needs_email;
         return '<form class="signin" data-form="sign-in" novalidate><h3>Who’s commenting?</h3>' +
-            '<p>Your name shows beside your comments' + (needs ? '. The password is the one you were given for this review.' : '.') + '</p>' +
-            '<label>Your name<input name="name" autocomplete="name" maxlength="80" required></label>' +
+            '<p>' + (listed ? 'Use the email address you were invited with' : 'Your name shows beside your comments') +
+            (needs ? '. The password is the one you were given for this review.' : '.') + '</p>' +
+            (listed
+                ? '<label>Email address<input name="email" type="email" autocomplete="email" maxlength="254" required></label>'
+                : '<label>Your name<input name="name" autocomplete="name" maxlength="80" required></label>') +
             (needs ? '<label>Password<input name="password" type="password" autocomplete="current-password" required></label>' : '') +
             (state.error ? '<p class="error" role="alert">' + esc(state.error) + '</p>' : '') +
             '<button class="primary">Continue</button></form>';
@@ -604,7 +615,11 @@
         }
         if (t.closest('.add')) return startPicking();
         if (t.closest('.sign-out')) {
-            return api('POST', 'sign-out', {}).then(function () { state.session.viewer = null; render(); }).catch(fail);
+            return api('POST', 'sign-out', {}).then(function () {
+                state.session.viewer = null;
+                state.ctx.remember(false);
+                render();
+            }).catch(fail);
         }
         if (t.closest('[data-pin]')) {
             var pinned = t.closest('[data-pin]').dataset.pin;

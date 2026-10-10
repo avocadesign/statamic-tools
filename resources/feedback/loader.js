@@ -1,7 +1,8 @@
 /*
- * Avoca feedback: the loader. The only script feedback adds to a page while it is switched on: a Feedback tab on the
- * right edge, with the number of open comments on this page once the page has settled. The widget itself loads on the
- * first click, or straight away when the address names a comment (?feedback=<id>).
+ * Avoca feedback: the loader. The only script feedback adds to a page while it is on. It shows nothing to a visitor
+ * who isn't reviewing: the Feedback tab appears for a browser that has signed in to review before, or when the address
+ * asks for it, with ?review on the link reviewers are sent, or ?feedback=<id> for one comment. The tab carries the
+ * number of open comments on this page once the page has settled, and the widget itself loads on the first click.
  */
 (function () {
     'use strict';
@@ -9,6 +10,13 @@
     var script = document.currentScript;
     if (!script || window.__avocaFeedbackLoader) return;
     window.__avocaFeedbackLoader = true;
+
+    var params = new URLSearchParams(location.search);
+    var named = params.get('feedback');
+    var invited = params.has('review');
+    var known = false;
+    try { known = localStorage.getItem('avoca-feedback') === '1'; } catch (e) { /* storage unavailable */ }
+    if (!known && !named && !invited) return;
 
     var base = script.getAttribute('data-feedback');
     var version = script.getAttribute('data-feedback-version') || '';
@@ -24,9 +32,9 @@
         '.tab{position:fixed;top:50%;right:0;transform:translateY(-50%);z-index:2147483000;display:flex;flex-direction:column;align-items:center;gap:8px;' +
         'padding:14px 8px;border:0;border-radius:8px 0 0 8px;background:#1f2430;color:#fff;cursor:pointer;box-shadow:0 4px 16px rgb(0 0 0/.18);' +
         'font:600 13px/1 system-ui,-apple-system,"Segoe UI",sans-serif;letter-spacing:.02em}' +
-        '.tab:hover{background:#2c3342}.tab:focus-visible{outline:2px solid #5b5bd6;outline-offset:2px}' +
+        '.tab:hover{background:#2c3342}.tab:focus-visible{outline:2px solid #1f2430;outline-offset:2px}' +
         '.label{writing-mode:vertical-rl;transform:rotate(180deg)}' +
-        '.count{min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:#5b5bd6;color:#fff;font-size:11px;line-height:20px;text-align:center;box-sizing:border-box}' +
+        '.count{min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:#fff;color:#1f2430;font-size:11px;line-height:20px;text-align:center;box-sizing:border-box}' +
         '.count[hidden]{display:none}' +
         '</style>' +
         '<button class="tab" type="button" aria-label="Feedback on this page"><span class="count" hidden></span><span class="label">Feedback</span></button>';
@@ -58,9 +66,17 @@
         return loading;
     }
 
+    // Remembers that this browser reviews, so the tab is there next time without ?review.
+    function remember(on) {
+        try {
+            if (on) localStorage.setItem('avoca-feedback', '1');
+            else localStorage.removeItem('avoca-feedback');
+        } catch (e) { /* storage unavailable */ }
+    }
+
     function open(focus) {
         return widget().then(function (app) {
-            app.open({ base: base, entry: entry, root: root, setCount: setCount, focus: focus || null });
+            app.open({ base: base, entry: entry, root: root, setCount: setCount, remember: remember, focus: focus || null });
         });
     }
 
@@ -68,8 +84,7 @@
 
     document.body.appendChild(host);
 
-    var named = new URLSearchParams(location.search).get('feedback');
-    if (named) {
+    if (named || invited) {
         open(named);
         return;
     }

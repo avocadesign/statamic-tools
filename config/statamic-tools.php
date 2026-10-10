@@ -85,11 +85,16 @@ return [
 
     // Feedback: comments pinned to the site's pages, for a review on local or staging. Off unless FEEDBACK_ENABLED is
     // true, in every environment: switched off, nothing is added to any page and nothing extra runs on a request.
+    // Anywhere but a local machine it also needs PROTOTYPE_PASSWORD, and stays off without one.
     'feedback' => [
         'enabled' => (bool) env('FEEDBACK_ENABLED', false),
-        // The prototype's password. With one set, commenting asks for it, and the feedback command can read and resolve
-        // a server's comments from another machine by sending it.
+        // The prototype's password, which reviewers are given. Signing in to comment asks for it.
         'password' => env('PROTOTYPE_PASSWORD'),
+        // The developer's key, for avoca:feedback --from to read and resolve a server's comments from another machine.
+        // Never give it to reviewers: it acts as the team. Without one, the command's routes refuse every request.
+        'key' => env('FEEDBACK_KEY'),
+        // The people who may comment, by name and email, when the site lists them. Without the file, any name will do.
+        'reviewers_path' => 'resources/site/reviewers.yaml',
         // The cookie that remembers who is commenting. The prototype's sign-in sets the same one, so a name given in
         // either place works in both.
         'cookie' => 'prototype',

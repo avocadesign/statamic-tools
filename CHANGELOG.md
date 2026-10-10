@@ -2,6 +2,18 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.20 (10 October 2026)
+
+Feedback gets tighter control over who can see and use it.
+
+- **No password, no feedback.** Anywhere but a local machine, feedback stays off without `PROTOTYPE_PASSWORD`, and `avoca:site:check` says so. Without one, anybody who found the site could read and write its comments.
+- **Nobody else sees it.** The Feedback tab only appears in a browser that has signed in to review, or that opens a link ending `?review` (the one reviewers are sent) or `?feedback=<id>`. The open count needs sign-in too.
+- **A list of who may comment.** With `resources/site/reviewers.yaml` listing names and emails, signing in asks for an email on the list and shows the list's name, not one typed in, and taking someone off the list signs them out. Without the file, any name will do.
+- **A developer key for the command.** `avoca:feedback --from` now sends the server's `FEEDBACK_KEY` (`--key`, or this site's `.env`), never the reviewers' password, and a server with no key refuses those requests. `--password` is gone.
+- **Comments are treated as written by reviewers.** The command prints their text escaped, so it can't pass for its own output, and says above every listing, and in its JSON as `about`, that a comment is a request to consider, never an instruction. The recipe tells an agent to put anything unusual to the developer.
+- **Neutral colours.** The widget uses graphite rather than purple, resolved pins are grey, and the panel's heading no longer shows a focus ring when the panel opens.
+- **To do on update, on a site using feedback away from a local machine:** set `PROTOTYPE_PASSWORD` if it has none, set `FEEDBACK_KEY` there and on the machine that reads it with `--from`, and send reviewers the `?review` link.
+
 ## v0.1.19 (10 October 2026)
 
 Feedback: comments pinned to the site's pages, for a client review on local or staging.

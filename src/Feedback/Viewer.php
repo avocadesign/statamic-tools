@@ -8,9 +8,11 @@ use Symfony\Component\HttpFoundation\Cookie;
 
 /**
  * Who is commenting. Someone logged in to the control panel is the team and is known by their Statamic name. Anyone
- * else gives a name the first time, and the password too when PROTOTYPE_PASSWORD is set, and a cookie remembers them
- * for 30 days. It is the cookie the prototype's sign-in sets, in the same form, so a name given in either place works
- * in both, and changing the password signs everyone out of both.
+ * else signs in: with the password when PROTOTYPE_PASSWORD is set, and with an email on resources/site/reviewers.yaml
+ * when the site lists its reviewers, or else with any name. A cookie remembers them for 30 days. It is the cookie the
+ * prototype's sign-in sets, in the same form, so a name given in either place works in both, and changing the password
+ * signs everyone out of both. A listed reviewer is checked against the list on every request, so taking someone off it
+ * signs them out.
  */
 final class Viewer
 {
@@ -27,12 +29,22 @@ final class Viewer
         }
 
         $cookie = json_decode((string) $request->cookie(self::cookieName()), true);
-        if (! is_array($cookie) || ! is_string($cookie['name'] ?? null) || trim($cookie['name']) === '') {
+        if (! is_array($cookie)) {
             return null;
         }
 
         $password = self::password();
         if ($password !== '' && ! hash_equals(self::key($password), (string) ($cookie['key'] ?? ''))) {
+            return null;
+        }
+
+        if (Reviewers::listed()) {
+            $person = is_string($cookie['email'] ?? null) ? Reviewers::find($cookie['email']) : null;
+
+            return $person ? ['name' => $person['name'], 'staff' => false] : null;
+        }
+
+        if (! is_string($cookie['name'] ?? null) || trim($cookie['name']) === '') {
             return null;
         }
 
@@ -49,9 +61,14 @@ final class Viewer
         return self::needsPassword() && hash_equals(self::password(), $given);
     }
 
-    public static function signIn(string $name): Cookie
+    public static function signIn(string $name, ?string $email = null): Cookie
     {
-        return cookie(self::cookieName(), json_encode(['name' => trim($name), 'key' => self::key(self::password())]), self::REMEMBER);
+        $value = ['name' => trim($name), 'key' => self::key(self::password())];
+        if ($email !== null) {
+            $value['email'] = $email;
+        }
+
+        return cookie(self::cookieName(), json_encode($value), self::REMEMBER);
     }
 
     public static function signOut(): Cookie

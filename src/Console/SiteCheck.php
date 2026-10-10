@@ -2,6 +2,7 @@
 
 namespace Avocadesign\StatamicTools\Console;
 
+use Avocadesign\StatamicTools\Feedback\FeedbackSettings;
 use Avocadesign\StatamicTools\Library\Names;
 use Avocadesign\StatamicTools\Permissions\EditorAccess;
 use Avocadesign\StatamicTools\Permissions\PermissionSets;
@@ -121,8 +122,13 @@ class SiteCheck extends Command
             $warnings++;
         }
 
-        // Feedback is for a review on local or staging. Left on in production it puts a widget on every page.
-        if (app()->isProduction() && config('statamic-tools.feedback.enabled')) {
+        // Feedback is for a review on local or staging. Without a password it stays off anywhere but a local machine,
+        // and left on in production it puts a widget on every page.
+        if (FeedbackSettings::heldForPassword()) {
+            $this->line('  <fg=yellow>!</> FEEDBACK_ENABLED is on but there is no PROTOTYPE_PASSWORD, so feedback stays off here: set one to review');
+            $warnings++;
+        }
+        if (app()->isProduction() && FeedbackSettings::active()) {
             $this->line('  <fg=yellow>!</> feedback is switched on in production, so every page shows the widget: set FEEDBACK_ENABLED=false once the review is over');
             $warnings++;
         }
