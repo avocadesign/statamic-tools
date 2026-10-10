@@ -2,6 +2,17 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.34 (10 October 2026)
+
+- **Sitemap boxes fit their page names.** Columns start wider and grow to fit their longest word, and the sitemap scrolls sideways when they need more room, so a long title never spills out of its box. Addresses break only after a slash, a hyphen or a dot.
+- **Add comment floats in yellow at the foot of the page** while the Comments panel is open, rather than sitting in the panel: centred on the frames in the prototype, and on the page beside the panel on the site. In the prototype, while a spot is being chosen, it says so and a click on it stops.
+- **In All comments, Showing sits beside the page's name,** rather than at the far right; on the site, This page does too.
+- **The site's Comments tab is yellow,** like Add comment, with the open count in a dark pill.
+- **All comments filters to Open or Decisions,** and each page's done comments fold away beneath it under Done, as they do on the page. The Done and All filters go, and To decide reads Decisions.
+- **All comments has more room between pages,** each under a line that runs the panel's full width, and the filters share the panel's width.
+- **The recipe says how to write prototype page notes,** short and in the client's words: the description says what the page is for, the content to prepare lists only what the client has to supply, and the technical notes say where content comes from, such as Site Details.
+- **To do on update:** nothing.
+
 ## v0.1.33 (10 October 2026)
 
 - **All feedback reads All comments** in the Comments panel, in the prototype and on the site.

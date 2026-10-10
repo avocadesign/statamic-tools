@@ -33,11 +33,11 @@
         '<style>' +
         ':host{all:initial}' +
         '.tab{position:fixed;top:50%;right:0;transform:translateY(-50%);z-index:2147483000;display:flex;flex-direction:column;align-items:center;gap:8px;' +
-        'padding:14px 8px;border:0;border-radius:8px 0 0 8px;background:#1f2430;color:#fff;cursor:pointer;box-shadow:0 4px 16px rgb(0 0 0/.18);' +
+        'padding:14px 8px;border:0;border-radius:8px 0 0 8px;background:#f2b632;color:#1b1400;cursor:pointer;box-shadow:0 4px 16px rgb(0 0 0/.22);' +
         'font:600 13px/1 system-ui,-apple-system,"Segoe UI",sans-serif;letter-spacing:.02em}' +
-        '.tab:hover{background:#2c3342}.tab:focus-visible{outline:2px solid #1f2430;outline-offset:2px}' +
+        '.tab:hover{background:#f6c459}.tab:focus-visible{outline:2px solid #1f2430;outline-offset:2px}' +
         '.label{writing-mode:vertical-rl;transform:rotate(180deg)}' +
-        '.count{min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:#fff;color:#1f2430;font-size:11px;line-height:20px;text-align:center;box-sizing:border-box}' +
+        '.count{min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:#1b1400;color:#f2b632;font-size:11px;line-height:20px;text-align:center;box-sizing:border-box}' +
         '.count[hidden]{display:none}' +
         '</style>' +
         '<button class="tab" type="button" aria-label="Comments"><span class="count" hidden></span><span class="label">Comments</span></button>';

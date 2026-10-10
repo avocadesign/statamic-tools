@@ -112,6 +112,14 @@ Don't edit this file in `vendor/`. If a step is wrong, missing or contradicted b
 
 The discovery prototype draws each page in `prototype/<version>/pages.js` with the site's own CSS, in frames set on a dark interface. The README's Prototype section has the files and the format.
 
+### Page notes
+
+Each page's notes in `data.js` are read by the client, so write them in the client's words and keep them short. Each part has one job:
+
+- **The description, `purpose`,** says what the page is for. Write `How to get in touch, with contact form and contact details`, not `How to get in touch, with the contact form and the contact details from Site Details.`
+- **The content to prepare, `content`,** lists only what the client has to supply, not what the site already does. For a contact page: the contact details, the email to send the form to, and any extra questions they'd like to ask in the form.
+- **The technical notes, `tech`,** say where content comes from, such as Site Details, and how it's built. This is the only part that names things in the control panel.
+
 ### Background colours
 
 The interface around the frames is near-black (`#12151b`), and the frames sit straight on it, so a page's backgrounds have to stand apart from the interface as well as from each other.

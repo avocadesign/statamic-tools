@@ -188,6 +188,7 @@ function layoutFrames() {
         $(`#zoom-${name}`).textContent = `${Math.round(f.s * 100)}%`;
         if (f.ready && f.sentZoom !== f.s) { f.sentZoom = f.s; f.el.contentWindow.postMessage({ type: 'zoom', zoom: f.s }, '*'); }
     }
+    if (FB.on) fbAddButton();
 }
 
 /* ---------- Top bar ---------- */
@@ -235,6 +236,7 @@ function renderRail() {
     $('#fb-comment').setAttribute('aria-expanded', String(open && tab === 'comments'));
     if (state.view !== 'wireframes' || state.step < 0) $$('.device').forEach(d => d.classList.remove('dim'));
     if (state.view === 'wireframes') body.innerHTML = off ? '' : notesRail();
+    if (typeof fbAddButton === 'function' && $('#fb-add')) requestAnimationFrame(fbAddButton);
     else if (state.view === 'sitemap') body.innerHTML = sitemapRail();
     else if (state.view === 'model') body.innerHTML = modelRail();
     else body.innerHTML = '';
@@ -434,7 +436,7 @@ function smNode(n, top) {
         n.nav === 'main' ? 'main menu' : '', n.nav === 'footer' || n.foot ? 'footer' : '',
         n.count ? `${n.count} ${n.coll ? n.coll.toLowerCase() + ' entries' : 'entries'}` : ''
     ].filter(Boolean);
-    const inner = `<span class="nt">${esc(n.t)}</span><span class="nu">${esc(n.u)}</span>${n.note ? `<span class="muted" style="font-size:12px">${esc(n.note)}</span>` : ''}${tags.length ? `<span class="nm">${tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</span>` : ''}`;
+    const inner = `<span class="nt">${esc(n.t)}</span><span class="nu">${esc(n.u).replace(/([/.])/g, '$1<wbr>')}</span>${n.note ? `<span class="muted" style="font-size:12px">${esc(n.note)}</span>` : ''}${tags.length ? `<span class="nm">${tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</span>` : ''}`;
     const r = n.k ? ROUTES.find(x => x.key === n.k) : null;
     return r ? `<button type="button" class="${cls}" data-go="${sampleRoute(r)}">${inner}</button>` : `<div class="${cls}">${inner}</div>`;
 }
@@ -778,9 +780,21 @@ function fbStartComment() {
 function fbPick(on) {
     fb.picking = on;
     tellFrames({ type: 'pick', on });
-    $$('[data-fb-act="comment"]').forEach(b => b.setAttribute('aria-pressed', String(on)));
-    if (on) toast('Click the spot you want to comment on, on either page. Press Escape to stop.');
-    else $('#toast').hidden = true;
+    fbAddButton();
+}
+
+// Add comment floats at the foot of the frames, in yellow, while the Comments panel is open. While a spot is being
+// chosen it says so, and a click on it stops.
+function fbAddButton() {
+    const b = $('#fb-add');
+    const pr = parseRoute(state.route);
+    const show = FB.on && fbSigned() && state.view === 'wireframes' && state.notes && pageHasNotes(pr) && railTab(pr) === 'comments';
+    b.hidden = !show;
+    b.setAttribute('aria-pressed', String(fb.picking));
+    b.innerHTML = fb.picking ? 'Click where your comment belongs<span class="float-cancel">Cancel</span>' : `<svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Add comment`;
+    if (!show) return;
+    const r = $('#frames-wrap').getBoundingClientRect();
+    b.style.left = `${r.left + r.width / 2}px`;
 }
 
 function fbPicked(frame, anchor) {
@@ -952,6 +966,7 @@ function fbAct(act, id) {
 
 function fbClick(t) {
     if (t.id === 'fb-comment') { togglePanel('comments'); return true; }
+    if (t.id === 'fb-add') { fbStartComment(); return true; }
     if (t.hasAttribute('data-fb-menu')) {
         const menu = t.nextElementSibling;
         const open = menu.hidden;
@@ -1075,7 +1090,6 @@ function fbScopeBar() {
     const open = fbFiltered('open', 'version').length;
     return `<div class="fb-h">
         <p class="fb-scope">${all ? '<button type="button" class="link-btn" data-fb-list="page">This page</button>' : '<b>This page</b>'}<span aria-hidden="true">·</span>${all ? '<b>All comments</b>' : `<button type="button" class="link-btn" data-fb-list="all">All comments${open ? ` (${open} open)` : ''}</button>`}</p>
-        <button type="button" class="btn small" data-fb-act="comment" aria-pressed="${fb.picking}">Add comment</button>
     </div>`;
 }
 
@@ -1094,23 +1108,22 @@ function fbSection(pr) {
     </section>`;
 }
 
-const FB_FILTERS = [['open', 'Open'], ['decide', 'To decide'], ['done', 'Done'], ['all', 'All']];
-const FB_EMPTY = {
-    open: 'Nothing open.',
-    decide: 'No decisions waiting.',
-    done: 'Nothing done yet.',
-    all: 'No comments yet.'
-};
+const FB_FILTERS = [['open', 'Open'], ['decide', 'Decisions']];
+const FB_EMPTY = { open: 'No comments yet.', decide: 'No decisions yet.' };
 
 // All the feedback on the prototype, page by page, filtered to what needs doing. Decisions from earlier versions are
 // always in it; their other comments only when asked for.
+// Each page's comments open or to decide, with those done folded away beneath, as on the page.
 function fbAll() {
-    // Decided and Resolved, from before they were one filter, are Done.
-    const show = ['decided', 'resolved'].includes(state.fbShow) ? 'done' : FB_FILTERS.some(f => f[0] === state.fbShow) ? state.fbShow : 'open';
+    const show = state.fbShow === 'decide' ? 'decide' : 'open';
     const scope = state.fbScope === 'all' ? 'all' : 'version';
+    const byNum = (a, b) => (fb.num.get(a.id) || 0) - (fb.num.get(b.id) || 0);
     const list = fbFiltered(show, scope);
-    const keys = [...ROUTES.map(r => r.key), ...new Set(list.map(c => c.page).filter(k => !ROUTES.some(r => r.key === k)))];
-    const groups = keys.map(key => [key, list.filter(c => c.page === key).sort((a, b) => (fb.num.get(a.id) || 0) - (fb.num.get(b.id) || 0))]).filter(([, cs]) => cs.length);
+    // Done beneath: every comment done, or with Decisions, the decisions made.
+    const done = fbFiltered('done', scope).filter(c => show === 'open' || c.decision);
+    const pages = [...list, ...done].map(c => c.page);
+    const keys = [...ROUTES.map(r => r.key), ...new Set(pages.filter(k => !ROUTES.some(r => r.key === k)))];
+    const groups = keys.map(key => [key, list.filter(c => c.page === key).sort(byNum), done.filter(c => c.page === key).sort(byNum)]).filter(([, cs, ds]) => cs.length || ds.length);
     const title = key => (ROUTES.find(r => r.key === key) || {}).title || key;
     const route = key => { const r = ROUTES.find(x => x.key === key); return r ? sampleRoute(r) : null; };
     const here = parseRoute(state.route).key;
@@ -1118,9 +1131,10 @@ function fbAll() {
         ${fbScopeBar()}
         <div class="fb-filters" role="group" aria-label="Show">${FB_FILTERS.map(([k, label]) => { const n = fbFiltered(k, scope).length; return `<button type="button" class="chip-btn" data-fb-filter="${k}" aria-pressed="${show === k}">${label}${n ? ` <span class="muted">${n}</span>` : ''}</button>`; }).join('')}</div>
         ${VERSIONS.length > 1 ? `<label class="toggle"><input type="checkbox" id="fb-versions"${scope === 'all' ? ' checked' : ''}> Comments on earlier versions too</label>` : ''}
-        ${groups.length ? groups.map(([key, cs]) => `<div class="fb-group">
+        ${groups.length ? groups.map(([key, cs, ds]) => `<div class="fb-group">
             <div class="fb-group-h"><h3>${key !== here && route(key) ? `<button type="button" class="fb-page" data-go="${esc(route(key))}">${esc(title(key))}<span aria-hidden="true">→</span></button>` : esc(title(key))}</h3>${key === here ? '<span class="fb-here">Showing</span>' : ''}</div>
             ${cs.map(c => fbCard(c)).join('')}
+            ${ds.length ? `<details class="fold fb-resolved"${ds.some(c => c.id === fb.open) ? ' open' : ''}><summary>Done <span class="fold-n">${ds.length}</span></summary><div>${ds.map(c => fbCard(c)).join('')}</div></details>` : ''}
         </div>`).join('') : `<p class="note-line">${FB_EMPTY[show]}</p>`}
     </section>`;
 }

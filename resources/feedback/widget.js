@@ -1,6 +1,6 @@
 /*
  * Avoca feedback: the widget, which works as the prototype's comments do. A panel on the right lists this page's
- * comments, or all the comments on the site filtered to open, to decide or done. Add comment asks for a spot on the
+ * comments, or all the comments on the site, open or decisions, with those done folded away. Add comment asks for a spot on the
  * page: the comment is pinned to the element clicked, at that point within it, so its numbered pin follows the element
  * when the layout changes, and a pin that covers something can be dragged to another spot. Pins are graphite while
  * open, amber for a decision to make and green once done. The team can raise a comment as a decision and record what
@@ -41,8 +41,9 @@
         '.scope .add{flex:none;white-space:nowrap}',
         '.toggle{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--ink);user-select:none}',
         '.toggle input{accent-color:var(--accent);width:15px;height:15px;margin:0}',
-        '.chips{display:flex;flex-wrap:wrap;gap:6px}',
-        '.chip{padding:3px 10px;border:1px solid var(--line-2);border-radius:999px;background:var(--bg);font-size:12px}',
+        // The filters share the panel's width between them.
+        '.chips{display:flex;gap:6px}',
+        '.chip{flex:1;padding:5px 10px;border:1px solid var(--line-2);border-radius:999px;background:var(--bg);font-size:12px;text-align:center}',
         '.chip span{color:var(--muted)}',
         '.chip[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}',
         '.chip[aria-pressed=true] span{color:inherit;opacity:.7}',
@@ -117,8 +118,11 @@
         '.fold[open]>summary::before{transform:rotate(90deg)}',
         '.fold>summary span{font:500 11px ui-monospace,monospace;color:var(--muted)}',
         '.fold>div{margin-top:8px;display:flex;flex-direction:column;gap:8px}',
-        '.group{display:flex;flex-direction:column;gap:8px;padding-top:10px;border-top:1px solid var(--line)}',
-        '.group-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px}',
+        // Pages in All comments, each under a line that runs the panel's full width, with room between them.
+        '.group{display:flex;flex-direction:column;gap:8px;margin:14px -16px 0;padding:20px 16px 0;border-top:1px solid var(--line)}',
+        // The first page sits straight under the filters' own line.
+        '.body > .group:first-child{margin-top:0;padding-top:4px;border-top:0}',
+        '.group-h{display:flex;align-items:baseline;gap:8px}',
         '.group-h h3{margin:0;font-size:14px;font-weight:600;overflow-wrap:anywhere}',
         '.group-h > span{color:var(--muted);font-size:12px;white-space:nowrap}',
         '.page{display:inline-flex;align-items:baseline;gap:6px;color:inherit;text-decoration:none}',
@@ -146,6 +150,11 @@
         '.pin.dragging{cursor:grabbing;transition:none;transform:translate(-50%,-50%) scale(1.18)}',
         '.mark{position:fixed;z-index:2147482998;pointer-events:none;border:2px solid #12151b;border-radius:4px;box-shadow:0 0 0 2px rgb(255 255 255/.8);display:none}',
         '.mark.picking{background:rgb(18 21 27/.06)}',
+        // Add comment, floating in yellow at the foot of the page beside the panel while the panel is open.
+        '.float-add{position:fixed;bottom:22px;left:calc((100vw - min(400px,100vw)) / 2);z-index:2147483002;transform:translateX(-50%);display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border:0;border-radius:999px;background:var(--amber);color:var(--amber-ink);font-size:14px;font-weight:700;white-space:nowrap;box-shadow:0 6px 20px rgb(0 0 0/.3)}',
+        '.float-add[hidden]{display:none}',
+        '.float-add:hover{filter:brightness(1.06)}',
+        '@media (max-width:640px){.float-add{left:50%}}',
         '.banner{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:2147483002;display:none;align-items:center;gap:12px;padding:10px 14px;',
         'border-radius:10px;background:#1f2430;color:#fff;box-shadow:0 6px 24px rgb(0 0 0/.25);font-size:13px}',
         '.banner .ghost{background:transparent;color:#fff;border-color:rgb(255 255 255/.35);padding:4px 10px}',
@@ -153,8 +162,8 @@
     ].join('');
 
     var BREAKPOINTS = [['2xl', 96], ['xl', 80], ['lg', 64], ['md', 48], ['sm', 40]];
-    var FILTERS = [['open', 'Open'], ['decide', 'To decide'], ['done', 'Done'], ['all', 'All']];
-    var EMPTY = { open: 'Nothing open.', decide: 'No decisions waiting.', done: 'Nothing done yet.', all: 'No comments yet.' };
+    var FILTERS = [['open', 'Open'], ['decide', 'Decisions']];
+    var EMPTY = { open: 'No comments yet.', decide: 'No decisions yet.' };
     var PINS_KEY = 'avoca-feedback-pins';
 
     var state = {
@@ -483,7 +492,8 @@
             '<aside class="panel" role="dialog" aria-label="Comments" aria-modal="false">' +
             '<div class="head"><h2 tabindex="-1">Comments</h2><button type="button" class="icon close" aria-label="Close comments">' +
             '<svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button></div>' +
-            '<div class="bar"></div><div class="body"></div><div class="foot"></div></aside>';
+            '<div class="bar"></div><div class="body"></div><div class="foot"></div></aside>' +
+            '<button type="button" class="float-add add" hidden><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Add comment</button>';
         root.appendChild(style);
         root.appendChild(wrap);
         ui.wrap = wrap;
@@ -494,6 +504,7 @@
         ui.bar = wrap.querySelector('.bar');
         ui.body = wrap.querySelector('.body');
         ui.foot = wrap.querySelector('.foot');
+        ui.add = wrap.querySelector('.float-add');
         ui.heading = wrap.querySelector('.head h2');
 
         wrap.addEventListener('click', onClick);
@@ -524,6 +535,8 @@
         var focused = active && active.dataset ? active.dataset.keep : null;
 
         ui.panel.classList.toggle('on', state.panel);
+        // Add comment floats in yellow over the page while the panel is open.
+        ui.add.hidden = !(state.panel && signed() && !state.picking);
         var viewer = state.session && state.session.viewer;
         if (!state.session) {
             ui.bar.innerHTML = '';
@@ -572,17 +585,17 @@
             '<div class="row"><button class="primary">Continue</button></div></form>';
     }
 
-    // This page or all feedback, Add comment, and the pins switch; all feedback adds its filters.
+    // This page or all comments; all comments adds its filters.
     function scopeBar() {
         var all = state.scope === 'all';
         var open = state.all.filter(isOpen).length;
         return '<div class="scope"><p>' +
             (all ? '<button type="button" class="link" data-scope="page">This page</button>' : '<b>This page</b>') + '<span aria-hidden="true">·</span>' +
             (all ? '<b>All comments</b>' : '<button type="button" class="link" data-scope="all">All comments' + (open ? ' (' + open + ' open)' : '') + '</button>') +
-            '</p><button type="button" class="ghost small add" aria-pressed="' + state.picking + '">Add comment</button></div>' +
+            '</p></div>' +
             (all ? '<div class="chips" role="group" aria-label="Show">' + FILTERS.map(function (f) {
                 var n = filtered(f[0]).length;
-                return '<button type="button" class="chip" data-show="' + f[0] + '" aria-pressed="' + (state.show === f[0]) + '">' + f[1] + (n ? ' <span>' + n + '</span>' : '') + '</button>';
+                return '<button type="button" class="chip" data-show="' + f[0] + '" aria-pressed="' + ((state.show === 'decide' ? 'decide' : 'open') === f[0]) + '">' + f[1] + (n ? ' <span>' + n + '</span>' : '') + '</button>';
             }).join('') + '</div>' : '');
     }
 
@@ -601,23 +614,34 @@
     }
 
     // All the feedback on the site, page by page, this page first.
+    // Each page's comments open or to decide, with those done folded away beneath, as on the page.
     function allList() {
-        var list = filtered(state.show);
-        if (!list.length) return '<p class="empty">' + EMPTY[state.show] + '</p>';
+        var show = state.show === 'decide' ? 'decide' : 'open';
+        var list = filtered(show);
+        // Done beneath: every comment done, or with Decisions, the decisions made.
+        var finished = state.all.filter(function (c) { return done(c) && (show === 'open' || c.decision); });
         var groups = {};
         var order = [];
-        list.forEach(function (c) {
-            if (!groups[c.url]) { groups[c.url] = []; order.push(c.url); }
-            groups[c.url].push(c);
-        });
+        var add = function (c, key) {
+            if (!groups[c.url]) { groups[c.url] = { open: [], done: [] }; order.push(c.url); }
+            groups[c.url][key].push(c);
+        };
+        list.forEach(function (c) { add(c, 'open'); });
+        finished.forEach(function (c) { add(c, 'done'); });
+        if (!order.length) return '<p class="empty">' + EMPTY[show] + '</p>';
         order.sort(function (a, b) { return (b === path()) - (a === path()); });
         return order.map(function (url) {
-            var cs = groups[url].sort(byNumber);
-            var title = cs[0].title || url;
+            var g = groups[url];
+            var cs = g.open.sort(byNumber);
+            var ds = g.done.sort(byNumber);
+            var title = (cs[0] || ds[0]).title || url;
+            var opened = ds.some(function (c) { return c.id === state.openId; });
             // Another page's heading takes you there.
             return '<div class="group"><div class="group-h"><h3>' + (url === path() ? esc(title) : '<a class="page" href="' + esc(url) + '">' + esc(title) + '<span aria-hidden="true">→</span></a>') + '</h3>' +
                 (url === path() ? '<span>This page</span>' : '') + '</div>' +
-                cs.map(card).join('') + '</div>';
+                cs.map(card).join('') +
+                (ds.length ? '<details class="fold"' + (opened ? ' open' : '') + '><summary>Done <span>' + ds.length + '</span></summary><div>' + ds.map(card).join('') + '</div></details>' : '') +
+                '</div>';
         }).join('');
     }
 
