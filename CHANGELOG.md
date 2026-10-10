@@ -2,6 +2,13 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.25 (10 October 2026)
+
+- **Feedback on the site works as the prototype's comments do.** The tab reads Comments and carries the number open on the site. Its panel shows this page's comments, with those done folded away, or all the feedback page by page, filtered to open, to decide or done. Pins are graphite while open, amber for a decision to make and green once done; they can be dragged when they cover something, switched off with Show comment pins, and still show for a comment being pointed at. The team raises and records decisions from the panel, and Add comment writes the comment in the panel with the + on the page. Cards no longer say where a comment is in words (the pin shows it; `avoca:feedback` still does).
+- **Fewer, smaller actions,** on the site and in the prototype. An open comment has a slim reply box, whose Reply button shows once something is typed, and one button for the next step: Mark done, Record decision (the team) or Reopen, which reopens a decision and a resolved comment alike. The team's Make it a decision and Remove decision sit in a ⋯ menu. Show on page is gone: opening a comment brings its pin into sight, scrolling only when it's out of view, and one on another page takes you there.
+- **Pins show as reviewers browse.** For a browser that has reviewed before, the loader starts the widget once the page is idle, so pins and the count show without a click. Visitors who haven't reviewed still get only the loader.
+- **To do on update:** nothing.
+
 ## v0.1.24 (10 October 2026)
 
 - **The team hears about new comments.** One email every 10 minutes, a digest of what reviewers said since the last on the site and in the prototype, each with a link that opens the comment, through sign-in when needed (the prototype now takes `?comment=<id>`). It goes to reviewers marked `team: true` and `FEEDBACK_NOTIFY`'s addresses, through the site's mail, and leaves out the team's own comments. `avoca:feedback:notify` sends it, with `--dry-run` to see who would be told what; Laravel's scheduler runs it while feedback is on. If an email fails, the next run sends everything since. `avoca:site:check` warns when feedback is on and nobody would hear.

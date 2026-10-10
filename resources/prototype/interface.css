@@ -372,7 +372,17 @@ button.node:hover { border-color: var(--ink); }
 .fbc-outcome small { font-size: 11.5px; color: var(--muted); }
 .fbc-replies { list-style: none; display: flex; flex-direction: column; gap: 10px; padding-left: 12px; border-left: 2px solid var(--line-2); }
 .fbc-replies li { display: flex; flex-direction: column; gap: 2px; }
-.fbc-actions { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+/* An open comment's foot: a slim reply box, its Reply button once something is typed, then the next step and a menu. */
+.fb-reply { gap: 6px; }
+.fb-reply textarea { min-height: 34px; field-sizing: content; max-height: 200px; resize: none; }
+.fbc-bar { display: flex; align-items: center; gap: 8px; }
+.fb-reply:has(textarea:placeholder-shown) .fb-send { display: none; }
+.fbc-acts { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+.fbc-more { position: relative; }
+.fbc-menu { position: absolute; z-index: 20; right: 0; top: calc(100% + 4px); display: flex; flex-direction: column; min-width: 170px; padding: 4px; border: 1px solid var(--line-2); border-radius: 10px; background: var(--surface); box-shadow: var(--shadow); }
+.fbc-menu[hidden] { display: none; }
+.fbc-menu button { border: 0; background: none; text-align: left; padding: 7px 10px; border-radius: 6px; font-size: 13px; color: var(--ink); white-space: nowrap; }
+.fbc-menu button:hover { background: var(--surface-2); }
 .fb-resolved > div { gap: 8px; }
 .fb-scope { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; font-size: 12.5px; color: var(--muted); }
 .fb-scope b { color: var(--ink); font-weight: 600; }

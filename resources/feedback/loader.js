@@ -1,8 +1,9 @@
 /*
  * Avoca feedback: the loader. The only script feedback adds to a page while it is on. It shows nothing to a visitor
- * who isn't reviewing: the Feedback tab appears for a browser that has signed in to review before, or when the address
- * asks for it, with ?review on the link reviewers are sent, or ?feedback=<id> for one comment. The tab carries the
- * number of open comments on this page once the page has settled, and the widget itself loads on the first click.
+ * who isn't reviewing: the Comments tab appears for a browser that has signed in to review before, or when the address
+ * asks for it, with ?review on the link reviewers are sent, or ?feedback=<id> for one comment. For a browser that has
+ * reviewed before, the widget starts once the page has settled, so the pins and the number of open comments show
+ * without a click; otherwise it loads on the first click.
  */
 (function () {
     'use strict';
@@ -37,20 +38,16 @@
         '.count{min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:#fff;color:#1f2430;font-size:11px;line-height:20px;text-align:center;box-sizing:border-box}' +
         '.count[hidden]{display:none}' +
         '</style>' +
-        '<button class="tab" type="button" aria-label="Feedback on this page"><span class="count" hidden></span><span class="label">Feedback</span></button>';
+        '<button class="tab" type="button" aria-label="Comments"><span class="count" hidden></span><span class="label">Comments</span></button>';
 
     var tab = root.querySelector('.tab');
     var count = root.querySelector('.count');
     var loading = null;
 
-    function path() {
-        return location.pathname.replace(/\/+$/, '') || '/';
-    }
-
     function setCount(open) {
         count.textContent = open > 99 ? '99+' : String(open);
         count.hidden = !open;
-        tab.setAttribute('aria-label', 'Feedback on this page' + (open ? ', ' + open + ' open' : ''));
+        tab.setAttribute('aria-label', 'Comments' + (open ? ', ' + open + ' open' : ''));
     }
 
     function widget() {
@@ -74,10 +71,12 @@
         } catch (e) { /* storage unavailable */ }
     }
 
+    function ctx(focus) {
+        return { base: base, entry: entry, root: root, setCount: setCount, remember: remember, focus: focus || null };
+    }
+
     function open(focus) {
-        return widget().then(function (app) {
-            app.open({ base: base, entry: entry, root: root, setCount: setCount, remember: remember, focus: focus || null });
-        });
+        return widget().then(function (app) { app.open(ctx(focus)); });
     }
 
     tab.addEventListener('click', function () { open(); });
@@ -89,12 +88,9 @@
         return;
     }
 
-    // The count waits until the page has settled, so it never competes with the page's own requests.
+    // The widget waits until the page has settled, so it never competes with the page's own requests.
     var later = window.requestIdleCallback || function (fn) { return setTimeout(fn, 1500); };
     later(function () {
-        fetch(base + '/count?url=' + encodeURIComponent(path()), { credentials: 'same-origin', headers: { Accept: 'application/json' } })
-            .then(function (r) { return r.ok ? r.json() : null; })
-            .then(function (data) { if (data) setCount(data.open || 0); })
-            .catch(function () {});
+        widget().then(function (app) { app.start(ctx()); }).catch(function () {});
     });
 })();

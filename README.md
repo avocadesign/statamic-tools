@@ -92,12 +92,15 @@ gets their improvements. What the prototype says is the site's own, one folder p
 - **Comments,** with `FEEDBACK_ENABLED=true` (see Feedback). The Comments button, with the number still open, opens the
   side panel; Add comment asks for a spot on either frame, and the comment's numbered pin sits on the element clicked in
   both frames: graphite while open, amber for a decision to make, green once done. Done is one thing to a reviewer, a
-  decision made or a comment resolved, so the panel says Done and Mark as done for both. It lists this page's
-  comments, with those done folded away, or all the feedback on the prototype, filtered to open, to decide or done,
-  and switches the pins off and on; pointing at a comment shows its pin either way. A pin that covers something can be
-  dragged to another spot, and pins to the element it's dropped on. A comment belongs to its version; a decision shows in every version.
+  decision made or a comment resolved, so the panel says Done for both. It lists this page's comments, with those done
+  folded away, or all the feedback on the prototype, filtered to open, to decide or done, and switches the pins off and
+  on; pointing at a comment shows its pin either way. Opening a comment brings its pin into sight, or takes you to its
+  page. An open comment has a slim reply box and one button for the next step: Mark done, Record decision (the team) or
+  Reopen; the team's other actions, Make it a decision and Remove decision, sit in a ⋯ menu. A pin that covers
+  something can be dragged to another spot, and pins to the element it's dropped on. A comment belongs to its version;
+  a decision shows in every version.
 - **Decisions** come from comments. The team (a control panel login, a reviewer marked `team: true`, or
-  `avoca:feedback`) raises a comment as a decision, or ticks Raise as a decision as they post, and records what was
+  `avoca:feedback`) raises a comment as a decision, or ticks Make it a decision as they post, and records what was
   decided. At sign-off, `php please avoca:feedback --write-decisions` copies them into `resources/site/decisions.md`.
 - **Notes.** The Notes button opens the page's notes beside the comments, with every section open. A page without notes
   has no button. The panel stays out of sight until one of the two buttons opens it.
@@ -131,14 +134,17 @@ FEEDBACK_NOTIFY=studio@example.com          # optional: more addresses for the t
 ```
 
 Send reviewers the site's address with `?review` on the end, and the password. Nobody else sees anything: the
-Feedback tab only appears in a browser that has signed in to review, or that opens a `?review` or `?feedback=<id>`
+Comments tab only appears in a browser that has signed in to review, or that opens a `?review` or `?feedback=<id>`
 link.
 
-- **On the page.** A Feedback tab on the right edge, with the number of open comments on that page. Its panel lists the
-  comments on this page or every page, open or resolved. Add feedback asks for a spot on the page, and the comment is
-  pinned to the element clicked, at that point within it, so its numbered pin follows the element when the layout
-  changes. Each comment says in words where it is: the page builder block, read from the template comments the kit's
-  partials leave in the page, and the nearest heading.
+- **On the page,** it works as the prototype's comments do. A Comments tab on the right edge carries the number still
+  open on the site, and opens a panel: this page's comments, with those done folded away, or all the feedback, page by
+  page, filtered to open, to decide or done. Add comment asks for a spot on the page, and the comment is pinned to the
+  element clicked, at that point within it, so its numbered pin follows the element when the layout changes: graphite
+  while open, amber for a decision to make, green once done. A pin that covers something can be dragged to another
+  spot. Show comment pins switches them off and on, and pointing at a comment shows its pin either way. For
+  `avoca:feedback`, each comment also says in words where it is: the page builder block, read from the template
+  comments the kit's partials leave in the page, and the nearest heading.
 - **Who.** Someone logged in to the control panel comments as the team, under their Statamic name, and so does a
   reviewer marked `team: true` on the list. Anyone else signs in with the password. A cookie remembers them for 30 days. It is the prototype's sign-in cookie, so signing in to
   either works in both, and changing the password signs everyone out of both.
@@ -155,8 +161,7 @@ link.
       email: sam@avoca.design
       team: true          # can raise and record decisions, and sees the prototype's content model
   ```
-- **Replies and resolving.** Anyone signed in can reply, resolve and reopen. A resolved comment records who resolved it
-  and when.
+- **Replies and done.** Anyone signed in can reply, mark a comment as done and reopen it. Done records who and when.
 - **Decisions.** The team can raise a comment as a decision to make, record what was decided, reopen it or take the
   decision off. Reviewers can't. Decisions made on the prototype carry from one version to the next.
 - **The team hears about new comments** by email: one digest every 10 minutes of what reviewers said since the last,
@@ -169,8 +174,9 @@ link.
   holds the page, its entry, the element, the spot within it, the block, the width it was made at, the replies and the
   status.
 - **Weight.** Switched off, nothing is added to any page and the code that would add it is never registered, so
-  production is untouched. Switched on, a page gets one deferred script of under 4 KB, the tab, and the widget loads on
-  the first click. It works outside Statamic's static cache, so cached copies never hold it; full static caching
+  production is untouched. Switched on, a page gets one deferred script of about 4 KB (under 2 KB compressed) and
+  shows nothing more to a visitor. The tab appears for reviewers, and the widget, about 14 KB compressed, loads on the
+  first click, or once the page is idle for a browser that has reviewed before, so its pins show as they browse. It works outside Statamic's static cache, so cached copies never hold it; full static caching
   serves pages without PHP, so review with half measure or none. `avoca:site:check` warns when it is on in production.
 
 For a developer, or Claude working for one:

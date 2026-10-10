@@ -763,7 +763,10 @@
         } else if (m.type === 'cpin-show') {
             var item = cpins.items.filter(function (c) { return c.id === m.id; })[0];
             var target = item && find(item.selector);
-            if (target) target.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' });
+            // A soft show leaves the page where it is when the pin is already in sight.
+            var seen = target && (function (r) { return r.bottom > 0 && r.top < window.innerHeight; })(target.getBoundingClientRect());
+            if (m.soft && seen) { /* already in sight */ }
+            else if (target) target.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' });
             else if (item && item.page_y != null) window.scrollTo({ top: Math.max(0, item.page_y - window.innerHeight / 2), behavior: reduced ? 'auto' : 'smooth' });
             cpins.hot = m.id;
             placePins();

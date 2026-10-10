@@ -290,6 +290,7 @@ const ICON = {
     desktop: '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2" width="13" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M6 14h4M8 11v3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
     panel: '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M6 2.5v11" stroke="currentColor" stroke-width="1.4"/></svg>',
     close: '<svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
+    more: '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="3.5" cy="8" r="1.4" fill="currentColor"/><circle cx="8" cy="8" r="1.4" fill="currentColor"/><circle cx="12.5" cy="8" r="1.4" fill="currentColor"/></svg>',
     chev: '<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 };
 const DEVICE = { mobile: 'Mobile', desktop: 'Desktop' };
@@ -795,11 +796,21 @@ function fbOpen(id) {
     requestAnimationFrame(() => { const el = $(`#rail [data-fb="${id}"]`); if (el) el.scrollIntoView({ block: 'nearest' }); });
 }
 
+// Opening a comment reveals its pin, scrolling the frames only when it's out of sight; one on another page takes you
+// there.
 function fbToggle(id) {
+    const c = fb.comments.find(x => x.id === id);
+    if (fb.open !== id && c && (c.page !== parseRoute(state.route).key || state.view !== 'wireframes')) { fbShow(id); return; }
     fb.open = fb.open === id ? null : id;
     fb.deciding = null;
     fbRefresh();
     tellFrames({ type: 'cpin-hot', id: fb.open });
+    if (fb.open) tellFrames({ type: 'cpin-show', id: fb.open, soft: true });
+}
+
+function fbMenus() {
+    $$('.fbc-menu').forEach(m => { m.hidden = true; });
+    $$('[data-fb-menu]').forEach(b => b.setAttribute('aria-expanded', 'false'));
 }
 
 // Takes you to the comment on its page, from the panel or the Feedback tab.
@@ -892,10 +903,15 @@ function fbAct(act, id) {
     const post = (path, body) => fbRun(fbApi('POST', `comments/${id}/${path}`, body).then(res => fbPut(res.comment)), null, id);
     if (act === 'comment') fbStartComment();
     else if (act === 'cancel-new') { fb.draft = null; fb.error = ''; fbRefresh(); }
-    else if (act === 'show') fbShow(id);
     else if (act === 'resolve') post('resolve');
-    else if (act === 'reopen') post('reopen');
-    else if (act === 'raise' || act === 'undecide') post('decision', { state: 'open' });
+    else if (act === 'reopen') {
+        const c = fb.comments.find(x => x.id === id) || {};
+        const steps = [];
+        if (fbIsDecided(c)) steps.push(() => fbApi('POST', `comments/${id}/decision`, { state: 'open' }));
+        if (c.status === 'resolved') steps.push(() => fbApi('POST', `comments/${id}/reopen`, {}));
+        fbRun(steps.reduce((p, step) => p.then(step).then(res => fbPut(res.comment)), Promise.resolve()), null, id);
+    }
+    else if (act === 'raise') post('decision', { state: 'open' });
     else if (act === 'drop') post('decision', { state: 'none' });
     else if (act === 'decide') { fb.deciding = id; fbRefresh(); fbFocus(`[data-fb-input="outcome-${id}"]`); }
     else if (act === 'cancel-decide') { fb.deciding = null; fbRefresh(); }
@@ -903,6 +919,14 @@ function fbAct(act, id) {
 
 function fbClick(t) {
     if (t.id === 'fb-comment') { togglePanel('comments'); return true; }
+    if (t.hasAttribute('data-fb-menu')) {
+        const menu = t.nextElementSibling;
+        const open = menu.hidden;
+        fbMenus();
+        menu.hidden = !open;
+        t.setAttribute('aria-expanded', String(open));
+        return true;
+    }
     if (t.dataset.fbToggle) { fbToggle(t.dataset.fbToggle); return true; }
     if (t.dataset.fbAct) { fbAct(t.dataset.fbAct, t.dataset.id); return true; }
     if (t.dataset.fbFilter) { state.fbShow = t.dataset.fbFilter; save(); renderRail(); return true; }
@@ -932,7 +956,7 @@ function fbCompose() {
     return `<form class="fb-form fb-compose" data-fb-form="new">
         <p class="fb-where"><span class="fbc-n fbc-n--draft">+</span>New comment, at the + on the page</p>
         <textarea class="fb-input" data-fb-input="new" rows="3" maxlength="5000" placeholder="What would you change, or what do you think?" aria-label="Your comment" required></textarea>
-        ${fbStaff() ? '<label class="toggle"><input type="checkbox" name="decision"> Raise as a decision</label>' : ''}
+        ${fbStaff() ? '<label class="toggle"><input type="checkbox" name="decision"> Make it a decision</label>' : ''}
         ${fbError('new')}
         <div class="fb-row"><button type="submit" class="btn primary">Post</button><button type="button" class="btn" data-fb-act="cancel-new">Cancel</button></div>
     </form>`;
@@ -965,29 +989,35 @@ function fbCard(c) {
     </article>`;
 }
 
-function fbThread(c) {
-    const d = c.decision;
+// What can be done with a comment: the one next step as a button, anything else the team can do in a menu.
+function fbActions(c) {
     const staff = fbStaff();
+    const more = [];
+    let next = null;
+    if (fbIsDecided(c)) { if (staff) next = ['reopen', 'Reopen']; }
+    else if (c.status === 'resolved') next = ['reopen', 'Reopen'];
+    else if (c.decision) { if (staff) { next = ['decide', 'Record decision']; more.push(['resolve', 'Mark done']); } }
+    else next = ['resolve', 'Mark done'];
+    if (staff) more.push(c.decision ? ['drop', 'Remove decision'] : ['raise', 'Make it a decision']);
+    return { next, more };
+}
+
+function fbThread(c) {
     const replies = (c.replies || []).map(r => `<li><p class="fbc-meta"><b>${esc((r.author || {}).name || 'Someone')}</b><span>${fbDate(r.created_at)}</span></p><p class="fbc-body">${esc(r.body)}</p></li>`).join('');
-    const btn = (act, label) => `<button type="button" class="link-btn" data-fb-act="${act}" data-id="${c.id}">${label}</button>`;
+    const { next, more } = fbActions(c);
+    const acts = fb.deciding === c.id ? '' : `${next ? `<button type="button" class="btn small" data-fb-act="${next[0]}" data-id="${c.id}">${next[1]}</button>` : ''}
+        ${more.length ? `<span class="fbc-more"><button type="button" class="icon-btn tiny" data-fb-menu aria-expanded="false" aria-label="More actions" title="More actions">${ICON.more}</button>
+            <span class="fbc-menu" hidden>${more.map(([act, label]) => `<button type="button" data-fb-act="${act}" data-id="${c.id}">${label}</button>`).join('')}</span></span>` : ''}`;
     return `${replies ? `<ul class="fbc-replies">${replies}</ul>` : ''}
         ${fb.deciding === c.id ? `<form class="fb-form" data-fb-form="outcome" data-id="${c.id}">
-            <label class="fb-label" for="fb-outcome-${c.id}">What was decided</label>
-            <textarea class="fb-input" id="fb-outcome-${c.id}" data-fb-input="outcome-${c.id}" rows="3" maxlength="5000" required></textarea>
-            <div class="fb-row"><button type="submit" class="btn primary">Record decision</button>${btn('cancel-decide', 'Cancel')}</div>
+            <textarea class="fb-input" data-fb-input="outcome-${c.id}" rows="2" maxlength="5000" placeholder="What was decided" aria-label="What was decided" required></textarea>
+            <div class="fb-row"><button type="submit" class="btn small primary">Record decision</button><button type="button" class="link-btn" data-fb-act="cancel-decide" data-id="${c.id}">Cancel</button></div>
         </form>` : ''}
-        ${fbSigned() ? `<form class="fb-form" data-fb-form="reply" data-id="${c.id}">
-            <textarea class="fb-input" data-fb-input="reply-${c.id}" rows="2" maxlength="5000" placeholder="Reply" aria-label="Reply" required></textarea>
-            <div class="fb-row"><button type="submit" class="btn">Reply</button></div>
-        </form>` : ''}
-        ${fbError(c.id)}
-        <div class="fbc-actions">
-            ${btn('show', 'Show on page')}
-            ${fbSigned() ? (c.status === 'open' ? btn('resolve', 'Mark as done') : btn('reopen', 'Reopen')) : ''}
-            ${staff && fb.deciding !== c.id ? (!d ? btn('raise', 'Raise as a decision')
-                : fbIsDecided(c) ? btn('undecide', 'Reopen the decision') + btn('drop', 'Not a decision')
-                : btn('decide', 'Record the decision') + btn('drop', 'Not a decision')) : ''}
-        </div>`;
+        <form class="fb-form fb-reply" data-fb-form="reply" data-id="${c.id}">
+            <textarea class="fb-input" data-fb-input="reply-${c.id}" rows="1" maxlength="5000" placeholder="Reply" aria-label="Reply" required></textarea>
+            <div class="fbc-bar"><button type="submit" class="btn small fb-send">Reply</button><span class="fbc-acts">${acts}</span></div>
+        </form>
+        ${fbError(c.id)}`;
 }
 
 // Comments: this page's, or all the feedback on the prototype. Signing in comes first.
@@ -1099,6 +1129,7 @@ document.addEventListener('click', e => {
     // A click on the diagram's empty space clears the selection.
     if (state.view === 'model' && state.entity && e.target.closest('#view-model') && !e.target.closest('.ent, button, a, summary')) { clearEntity(); return; }
     if (!e.target.closest('.display')) displayMenu(false);
+    if (!e.target.closest('.fbc-more')) fbMenus();
     const t = e.target.closest('button');
     if (!t) return;
     if (fbClick(t, e)) return;
