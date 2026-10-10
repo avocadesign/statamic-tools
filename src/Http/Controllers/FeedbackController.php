@@ -10,6 +10,7 @@ use Avocadesign\StatamicTools\Site\Blocks;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Arr;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -19,6 +20,18 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class FeedbackController extends Controller
 {
+    /** Where on a page a comment is: the element, the spot within it and on the page, and its name in words. */
+    private const ANCHOR = [
+        'anchor.selector' => ['nullable', 'string', 'max:1000'],
+        'anchor.x' => ['nullable', 'numeric', 'between:0,1'],
+        'anchor.y' => ['nullable', 'numeric', 'between:0,1'],
+        'anchor.page_x' => ['nullable', 'numeric', 'between:0,1'],
+        'anchor.page_y' => ['nullable', 'numeric', 'min:0'],
+        'anchor.block' => ['nullable', 'string', 'max:100'],
+        'anchor.label' => ['nullable', 'string', 'max:300'],
+        'anchor.text' => ['nullable', 'string', 'max:300'],
+    ];
+
     public function __construct(private FeedbackStore $store)
     {
     }
@@ -141,14 +154,7 @@ class FeedbackController extends Controller
             'title' => ['nullable', 'string', 'max:300'],
             'body' => ['required', 'string', 'max:5000'],
             'anchor' => ['nullable', 'array'],
-            'anchor.selector' => ['nullable', 'string', 'max:1000'],
-            'anchor.x' => ['nullable', 'numeric', 'between:0,1'],
-            'anchor.y' => ['nullable', 'numeric', 'between:0,1'],
-            'anchor.page_x' => ['nullable', 'numeric', 'between:0,1'],
-            'anchor.page_y' => ['nullable', 'numeric', 'min:0'],
-            'anchor.block' => ['nullable', 'string', 'max:100'],
-            'anchor.label' => ['nullable', 'string', 'max:300'],
-            'anchor.text' => ['nullable', 'string', 'max:300'],
+            ...self::ANCHOR,
             'viewport' => ['nullable', 'array'],
             'viewport.width' => ['nullable', 'integer', 'min:0', 'max:20000'],
             'viewport.height' => ['nullable', 'integer', 'min:0', 'max:20000'],
@@ -189,6 +195,23 @@ class FeedbackController extends Controller
         ], ['outcome.required_if' => 'Write what was decided.']);
 
         return $this->found($this->store->decide($id, $input['state'], $by, $input['outcome'] ?? null, $input['who'] ?? null));
+    }
+
+    /**
+     * Moves a comment's pin, when it covers something: anyone signed in can, as anyone can resolve. Only the parts of
+     * the spot the store keeps are taken.
+     */
+    public function move(Request $request, string $id): JsonResponse
+    {
+        $this->authorise($request);
+        $input = $request->validate([
+            'anchor' => ['required', 'array'],
+            ...self::ANCHOR,
+            'frame' => ['nullable', 'in:desktop,mobile'],
+        ]);
+        $anchor = Arr::only($input['anchor'], array_map(fn ($rule) => substr($rule, 7), array_keys(self::ANCHOR)));
+
+        return $this->found($this->store->move($id, $anchor, $input['frame'] ?? null));
     }
 
     public function reply(Request $request, string $id): JsonResponse

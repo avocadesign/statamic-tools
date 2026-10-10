@@ -9,7 +9,9 @@ use Avocadesign\StatamicTools\Http\Middleware\InjectFeedbackWidget;
 use Avocadesign\StatamicTools\Tests\TestCase;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Avocadesign\StatamicTools\Mail\FeedbackDigest;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Mail;
 
 class FeedbackTest extends TestCase
 {
@@ -257,6 +259,80 @@ class FeedbackTest extends TestCase
         $this->signedIn()->getJson('/!/statamic-tools/feedback/comments?context=prototype')->assertJsonCount(1, 'comments')->assertJsonPath('comments.0.context', 'prototype');
         $this->signedIn()->getJson('/!/statamic-tools/feedback/count?url=/contact')->assertJson(['open' => 0]);
         $this->signedIn()->getJson('/!/statamic-tools/feedback/count?url=/about')->assertJson(['open' => 1]);
+    }
+
+    public function test_a_pin_can_be_moved_by_anyone_signed_in(): void
+    {
+        $payload = ['context' => 'prototype', 'version' => '1', 'page' => 'home', 'route' => '/', 'frame' => 'desktop', 'url' => '/prototype/1', 'body' => 'Bigger?', 'anchor' => ['selector' => ':scope > main > h1', 'x' => 0.2, 'y' => 0.5, 'page_y' => 300]];
+        $id = $this->store->create($payload, self::PERSON)['id'];
+
+        $this->postJson("/!/statamic-tools/feedback/comments/{$id}/anchor", ['anchor' => ['selector' => ':scope > main > p']])->assertUnauthorized();
+
+        $moved = $this->signedIn()->postJson("/!/statamic-tools/feedback/comments/{$id}/anchor", [
+            'anchor' => ['selector' => ':scope > main > p', 'x' => 0.9, 'y' => 0.1, 'page_x' => 0.5, 'page_y' => 420, 'label' => 'near “Home”', 'extra' => 'dropped'],
+            'frame' => 'mobile',
+        ])->assertOk()->json('comment');
+
+        $this->assertSame(':scope > main > p', $moved['anchor']['selector']);
+        $this->assertSame(0.9, $moved['anchor']['x']);
+        $this->assertArrayNotHasKey('extra', $moved['anchor']);
+        $this->assertSame('mobile', $moved['frame']);
+        $this->assertSame(':scope > main > p', $this->store->find($id)['anchor']['selector']);
+
+        $this->signedIn()->postJson("/!/statamic-tools/feedback/comments/{$id}/anchor", ['anchor' => ['x' => 2]])->assertUnprocessable();
+    }
+
+    public function test_the_team_gets_one_digest_of_what_reviewers_said_since_the_last(): void
+    {
+        Mail::fake();
+        $this->reviewers("reviewers:\n  - name: Sam Avoca\n    email: Sam@avoca.design\n    team: true\n  - name: Jane Client\n    email: jane@example.com\n");
+        config(['statamic-tools.feedback.notify' => 'studio@avoca.design, not-an-email']);
+
+        $theirs = $this->comment('/about', 'Bigger heading, please');
+        $ours = $this->store->create(['url' => '/contact', 'body' => 'Noted'], ['name' => 'Sam Avoca', 'staff' => true]);
+        $this->store->reply($ours['id'], 'Thanks!', self::PERSON);
+        $this->store->reply($ours['id'], 'We will', ['name' => 'Sam Avoca', 'staff' => true]);
+        $this->travel(2)->seconds();
+
+        $this->artisan('avoca:feedback:notify', ['--dry-run' => true])->expectsOutputToContain('Would send 2 new items')->assertSuccessful();
+        Mail::assertNothingSent();
+
+        $this->artisan('avoca:feedback:notify')->assertSuccessful();
+        Mail::assertSent(FeedbackDigest::class, function (FeedbackDigest $mail) use ($theirs) {
+            $html = $mail->render();
+
+            return $mail->hasTo('sam@avoca.design') && $mail->hasTo('studio@avoca.design') && ! $mail->hasTo('jane@example.com')
+                && array_column($mail->items, 'kind') === ['comment', 'reply']
+                && $mail->items[0]['comment']['id'] === $theirs['id']
+                && $mail->envelope()->subject === '1 new comment and 1 reply on '.config('app.name')
+                && str_contains($html, '/about?feedback='.$theirs['id'])
+                && ! str_contains($html, 'We will');
+        });
+
+        // Only what's new since goes in the next one, and nothing new sends nothing.
+        $this->artisan('avoca:feedback:notify')->expectsOutputToContain('Nothing new')->assertSuccessful();
+        Mail::assertSentCount(1);
+        $this->store->reply($theirs['id'], 'Also the colour', self::PERSON);
+        $this->travel(2)->seconds();
+        $this->artisan('avoca:feedback:notify')->assertSuccessful();
+        Mail::assertSentCount(2);
+    }
+
+    public function test_without_the_team_listed_nobody_is_emailed(): void
+    {
+        Mail::fake();
+        $this->comment();
+        $this->travel(2)->seconds();
+
+        $this->artisan('avoca:feedback:notify')->expectsOutputToContain('Nobody to tell')->assertSuccessful();
+        Mail::assertNothingSent();
+    }
+
+    public function test_a_prototype_comment_links_into_its_version(): void
+    {
+        $comment = $this->store->create(['context' => 'prototype', 'version' => '2', 'page' => 'home', 'route' => '/', 'url' => '/prototype/2', 'body' => 'Hi'], self::PERSON);
+
+        $this->assertStringEndsWith('/prototype/2?comment='.$comment['id'], \Avocadesign\StatamicTools\Feedback\Digest::link($comment));
     }
 
     public function test_the_command_raises_and_records_decisions_and_writes_them_into_the_site(): void

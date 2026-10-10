@@ -531,10 +531,11 @@
 
     /* ---------- Comments: pins on the page, and choosing a spot for a new one ----------
        The shell sends the comments for this page; each pin sits on its element, at the spot within it, so it moves
-       with the element. A comment whose element has gone sits where it was on the page, dashed. */
+       with the element. A comment whose element has gone sits where it was on the page, dashed. A pin can be dragged
+       to another spot when it covers something. */
 
     var cpins = { items: [], show: true, hot: null, zoom: 1 };
-    var pinLayer = null, outline = null, picking = false;
+    var pinLayer = null, outline = null, picking = false, drag = null, dragged = 0;
 
     function layer() {
         if (!pinLayer || !pinLayer.isConnected) {
@@ -554,12 +555,15 @@
     }
 
     function placePins() {
+        // A pin being dragged stays where the pointer has it.
+        if (drag) return;
         var root = layer();
         root.innerHTML = '';
-        root.hidden = !cpins.show;
-        if (!cpins.show) return;
+        // With pins switched off, the one being pointed at in the panel still shows, and a new comment's.
+        var items = cpins.show ? cpins.items : cpins.items.filter(function (c) { return c.id === cpins.hot || c.id === 'draft'; });
+        root.hidden = !items.length;
         var docW = document.documentElement.scrollWidth;
-        cpins.items.forEach(function (c) {
+        items.forEach(function (c) {
             var el = find(c.selector), x, y;
             if (el) {
                 var r = el.getBoundingClientRect();
@@ -638,6 +642,30 @@
         return parts.join(', ') || 'On the page';
     }
 
+    // Where a click or a drop landed: the element under it, the spot within it and on the page, and its name in words.
+    function anchorAt(el, clientX, clientY) {
+        var r = el.getBoundingClientRect();
+        var docW = Math.max(document.documentElement.scrollWidth, 1);
+        return {
+            selector: selectorFor(el),
+            x: Math.max(0, Math.min(1, (clientX - r.left) / (r.width || 1))),
+            y: Math.max(0, Math.min(1, (clientY - r.top) / (r.height || 1))),
+            page_x: Math.max(0, Math.min(1, (clientX + window.scrollX) / docW)),
+            page_y: Math.round(clientY + window.scrollY),
+            label: labelFor(el),
+            text: trimText(el.textContent, 120)
+        };
+    }
+
+    // The page's element under a point, looking past the pin being dragged.
+    function under(pin, x, y) {
+        pin.style.visibility = 'hidden';
+        var el = document.elementFromPoint(x, y);
+        pin.style.visibility = '';
+        if (!el || (el.closest && el.closest('.wf-cpins'))) return null;
+        return el === document.documentElement || el === document.body ? app : el;
+    }
+
     function pickOn(on) {
         picking = on;
         document.documentElement.classList.toggle('wf-picking', on);
@@ -652,22 +680,18 @@
 
     document.addEventListener('click', function (e) {
         var pinBtn = e.target.closest && e.target.closest('[data-cpin]');
+        // The click that ends a drag opens nothing.
+        if (pinBtn && Date.now() - dragged < 400) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            return;
+        }
         if (picking) {
             e.preventDefault();
             e.stopImmediatePropagation();
             if (pinBtn) return;
             var el = e.target === document.documentElement || e.target === document.body ? app : e.target;
-            var r = el.getBoundingClientRect();
-            var docW = Math.max(document.documentElement.scrollWidth, 1);
-            post({ type: 'picked', anchor: {
-                selector: selectorFor(el),
-                x: Math.max(0, Math.min(1, (e.clientX - r.left) / (r.width || 1))),
-                y: Math.max(0, Math.min(1, (e.clientY - r.top) / (r.height || 1))),
-                page_x: Math.max(0, Math.min(1, (e.clientX + window.scrollX) / docW)),
-                page_y: Math.round(e.clientY + window.scrollY),
-                label: labelFor(el),
-                text: trimText(el.textContent, 120)
-            } });
+            post({ type: 'picked', anchor: anchorAt(el, e.clientX, e.clientY) });
             pickOn(false);
             return;
         }
@@ -681,6 +705,40 @@
     document.addEventListener('keydown', function (e) {
         if (picking && e.key === 'Escape') { pickOn(false); post({ type: 'pick-cancel' }); }
     });
+
+    // Dragging a pin: past a few pixels it follows the pointer, outlining the element it would land on, and dropping it
+    // tells the shell the new spot. A press that doesn't move is a click, which opens the comment.
+    document.addEventListener('pointerdown', function (e) {
+        var pin = e.target.closest && e.target.closest('[data-cpin]');
+        if (!pin || picking || e.button !== 0) return;
+        drag = { pin: pin, id: pin.dataset.cpin, x: e.clientX, y: e.clientY, moved: false, el: null };
+        try { pin.setPointerCapture(e.pointerId); } catch (err) { /* the pointer has gone */ }
+    }, true);
+
+    document.addEventListener('pointermove', function (e) {
+        if (!drag) return;
+        if (!drag.moved && Math.abs(e.clientX - drag.x) + Math.abs(e.clientY - drag.y) < 5) return;
+        drag.moved = true;
+        drag.pin.classList.add('is-dragging');
+        drag.pin.style.left = (e.clientX + window.scrollX) + 'px';
+        drag.pin.style.top = (e.clientY + window.scrollY) + 'px';
+        drag.el = under(drag.pin, e.clientX, e.clientY) || drag.el;
+        markEl(drag.el);
+    }, true);
+
+    function endDrag(e, cancelled) {
+        if (!drag) return;
+        var d = drag;
+        drag = null;
+        if (!d.moved) return;
+        dragged = Date.now();
+        markEl(null);
+        var el = cancelled ? null : (under(d.pin, e.clientX, e.clientY) || d.el);
+        if (el) post({ type: 'moved', id: d.id, anchor: anchorAt(el, e.clientX, e.clientY) });
+        else placePins();
+    }
+    document.addEventListener('pointerup', function (e) { endDrag(e, false); }, true);
+    document.addEventListener('pointercancel', function (e) { endDrag(e, true); }, true);
 
     window.addEventListener('resize', placePins);
     setInterval(function () { if (cpins.items.length && cpins.show) placePins(); }, 1200);

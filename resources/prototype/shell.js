@@ -103,6 +103,7 @@ window.addEventListener('message', e => {
     }
     else if (m.type === 'cpin') fbOpen(m.id);
     else if (m.type === 'picked') fbPicked(name, m.anchor);
+    else if (m.type === 'moved') fbMoved(name, m.id, m.anchor);
     else if (m.type === 'pick-cancel') fbPick(false);
     else if (m.type === 'external') toast('Links to other websites are switched off in the prototype.');
     else if (m.type === 'inert') toast(`“${m.label}” is a placeholder in the prototype.`);
@@ -245,7 +246,7 @@ function notesRail() {
             <button type="button" role="tab" data-rail-tab="comments" aria-selected="${tab === 'comments'}">Comments${open ? `<span class="count">${open}</span>` : ''}</button>
         </div>`
         : `<h2 class="side-h">${FB.on ? 'Comments' : 'Page notes'}</h2>`;
-    return `<div class="rail-top">${head}<button type="button" class="icon-btn tiny" data-notes="close" aria-label="Collapse the panel" title="Collapse the panel">${ICON.panelR}</button></div>
+    return `<div class="rail-top">${head}<button type="button" class="icon-btn tiny" data-notes="close" aria-label="Close the panel" title="Close the panel">${ICON.close}</button></div>
         ${tab === 'notes' ? pageNotes(pr) : fbPanel(pr)}`;
 }
 
@@ -288,7 +289,6 @@ const ICON = {
     mobile: '<svg width="14" height="16" viewBox="0 0 14 16" aria-hidden="true"><rect x="2.5" y="1" width="9" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M6 12.5h2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
     desktop: '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2" width="13" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M6 14h4M8 11v3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
     panel: '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M6 2.5v11" stroke="currentColor" stroke-width="1.4"/></svg>',
-    panelR: '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M10 2.5v11" stroke="currentColor" stroke-width="1.4"/></svg>',
     close: '<svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
     chev: '<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 };
@@ -646,9 +646,21 @@ function fbStart() {
         .catch(err => { fb.session = { viewer: null }; fb.error = err.message; fb.errorFor = 'signin'; fbRefresh(); });
 }
 
+// A link from the team's digest, ?comment=<id>, opens that comment on its page, once.
+let fbLink = new URLSearchParams(location.search).get('comment');
+
 function fbLoad() {
     return fbApi('GET', 'comments?context=prototype')
-        .then(d => { fb.comments = d.comments || []; fbRefresh(); })
+        .then(d => {
+            fb.comments = d.comments || [];
+            fbRefresh();
+            if (fbLink && fb.comments.some(c => c.id === fbLink)) {
+                const id = fbLink;
+                fbLink = null;
+                history.replaceState(null, '', location.pathname);
+                fbShow(id);
+            }
+        })
         .catch(err => { if (err.status === 401 && fb.session) fb.session.viewer = null; fbRefresh(); });
 }
 
@@ -747,6 +759,24 @@ function fbPicked(frame, anchor) {
     fbToComments();
     fbRefresh();
     fbFocus('[data-fb-input="new"]');
+}
+
+// A pin dragged to a new spot. A new comment's pin just moves; a comment's is saved, and goes back if that fails.
+function fbMoved(frame, id, anchor) {
+    if (id === 'draft') {
+        if (fb.draft) { fb.draft.anchor = anchor || {}; fb.draft.frame = frame; }
+        fbSendPins();
+        return;
+    }
+    const c = fb.comments.find(x => x.id === id);
+    if (!c || !fbSigned()) { fbSendPins(); return; }
+    const before = { anchor: c.anchor, frame: c.frame };
+    c.anchor = fbAnchor(anchor || {});
+    c.frame = frame;
+    fbSendPins();
+    fbApi('POST', `comments/${id}/anchor`, { anchor: c.anchor, frame })
+        .then(res => { fbPut(res.comment); fbSendPins(); })
+        .catch(err => { Object.assign(c, before); fbSendPins(); toast(`The pin couldn’t be moved. ${err.message}`); });
 }
 
 function fbFocus(sel) {
@@ -975,7 +1005,7 @@ function fbScopeBar() {
         <p class="fb-scope">${all ? '<button type="button" class="link-btn" data-fb-list="page">This page</button>' : '<b>This page</b>'}<span aria-hidden="true">·</span>${all ? '<b>All feedback</b>' : `<button type="button" class="link-btn" data-fb-list="all">All feedback${open ? ` (${open} open)` : ''}</button>`}</p>
         <button type="button" class="btn small" data-fb-act="comment" aria-pressed="${fb.picking}">Add comment</button>
     </div>
-    <label class="toggle"><input type="checkbox" data-fb-pins${state.pins ? ' checked' : ''}> Comment pins on the page</label>`;
+    <label class="toggle"><input type="checkbox" data-fb-pins${state.pins ? ' checked' : ''}> Show comment pins</label>`;
 }
 
 // The page's comments: decisions to make, then open comments, with everything done folded away.

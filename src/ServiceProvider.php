@@ -5,6 +5,7 @@ namespace Avocadesign\StatamicTools;
 use Avocadesign\StatamicTools\Library\SampleImages;
 use Avocadesign\StatamicTools\Console\CheckName;
 use Avocadesign\StatamicTools\Console\Feedback;
+use Avocadesign\StatamicTools\Console\FeedbackNotify;
 use Avocadesign\StatamicTools\Console\SiteCatalogue;
 use Avocadesign\StatamicTools\Console\SiteCheck;
 use Avocadesign\StatamicTools\Console\LibraryInstall;
@@ -24,6 +25,7 @@ use Statamic\Events\CollectionCreated;
 use Statamic\Events\GlobalSetCreated;
 use Statamic\Events\NavCreated;
 use Statamic\Events\TaxonomyCreated;
+use Illuminate\Console\Scheduling\Schedule;
 use Statamic\Providers\AddonServiceProvider;
 
 class ServiceProvider extends AddonServiceProvider
@@ -36,6 +38,7 @@ class ServiceProvider extends AddonServiceProvider
     protected $commands = [
         CheckName::class,
         Feedback::class,
+        FeedbackNotify::class,
         LibraryInstall::class,
         LibraryList::class,
         MakeCollection::class,
@@ -57,13 +60,30 @@ class ServiceProvider extends AddonServiceProvider
         AssetContainerCreated::class => [GrantEditorAccess::class],
     ];
 
+    // The config is merged as the provider registers, so it is there when Statamic asks for the schedule, which it
+    // does before bootAddon.
+    public function register()
+    {
+        parent::register();
+
+        $this->mergeConfigFrom(__DIR__.'/../config/statamic-tools.php', 'statamic-tools');
+    }
+
+    // While feedback is on, the team gets a digest of new comments every few minutes. It needs Laravel's scheduler
+    // running on the server: `php artisan schedule:run` every minute in cron.
+    protected function schedule(Schedule $schedule)
+    {
+        if (FeedbackSettings::active()) {
+            $minutes = max(1, (int) config('statamic-tools.feedback.digest_minutes', 10));
+            $schedule->command('avoca:feedback:notify')->cron("*/{$minutes} * * * *")->withoutOverlapping();
+        }
+    }
+
     public function bootAddon()
     {
         // Resolved rather than constructed, so the reference pages, the library installer and the tests
         // all read the same container, and a test can point it at a folder of its own.
         $this->app->bindIf(SampleImages::class, fn () => SampleImages::make());
-
-        $this->mergeConfigFrom(__DIR__.'/../config/statamic-tools.php', 'statamic-tools');
 
         $this->app->bindIf(FeedbackStore::class, fn () => FeedbackStore::make());
 

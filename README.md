@@ -94,7 +94,8 @@ gets their improvements. What the prototype says is the site's own, one folder p
   both frames: graphite while open, amber for a decision to make, green once done. Done is one thing to a reviewer, a
   decision made or a comment resolved, so the panel says Done and Mark as done for both. It lists this page's
   comments, with those done folded away, or all the feedback on the prototype, filtered to open, to decide or done,
-  and switches the pins off and on. A comment belongs to its version; a decision shows in every version.
+  and switches the pins off and on; pointing at a comment shows its pin either way. A pin that covers something can be
+  dragged to another spot, and pins to the element it's dropped on. A comment belongs to its version; a decision shows in every version.
 - **Decisions** come from comments. The team (a control panel login, a reviewer marked `team: true`, or
   `avoca:feedback`) raises a comment as a decision, or ticks Raise as a decision as they post, and records what was
   decided. At sign-off, `php please avoca:feedback --write-decisions` copies them into `resources/site/decisions.md`.
@@ -126,6 +127,7 @@ Anywhere but a local machine it also needs a password, and stays off without one
 FEEDBACK_ENABLED=true
 PROTOTYPE_PASSWORD=the-password-reviewers-are-given
 FEEDBACK_KEY=a-long-random-key-for-the-developer-only
+FEEDBACK_NOTIFY=studio@example.com          # optional: more addresses for the team's digest, comma separated
 ```
 
 Send reviewers the site's address with `?review` on the end, and the password. Nobody else sees anything: the
@@ -157,6 +159,12 @@ link.
   and when.
 - **Decisions.** The team can raise a comment as a decision to make, record what was decided, reopen it or take the
   decision off. Reviewers can't. Decisions made on the prototype carry from one version to the next.
+- **The team hears about new comments** by email: one digest every 10 minutes of what reviewers said since the last,
+  on the site and in the prototype, each with a link that opens it (through sign-in when needed). It goes to the
+  reviewers marked `team: true` and any addresses in `FEEDBACK_NOTIFY`, through the site's own mail settings, and
+  leaves out what the team said itself. Laravel's scheduler sends it, so the server needs
+  `* * * * * cd /path/to/site && php artisan schedule:run` in cron; `php please avoca:feedback:notify --dry-run` says
+  who would be told what. Reviewers aren't emailed. `avoca:site:check` warns when feedback is on and nobody would hear.
 - **Stored** as one YAML file per comment in `storage/app/feedback`, with no database and no outside service. The file
   holds the page, its entry, the element, the spot within it, the block, the width it was made at, the replies and the
   status.

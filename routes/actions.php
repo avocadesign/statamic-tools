@@ -22,6 +22,7 @@ Route::middleware(FeedbackEnabled::class)->prefix('feedback')->name('statamic-to
         Route::post('comments/{id}/resolve', [FeedbackController::class, 'resolve'])->name('resolve');
         Route::post('comments/{id}/reopen', [FeedbackController::class, 'reopen'])->name('reopen');
         Route::post('comments/{id}/decision', [FeedbackController::class, 'decide'])->name('decide');
+        Route::post('comments/{id}/anchor', [FeedbackController::class, 'move'])->name('move');
     });
 
     Route::prefix('api')->name('api.')->middleware('throttle:30,1')

@@ -128,6 +128,17 @@ class PrototypeTest extends TestCase
             ->assertDontSee('prototype-theme', false);
     }
 
+    public function test_signing_in_from_a_comment_link_opens_that_comment(): void
+    {
+        file_put_contents("{$this->dir}/reviewers.yaml", "reviewers:\n  - name: Jane Smith\n    email: jane@example.com\n");
+        $id = '01M4J4ZM55RDK9KEXMQH5SWZ15';
+
+        $this->get("/prototype/1?comment={$id}")->assertOk()->assertSee('name="comment" value="'.$id.'"', false);
+        $this->get('/prototype/1?comment=../etc')->assertOk()->assertDontSee('name="comment"', false);
+        $this->post('/prototype', ['version' => '1', 'comment' => $id, 'email' => 'jane@example.com'])->assertRedirect("/prototype/1?comment={$id}");
+        $this->post('/prototype', ['version' => '1', 'comment' => 'nope', 'email' => 'jane@example.com'])->assertRedirect('/prototype/1');
+    }
+
     public function test_the_content_model_is_the_teams_unless_it_is_shared(): void
     {
         $team = ['name' => 'Avoca', 'staff' => true];

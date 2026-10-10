@@ -128,6 +128,9 @@ class SiteCheck extends Command
             $this->line('  <fg=yellow>!</> FEEDBACK_ENABLED is on but there is no PROTOTYPE_PASSWORD, so feedback stays off here: set one to review');
             $warnings++;
         }
+        if (FeedbackSettings::active() && \Avocadesign\StatamicTools\Feedback\Digest::recipients() === []) {
+            $this->line('  <fg=yellow>!</> feedback is on but nobody hears about new comments: mark the team in resources/site/reviewers.yaml with team: true, or set FEEDBACK_NOTIFY');
+        }
         if (app()->isProduction() && FeedbackSettings::active()) {
             $this->line('  <fg=yellow>!</> feedback is switched on in production, so every page shows the widget: set FEEDBACK_ENABLED=false once the review is over');
             $warnings++;

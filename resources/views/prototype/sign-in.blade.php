@@ -46,6 +46,7 @@
             <form method="post" action="/prototype" novalidate>
                 @csrf
                 @if ($version)<input type="hidden" name="version" value="{{ $version }}">@endif
+                @if ($comment ?? null)<input type="hidden" name="comment" value="{{ $comment }}">@endif
                 @if ($needsEmail)
                     <label>Email address
                         <input type="email" name="email" value="{{ old('email') }}" autocomplete="email" maxlength="254" required @error('email') aria-invalid="true" aria-describedby="email-error" @enderror autofocus>

@@ -26,6 +26,7 @@ class PrototypeController extends Controller
         if (self::needsSignIn() && ! $viewer) {
             return response()->view('statamic-tools::prototype.sign-in', [
                 'version' => $version,
+                'comment' => self::comment($request->query('comment')),
                 'needsPassword' => Viewer::needsPassword(),
                 'needsEmail' => Reviewers::listed(),
                 'agency' => Prototype::agency(),
@@ -42,6 +43,10 @@ class PrototypeController extends Controller
     {
         $version = $request->input('version');
         $back = is_string($version) && isset(Prototype::versions()[$version]) ? "/prototype/{$version}" : '/prototype';
+        // A link from the team's digest opens its comment once signed in.
+        if ($comment = self::comment($request->input('comment'))) {
+            $back .= '?comment='.$comment;
+        }
 
         if (! self::needsSignIn()) {
             return redirect($back);
@@ -77,6 +82,12 @@ class PrototypeController extends Controller
     public function signOut(): RedirectResponse
     {
         return redirect('/prototype')->withCookie(Viewer::signOut());
+    }
+
+    /** A comment's ID from a link, or nothing: IDs are ULIDs. */
+    private static function comment(mixed $id): ?string
+    {
+        return is_string($id) && preg_match('/^[0-9A-HJKMNP-TV-Z]{26}$/', $id) ? $id : null;
     }
 
     /** Signing in is needed with a password or a list of reviewers; with neither, the prototype is open. */

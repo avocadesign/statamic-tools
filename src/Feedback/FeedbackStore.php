@@ -162,6 +162,24 @@ final class FeedbackStore
         });
     }
 
+    /**
+     * Moves a comment's pin: a new element and spot within it, measured as when the comment was made. On the prototype
+     * it also records the frame it was moved in, where the spot on the page means the same thing.
+     *
+     * @param  array<string, mixed>  $anchor
+     */
+    public function move(string $id, array $anchor, ?string $frame = null): ?array
+    {
+        return $this->change($id, function (array $comment) use ($anchor, $frame) {
+            $comment['anchor'] = $anchor;
+            if ($frame !== null && ($comment['context'] ?? 'site') === 'prototype') {
+                $comment['frame'] = $frame;
+            }
+
+            return $comment;
+        });
+    }
+
     public function reopen(string $id): ?array
     {
         return $this->change($id, fn (array $comment) => [...$comment, 'status' => self::OPEN, 'resolved_by' => null, 'resolved_at' => null]);

@@ -2,6 +2,16 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.24 (10 October 2026)
+
+- **The team hears about new comments.** One email every 10 minutes, a digest of what reviewers said since the last on the site and in the prototype, each with a link that opens the comment, through sign-in when needed (the prototype now takes `?comment=<id>`). It goes to reviewers marked `team: true` and `FEEDBACK_NOTIFY`'s addresses, through the site's mail, and leaves out the team's own comments. `avoca:feedback:notify` sends it, with `--dry-run` to see who would be told what; Laravel's scheduler runs it while feedback is on. If an email fails, the next run sends everything since. `avoca:site:check` warns when feedback is on and nobody would hear.
+- **Pins can be moved.** Drag a comment's pin in either frame when it covers something: it pins to the element it's dropped on, for everyone, and a click still opens the comment. Anyone signed in can, as anyone can resolve, through a new `comments/{id}/anchor` route.
+- **With pins switched off,** pointing at a comment in the panel still shows its pin, and the open comment's.
+- **The prototype's pins switch reads Show comment pins,** in the Comments tab and in Display options.
+- **The side panel closes with a cross** rather than a panel icon.
+- **The add-on's config is merged as it registers,** rather than as it boots, so the scheduler sees it.
+- **To do on update, on a site being reviewed:** make sure the server runs Laravel's scheduler (`php artisan schedule:run` every minute in cron), and mark the team in `reviewers.yaml` with `team: true` or set `FEEDBACK_NOTIFY`.
+
 ## v0.1.23 (10 October 2026)
 
 - **The prototype's guide says it isn't designed at all:** the design comes after the prototype is approved, rather than "it isn't the final look".

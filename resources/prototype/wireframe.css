@@ -194,9 +194,10 @@
     display: grid; place-items: center; min-width: 26px; height: 26px; padding: 0 6px; margin: 0;
     border: 0; border-radius: 999px; background: #3d4452; color: #fff;
     font: 700 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0;
-    box-shadow: 0 0 0 2px #fff, 0 2px 8px rgb(0 0 0 / .3); cursor: pointer;
+    box-shadow: 0 0 0 2px #fff, 0 2px 8px rgb(0 0 0 / .3); cursor: grab; touch-action: none;
     transition: transform .15s;
 }
+.wf-cpin.is-dragging { cursor: grabbing; transition: none; transform: translate(-50%, -50%) scale(calc(1.18 / var(--wf-zoom, 1))); }
 .wf-cpin:hover, .wf-cpin.is-hot { transform: translate(-50%, -50%) scale(calc(1.18 / var(--wf-zoom, 1))); box-shadow: 0 0 0 2px #fff, 0 0 0 5px rgb(31 36 48 / .35), 0 2px 8px rgb(0 0 0 / .3); }
 .wf-cpin--decide { background: oklch(0.82 0.16 80); color: oklch(0.22 0.02 80); }
 .wf-cpin--decided { background: #47cb50; color: #12151b; }

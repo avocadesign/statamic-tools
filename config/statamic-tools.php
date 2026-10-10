@@ -114,6 +114,10 @@ return [
         'cookie' => 'prototype',
         // Under storage/, one YAML file per comment and its replies.
         'path' => 'app/feedback',
+        // Who hears about new comments and replies from reviewers: the reviewers marked team: true, and these
+        // addresses, comma separated. One digest email every digest_minutes, sent by Laravel's scheduler.
+        'notify' => env('FEEDBACK_NOTIFY'),
+        'digest_minutes' => 10,
         // Front-end pages that never get the widget.
         'exclude' => [],
     ],
