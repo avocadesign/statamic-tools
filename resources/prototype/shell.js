@@ -285,6 +285,8 @@ function pageNotes(pr) {
     const n = Object.assign({ purpose: '', aud: [], content: [], consider: [], tech: [], fed: [] }, NOTES[pr.key]);
     const r = pr.r;
     const bullets = list => `<ul class="bullets">${list.map(c => `<li>${esc(c)}</li>`).join('')}</ul>`;
+    // Technical notes read as plain sentences; the content model links say where content comes from.
+    const sentences = list => `<div class="tech">${list.map(c => `<p>${esc(c)}</p>`).join('')}</div>`;
     // Each section opens with the notes; any can be folded away.
     const fold = (title, count, body) => `<details class="fold" open><summary>${title}${count ? ` <span class="fold-n">${count}</span>` : ''}</summary><div>${body}</div></details>`;
     const aud = n.aud.filter(a => AUD[a]);
@@ -299,12 +301,12 @@ function pageNotes(pr) {
             ${bullets(n.consider)}
         </section>` : ''}
         <div class="folds">
-            ${n.content.length ? fold('Content to prepare', n.content.length, `<ul class="content-list">${n.content.map(c => `<li><b>${esc(c[0])}</b>${c[1] ? `<span>${esc(c[1])}</span>` : ''}</li>`).join('')}</ul>`) : ''}
+            ${n.content.length ? fold('Content to prepare', n.content.length, `<ol class="content-list">${n.content.map(c => `<li>${esc(c[0])}${c[1] ? `<span>${esc(c[1])}</span>` : ''}</li>`).join('')}</ol>`) : ''}
             ${SITEWIDE.consider.length || SITEWIDE.tech.length ? fold('Site-wide: header and footer', '', `
                 ${SITEWIDE.consider.length ? bullets(SITEWIDE.consider) : ''}
-                ${SITEWIDE.tech.length ? `<div><p class="fold-h">Technical</p>${bullets(SITEWIDE.tech)}</div>` : ''}`) : ''}
+                ${SITEWIDE.tech.length ? `<div><p class="fold-h">Technical</p>${sentences(SITEWIDE.tech)}</div>` : ''}`) : ''}
             ${n.tech.length || fed ? fold('Technical notes', '', `
-                ${n.tech.length ? bullets(n.tech) : ''}
+                ${n.tech.length ? sentences(n.tech) : ''}
                 ${fed ? `<div><p class="fold-h">Content comes from</p><div class="chips">${fed}</div></div>` : ''}`) : ''}
         </div>`;
 }

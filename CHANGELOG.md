@@ -2,6 +2,12 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.35 (10 October 2026)
+
+- **Page notes' sections sit under full-width lines,** as pages do in All comments, and the content to prepare is a plain numbered list rather than bold items with a bar beside them.
+- **Technical notes read as plain sentences,** not bullets, and the recipe says to leave where content comes from to the content model links rather than repeating it in the text.
+- **To do on update:** nothing.
+
 ## v0.1.34 (10 October 2026)
 
 - **Sitemap boxes fit their page names.** Columns start wider and grow to fit their longest word, and the sitemap scrolls sideways when they need more room, so a long title never spills out of its box. Addresses break only after a slash, a hyphen or a dot.

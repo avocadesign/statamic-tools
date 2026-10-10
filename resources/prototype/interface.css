@@ -230,10 +230,11 @@ a.vm-i:hover, .vm-i.on { background: var(--surface-2); }
 .badge.sugg { border-style: dashed; border-color: var(--sugg-line); background: var(--sugg-bg); }
 .badge.aud { background: var(--surface-2); border-color: var(--line); }
 .purpose { font-size: 15px; line-height: 1.55; color: var(--ink-2); }
-.content-list { display: flex; flex-direction: column; gap: 10px; list-style: none; }
-.content-list li { display: grid; gap: 2px; padding-left: 12px; border-left: 2px solid var(--line-2); }
-.content-list b { font-weight: 600; }
-.content-list span { color: var(--ink-2); }
+/* Content to prepare: a plain numbered list, with any detail below its item. */
+.content-list { display: flex; flex-direction: column; gap: 6px; padding-left: 22px; color: var(--ink-2); }
+.content-list li::marker { color: var(--muted); font-variant-numeric: tabular-nums; }
+.content-list span { display: block; font-size: 13px; color: var(--muted); }
+.tech { display: flex; flex-direction: column; gap: 8px; color: var(--ink-2); }
 .bullets { display: flex; flex-direction: column; gap: 8px; padding-left: 18px; color: var(--ink-2); }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip-btn { border: 1px solid var(--line-2); background: var(--surface); border-radius: 999px; padding: 3px 10px; font-size: 12px; }
@@ -245,7 +246,8 @@ a.vm-i:hover, .vm-i.on { background: var(--surface-2); }
 .fold > div { margin-top: 12px; display: flex; flex-direction: column; gap: 12px; }
 /* Notes and feedback: the page's comments and considerations open, the rest folded away under a line each. */
 .folds { display: flex; flex-direction: column; }
-.folds > .fold { border-top: 1px solid var(--line); padding: 12px 0; }
+/* Each section under a line that runs the panel's full width, as in All comments. */
+.folds > .fold { margin: 0 -20px; padding: 12px 20px; border-top: 1px solid var(--line); }
 .folds > .fold:last-child { border-bottom: 1px solid var(--line); }
 .fold-n, .rail h3 .h-n { font: 500 11px var(--mono); color: var(--muted); }
 .fold-h { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 8px; }
