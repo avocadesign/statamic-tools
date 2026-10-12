@@ -210,7 +210,7 @@ read_config() {
 
 find_dirty() {
     # The tracked paths with uncommitted changes. Like Statamic, it skips paths
-    # that do not exist and paths git ignores (such as storage/forms in the kit).
+    # that do not exist and paths git ignores.
     DIRTY=()
     local path relative inside=0
     for path in ${PATHS[@]+"${PATHS[@]}"}; do
