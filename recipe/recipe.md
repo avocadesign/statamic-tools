@@ -15,7 +15,7 @@ Don't edit this file in `vendor/`. If a step is wrong, missing or contradicted b
 2. Read `resources/site/design.md` for the rules every block shares, and the collection records in `resources/site/collections/`.
 3. Open `/site/content` for a live preview of every block and set, and `/site/style` for colours, typography, spacing, buttons and colour schemes. On production both need a logged-in Statamic user.
 4. Run `php please avoca:library --json` to see what Avoca's library can install. Each item has a `handle`, `name`, `category` (`blocks`, `sets` or `presets`), `version`, `status` (`not installed`, `installed` or `update available`), `description`, and the `blocks` and `sets` it adds. `resources/site/installed.yaml` records what this site has installed, and at which version.
-5. Find out how the site is hosted and whether it will be generated as a static site. See [Static generation rules](#static-generation-rules) and [Hosting](#hosting).
+5. Find out how the site is hosted. See [Hosting](#hosting). Every site runs the full static cache in production, so read [Static caching](#static-caching) before you build anything that differs by visitor or calls the site's server.
 6. If the site is designed in Paper, read [Designs from Paper](#designs-from-paper) before you build anything from the design.
 
 ## How an Avoca site is put together
@@ -461,31 +461,31 @@ by itself and leaves the rest to you. Nothing updates it when a site grows, so:
   rather than quietly wrong.
 - Write it as you would for a person who has to summarise the site in a sentence: what the organisation is, who it
   serves, and where. The entries come from the collection tags; the framing around them is the part worth writing.
-- The field takes Antlers, so nothing in it goes stale: the file is rendered per request.
+- The field takes Antlers, so nothing in it goes stale: it is rendered from the site's content, and again each time the static cache clears.
 
-## Static generation rules
+## Static caching
 
-A statically generated site is served as plain files made by Statamic's static site generator, `php please ssg:generate`, with no PHP behind them. Every page is rendered once, at build time, for an anonymous visitor. Build every feature so it still works that way, or stop and ask the developer. Keeping to these rules on every site lets one move to static hosting later without its features being rebuilt. The kit doesn't ship static generation yet, so ask the developer what a site needs before relying on it.
+Every Avoca site runs Statamic's static cache with the full strategy in production: `STATAMIC_STATIC_CACHING_STRATEGY=full` in the live `.env`, as the kit's production example has it. The first visit to a page renders it and saves the HTML in `public/static`, and from then on the web server sends that file without starting PHP. PHP is still behind the site, so forms, `nocache` and requests from the browser to the site's own server all work.
 
-- Render the same page for everyone. Don't use `nocache`, `session`, `get:` or `post:` values, `old`, `get_errors`, `csrf_token`, `logged_in`, `user`, `can`, random sorting, or `now` for anything a visitor sees. On a static site each is frozen at build time or empty.
-- Don't call the site's own server from the browser: no `fetch()` calls or form posts to Laravel routes or `/!/` endpoints. Alpine may only use data already in the page.
-- On a static site, forms, search, logins and anything else that accepts input need the developer. Say so in the plan and write down what was asked for.
-- A page is an entry in a collection with a route and a template. A custom route must be `Route::statamic()` with no `{parameters}`. The generator finds no other URL unless it is listed under `urls` in `config/statamic/ssg.php`.
-- A taxonomy needs a `show` template, and its index page must be listed under `urls`.
-- Paginate with `paginate` on the collection tag and Peak Tools' pagination partial, with one paginated list per page. Never build `?page=` links by hand, because a static site uses `/page/2` URLs.
-- Show images with Peak Tools' picture partial or the `glide` tag, from a public asset container. Any other file a page needs lives in a `public/` folder listed under `copy` in `config/statamic/ssg.php`.
-- Make links with `url`, `permalink` or `link`. Never write a host name, `localhost` or a `.test` domain.
-- Use `environment` only for indexing and trackers, never to change what a page says.
-- Add redirects to the Redirects global as plain paths with 301 or 302, never `#regex#` rules, so they can become the static host's redirect file.
-- When the site has static generation set up, build it with `php please ssg:generate --no-interaction` and open the changed pages in `storage/app/static`. A static check in `avoca:site:check` is planned but doesn't exist yet, so check these rules yourself.
+Earlier versions of this recipe kept every site ready to be generated as plain files with no PHP behind them, which ruled those out. That is no longer the plan. Don't hold a feature back for static generation, and don't set it up on a site.
+
+- **The cached page is the same for everyone.** It is whatever the first visitor was sent, and it stays until the cache clears. Statamic caches a page whoever asks for it, logged in or not, so a page first opened by an editor would show every visitor that editor's name. Put anything that differs by visitor or by moment inside `{{ nocache }}`: `session`, `old`, `get_errors`, `logged_in`, `user`, `can`, `now`, random sorting, and anything else read from the request.
+- **Keep `nocache` small.** The cached page holds an empty placeholder for each region, and once the page has loaded, Statamic's script asks the server for the regions and swaps them in. So every view of that page starts PHP, what the region holds is missing from the HTML a search engine first reads, and the layout can shift as it arrives. Wrap only the part that changes, such as a greeting or a count, never a block's headings, text or links, and give the region the room it will take.
+- **Forms work.** Statamic takes the CSRF token out of the cached page and fills in each visitor's own with JavaScript. The kit's Form block submits with JavaScript and shows its errors and success message without reloading the page, so it needs no `nocache`. A form you build yourself does the same, or puts what it shows from the session after a reload, such as `success`, `errors` or `old`, inside `nocache`. The free edition's limit of one form, in [Forms](#forms), still applies.
+- **The browser can call the site's server.** Alpine can `fetch()` a Laravel route or one of Statamic's `/!/` endpoints. Only Statamic's own routes are cached: its pages, and any route made with `Route::statamic()`. A route like that which answers differently per request goes under `exclude.urls` in `config/statamic/static_caching.php`, or every request gets the first one's answer.
+- **Each query string is cached on its own.** The kit caches `/news?page=2` apart from `/news`, so pagination with `paginate` and Peak Tools' pagination partial works, and so does `get:`. Every new query string writes another file, so a page that takes free text, such as search results, goes under `exclude.urls` rather than saving every search to disk.
+- **Saving clears the cache.** The kit's invalidation rule, `all`, clears every page whenever anything is saved in the control panel, and a dated entry clears it when its date arrives, which needs Laravel's scheduler running on the server. Content that arrives with a deploy clears nothing by itself, so the kit's deploy scripts run `statamic:static:clear` and then `statamic:static:warm --queue`. Keep both lines when you change a deploy script.
+- **The server needs Statamic's rewrite rule** for the full strategy, which sends the files in `public/static` before PHP sees the request. Statamic's static caching documentation has it for nginx and Apache. Without it the site still works, but every page goes through PHP.
+- **Leave it off while you build.** Locally the strategy stays `null`, as `.env.example` has it, so a change shows as soon as you save it. To check something the cache affects, such as a `nocache` region, a form or a script that calls the server, set it to `full`, open the page twice in a private window, so the second view is the cached copy and nobody is logged in, then run `php please static:clear` and set it back.
+- **A staging site taking feedback runs the half strategy, or none.** The Comments tab is added as PHP sends each page, so a page the web server sends straight from `public/static` never has it. The README's Feedback section has the rest.
 
 ## Hosting
 
-How a site is hosted decides what you can build, so ask the developer before you plan the work, and record the answer in the plan. What matters to you:
+How a site is hosted changes how you work on it, so ask the developer before you plan the work, and record the answer in the plan. What matters to you:
 
 - Whether the live site has a control panel, and so whether content can change on the server as well as in the repository.
-- Whether the site is generated as static files, which rules out anything needing PHP at the moment a visitor asks for a page. Follow [Static generation rules](#static-generation-rules) even where it isn't, so a site can move to static hosting later without its features being rebuilt.
-- Whether forms, search and anything else that accepts input will work on the live site. Where they won't, say so in the plan and write down what was asked for.
+- Whether the server is set up for the full static cache, as [Static caching](#static-caching) describes: the strategy in the live `.env`, the rewrite rule, the deploy script's two cache lines, and Laravel's scheduler.
+- Whether the live site can send email, which form notifications need.
 
 On a site whose content is edited on the server:
 
@@ -562,7 +562,7 @@ Before you change any file, write a short plan and wait for the developer to app
 - the files you will add or change;
 - for a block or set: its fields, content first and then display settings, its group, and any token you will add;
 - for a collection: the answers you will give `avoca:make:collection`;
-- anything that depends on how the site is hosted, or on static generation;
+- anything that depends on how the site is hosted, and anything that needs `nocache` or keeping out of the static cache;
 - for a design from Paper: every value that matched no token, and what you propose for each one;
 - anything you will leave out.
 

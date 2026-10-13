@@ -2,6 +2,12 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.45 (13 October 2026)
+
+- **The recipe no longer assumes static generation.** Every Avoca site runs Statamic's full static cache in production, with PHP still behind it, so `nocache`, forms and requests from the browser to the site's own server are allowed. The recipe's Static generation rules are replaced by Static caching: the cached page is the same for everyone, so anything per visitor goes in a small `nocache` region; forms work, with the CSRF token filled in by JavaScript; which routes and query strings the cache keeps, and which to exclude; what clears it; the server's rewrite rule; how to check a page with the cache on locally; and why a staging site taking feedback runs the half strategy. Hosting, Before you start and the plan's checklist follow it, and the Testimonials preset's comment on random order no longer mentions a static build.
+- **The server git script no longer says the kit ignores `storage/forms`,** which the kit now keeps in git. Only that comment changed.
+- **To do on update:** nothing required. A feature held back because a site might be generated statically can now be built, and plans or `resources/site/` notes citing the static generation rules are out of date. `avoca:site:check` will say a site's `scripts/server-git.sh` is behind; `php please avoca:site:script` brings it up to date and loses nothing.
+
 ## v0.1.44 (10 October 2026)
 
 - **A click on the pages closes the prototype's side panel,** Notes or Comments, as a click on the site's page closes its panel: in a frame or on the stage around them. The bars, buttons and menus leave it open, and so do a comment's pin, a click choosing a spot, and a comment or reply with text in it, which closing would lose.

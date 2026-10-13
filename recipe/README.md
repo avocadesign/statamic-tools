@@ -29,15 +29,6 @@ The recipe never names blocks or sets, because every site has its own. It sends 
 
 Keep it that way when you edit it.
 
-## Sections still to write
-
-Two sections are placeholders, each marked with a `recipe-placeholder` comment:
-
-- Static generation rules.
-- Hosting: what a builder needs to know about how a site is served.
-
-Replace the placeholder text when the findings are in, and remove the comment.
-
 ## Editing the recipe
 
 - Write instructions an agent follows, in plain British English, with no em dashes.
