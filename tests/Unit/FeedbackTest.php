@@ -4,6 +4,7 @@ namespace Avocadesign\StatamicTools\Tests\Unit;
 
 use Avocadesign\StatamicTools\Console\Feedback;
 use Avocadesign\StatamicTools\Feedback\Digest;
+use Avocadesign\StatamicTools\Feedback\FeedbackChanged;
 use Avocadesign\StatamicTools\Feedback\FeedbackSettings;
 use Avocadesign\StatamicTools\Feedback\FeedbackStore;
 use Avocadesign\StatamicTools\Http\Middleware\InjectFeedbackWidget;
@@ -12,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Avocadesign\StatamicTools\Mail\FeedbackDigest;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Mail;
 
 class FeedbackTest extends TestCase
@@ -66,6 +68,33 @@ class FeedbackTest extends TestCase
     private function reviewers(string $yaml): void
     {
         file_put_contents($this->dir.'/reviewers.yaml', $yaml);
+    }
+
+    public function test_every_change_to_a_comment_says_what_changed_for_the_commit(): void
+    {
+        Event::fake([FeedbackChanged::class]);
+        $team = ['name' => 'Brendyn', 'staff' => true];
+
+        $id = $this->comment()['id'];
+        $this->store->reply($id, 'Done, have a look', $team);
+        $this->store->edit($id, 'Make the heading much shorter', self::PERSON);
+        $this->store->editReply($id, 0, 'Done, have a look now', $team);
+        $this->store->resolve($id, $team);
+        $this->store->reopen($id);
+        $this->store->decide($id, FeedbackStore::TO_DECIDE, $team);
+        $this->store->decide($id, FeedbackStore::DECIDED, $team, 'Shorter');
+        $this->store->decide($id, 'none', $team);
+        $this->store->move($id, ['selector' => 'h1']);
+        $this->store->delete($id);
+        // Nothing that changes no file says anything.
+        $this->store->reply('01M4ZZ0000000000000000000A', 'Nobody here', $team);
+        $this->store->editReply($id, 5, 'No such reply', $team);
+
+        $messages = Event::dispatched(FeedbackChanged::class)->map(fn ($call) => $call[0]->commitMessage())->all();
+        $this->assertSame(array_map(fn ($change) => "Feedback: {$change} on /about", [
+            'comment', 'reply', 'edited', 'reply edited', 'resolved', 'reopened',
+            'decision to make', 'decision recorded', 'decision taken off', 'pin moved', 'deleted',
+        ]), $messages);
     }
 
     public function test_a_comment_is_stored_replied_to_resolved_and_reopened(): void

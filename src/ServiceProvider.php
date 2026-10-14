@@ -16,6 +16,7 @@ use Avocadesign\StatamicTools\Console\SiteInstall;
 use Avocadesign\StatamicTools\Console\SiteScript;
 use Avocadesign\StatamicTools\Console\SiteUrls;
 use Avocadesign\StatamicTools\Console\SitePermissions;
+use Avocadesign\StatamicTools\Feedback\FeedbackChanged;
 use Avocadesign\StatamicTools\Feedback\FeedbackSettings;
 use Avocadesign\StatamicTools\Feedback\FeedbackStore;
 use Avocadesign\StatamicTools\Http\Middleware\InjectFeedbackWidget;
@@ -26,7 +27,9 @@ use Statamic\Events\GlobalSetCreated;
 use Statamic\Events\NavCreated;
 use Statamic\Events\TaxonomyCreated;
 use Illuminate\Console\Scheduling\Schedule;
+use Statamic\Facades\Git;
 use Statamic\Providers\AddonServiceProvider;
+use Statamic\Statamic;
 
 class ServiceProvider extends AddonServiceProvider
 {
@@ -86,6 +89,14 @@ class ServiceProvider extends AddonServiceProvider
         $this->app->bindIf(SampleImages::class, fn () => SampleImages::make());
 
         $this->app->bindIf(FeedbackStore::class, fn () => FeedbackStore::make());
+
+        // Every change to a comment fires FeedbackChanged, so on a server with Statamic's automatic git a reviewer's
+        // comment is committed, and pushed where the server pushes, as a save in the control panel is. Only with Pro,
+        // as Statamic's own git listens only then; its subscriber still checks git is on and automatic, and leaves out
+        // any event in statamic.git.ignored_events.
+        if (Statamic::pro()) {
+            Git::listen(FeedbackChanged::class);
+        }
 
         // Feedback adds its loader to the site's pages only while it is on: switched on, and with a password anywhere
         // but a local machine. Off, the middleware is never registered, so no request runs it. First in the group, it

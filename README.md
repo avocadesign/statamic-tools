@@ -215,6 +215,26 @@ sees anything: the tab only appears in a browser that has signed in to review, o
   comment's ID, so comments made in two places never clash. Comments saved in `storage/app/feedback` by an earlier
   version move across the first time they're read. Reviewers' names and words go into the site's history, so keep
   feedback for private repositories.
+- **Committed as they're made,** on a server with Statamic's automatic git. Every change to a comment, made, replied
+  to, edited, resolved, reopened, raised or answered as a question, its pin moved or deleted, fires
+  `Avocadesign\StatamicTools\Feedback\FeedbackChanged`, which Statamic's git commits as it does a save in the control
+  panel, with a message such as `Feedback: comment on /partners`, and the site's own git commands add ` [BOT]`. Without
+  it, a comment made on the server waits, untracked, for the next save in the control panel. It needs:
+  - Statamic Pro, as Statamic's git does, and `STATAMIC_GIT_ENABLED=true` in the server's `.env`, with `content` among
+    the tracked paths in `config/statamic/git.php`, as the kit has it;
+  - `STATAMIC_GIT_PUSH=true` for each commit to be pushed, so it comes down with a pull;
+  - a queue worker, to take the commit off the reviewer's request. Statamic queues the commit on
+    `STATAMIC_GIT_QUEUE_CONNECTION`, the site's default connection when that's empty, and on `sync`, the default, the
+    commit and any push run while the reviewer waits for their comment to post.
+
+  `STATAMIC_GIT_DISPATCH_DELAY`, 5 minutes in the kit's `.env.example`, gathers the changes made in that time into one
+  commit, with Statamic's own message in place of the feedback one. Leave it empty for a commit per change, each with
+  its feedback message.
+
+  A commit still waiting takes in the next change too, since Statamic's commit job is unique while it waits and
+  commits every tracked change. The digest's record of when it last sent is kept in storage, which isn't tracked, so it
+  never makes a commit. To keep feedback out of a site's commits, list `FeedbackChanged` under `ignored_events` in
+  `config/statamic/git.php`.
 - **Weight.** Switched off, nothing is added to any page and the code that would add it is never registered, so
   production is untouched. Switched on, a page gets one deferred script of about 4 KB (under 2 KB compressed) and
   shows nothing more to a visitor. The tab appears for reviewers, and the widget, about 14 KB compressed, loads on the

@@ -10,7 +10,8 @@ use Statamic\Facades\YAML;
  * it was made, its replies and whether it is resolved. No database and no outside service. They are in git with the
  * rest of the content: made locally, they go up with a push; made on a server whose content is edited there, the
  * server's git script commits them and they come down with a pull. One file per comment, named by its ID, so comments
- * made in two places never clash.
+ * made in two places never clash. Every change fires FeedbackChanged, which Statamic's git integration commits on a
+ * server with automatic commits.
  */
 final class FeedbackStore
 {
@@ -135,6 +136,7 @@ final class FeedbackStore
         ];
 
         $this->write($record);
+        FeedbackChanged::dispatch($record, 'comment');
 
         return $record;
     }
@@ -146,7 +148,7 @@ final class FeedbackStore
             $comment['replies'][] = ['author' => $author, 'body' => $body, 'created_at' => now()->toIso8601String()];
 
             return $comment;
-        });
+        }, 'reply');
     }
 
     /**
@@ -158,7 +160,7 @@ final class FeedbackStore
      */
     public function edit(string $id, string $body, array $by): ?array
     {
-        return $this->change($id, fn (array $comment) => [...$comment, 'body' => $body, 'edited_by' => $by, 'edited_at' => now()->toIso8601String()]);
+        return $this->change($id, fn (array $comment) => [...$comment, 'body' => $body, 'edited_by' => $by, 'edited_at' => now()->toIso8601String()], 'edited');
     }
 
     /**
@@ -178,7 +180,7 @@ final class FeedbackStore
             $comment['replies'][$reply] = [...$comment['replies'][$reply], 'body' => $body, 'edited_by' => $by, 'edited_at' => now()->toIso8601String()];
 
             return $comment;
-        });
+        }, 'reply edited');
     }
 
     /**
@@ -209,7 +211,7 @@ final class FeedbackStore
             'status' => self::RESOLVED,
             'resolved_by' => $by,
             'resolved_at' => now()->toIso8601String(),
-        ]);
+        ], 'resolved');
     }
 
     /**
@@ -243,6 +245,10 @@ final class FeedbackStore
             }
 
             return [...$comment, 'decision' => $decision];
+        }, match ($state) {
+            'none' => 'decision taken off',
+            self::DECIDED => 'decision recorded',
+            default => 'decision to make',
         });
     }
 
@@ -261,7 +267,7 @@ final class FeedbackStore
             }
 
             return $comment;
-        });
+        }, 'pin moved');
     }
 
     /**
@@ -276,16 +282,25 @@ final class FeedbackStore
             return false;
         }
 
-        return @unlink($this->path($id));
+        if (! @unlink($this->path($id))) {
+            return false;
+        }
+        FeedbackChanged::dispatch($comment, 'deleted');
+
+        return true;
     }
 
     public function reopen(string $id): ?array
     {
-        return $this->change($id, fn (array $comment) => [...$comment, 'status' => self::OPEN, 'resolved_by' => null, 'resolved_at' => null]);
+        return $this->change($id, fn (array $comment) => [...$comment, 'status' => self::OPEN, 'resolved_by' => null, 'resolved_at' => null], 'reopened');
     }
 
-    /** @param  callable(array<string, mixed>): array<string, mixed>  $change */
-    private function change(string $id, callable $change): ?array
+    /**
+     * Changes a comment's file, then says what changed, in a few words, for the commit.
+     *
+     * @param  callable(array<string, mixed>): array<string, mixed>  $change
+     */
+    private function change(string $id, callable $change, string $what): ?array
     {
         $comment = $this->find($id);
         if ($comment === null) {
@@ -294,6 +309,7 @@ final class FeedbackStore
 
         $comment = $change($comment);
         $this->write($comment);
+        FeedbackChanged::dispatch($comment, $what);
 
         return $comment;
     }

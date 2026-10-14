@@ -2,6 +2,11 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.53 (15 October 2026)
+
+- **Comments are committed as they're made,** on a server with Statamic's automatic git. Every change to a comment's file, made, replied to, edited, resolved, reopened, raised or answered as a question, its pin moved or deleted, fires `FeedbackChanged`, which Statamic's git commits, and pushes where the server pushes, as it does a save in the control panel, with a message such as `Feedback: comment on /partners`. Before, a comment made on the server stayed untracked until someone saved something in the control panel. It needs Statamic Pro and `STATAMIC_GIT_ENABLED=true`, as Statamic's git does. With `STATAMIC_GIT_DISPATCH_DELAY` set, as the kit's `.env.example` has it, changes are gathered into one commit with Statamic's own message. The README's Feedback section has the settings.
+- **To do on update:** nothing. On a server with automatic git and the `sync` queue, the commit and any push run while a reviewer's comment posts; a queue worker on `STATAMIC_GIT_QUEUE_CONNECTION` takes them off the request. Comments already untracked on a server go in with the next commit.
+
 ## v0.1.52 (15 October 2026)
 
 - **Reviewers see decisions as questions.** In the comments panel, on the site and in the prototype, the filter is Questions, a card's badge says Question, the team makes a comment a question and records its answer, the outcome is headed Answered, and Who decides is Who answers. The prototype's help says a question to answer. Nothing stored changes, and the command and `resources/site/decisions.md` still call them decisions.
