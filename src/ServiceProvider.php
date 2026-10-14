@@ -16,6 +16,7 @@ use Avocadesign\StatamicTools\Console\SiteInstall;
 use Avocadesign\StatamicTools\Console\SiteScript;
 use Avocadesign\StatamicTools\Console\SiteUrls;
 use Avocadesign\StatamicTools\Console\SitePermissions;
+use Avocadesign\StatamicTools\Feedback\CommitFeedback;
 use Avocadesign\StatamicTools\Feedback\FeedbackChanged;
 use Avocadesign\StatamicTools\Feedback\FeedbackSettings;
 use Avocadesign\StatamicTools\Feedback\FeedbackStore;
@@ -27,10 +28,7 @@ use Statamic\Events\GlobalSetCreated;
 use Statamic\Events\NavCreated;
 use Statamic\Events\TaxonomyCreated;
 use Illuminate\Console\Scheduling\Schedule;
-use Illuminate\Support\Facades\Event;
-use Statamic\Git\Subscriber as GitSubscriber;
 use Statamic\Providers\AddonServiceProvider;
-use Statamic\Statamic;
 
 class ServiceProvider extends AddonServiceProvider
 {
@@ -62,6 +60,8 @@ class ServiceProvider extends AddonServiceProvider
         NavCreated::class => [GrantEditorAccess::class],
         GlobalSetCreated::class => [GrantEditorAccess::class],
         AssetContainerCreated::class => [GrantEditorAccess::class],
+        // A change to a comment is committed through the site's server git script, where it has one.
+        FeedbackChanged::class => [CommitFeedback::class],
     ];
 
     // The config is merged as the provider registers, so it is there when Statamic asks for the schedule, which it
@@ -90,15 +90,6 @@ class ServiceProvider extends AddonServiceProvider
         $this->app->bindIf(SampleImages::class, fn () => SampleImages::make());
 
         $this->app->bindIf(FeedbackStore::class, fn () => FeedbackStore::make());
-
-        // Every change to a comment fires FeedbackChanged, so on a server with Statamic's automatic git a reviewer's
-        // comment is committed, and pushed where the server pushes, as a save in the control panel is. Only with Pro,
-        // as Statamic's own git listens only then; its subscriber still checks git is on and automatic, and leaves out
-        // any event in statamic.git.ignored_events. Registered as Git::listen() does it, without the Git facade, whose
-        // constructor throws when git is off, as it is locally and on most servers.
-        if (Statamic::pro()) {
-            Event::listen(FeedbackChanged::class, GitSubscriber::class.'@commit');
-        }
 
         // Feedback adds its loader to the site's pages only while it is on: switched on, and with a password anywhere
         // but a local machine. Off, the middleware is never registered, so no request runs it. First in the group, it

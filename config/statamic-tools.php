@@ -115,6 +115,11 @@ return [
         // One YAML file per comment and its replies, in git with the rest of the content: made locally they go up with a
         // push, and made on a server whose content is edited there, its git script commits them. Relative to the site.
         'path' => 'content/feedback',
+        // Whether a change to a comment runs the site's scripts/server-git.sh commit --now once the response is sent, so
+        // a comment made on the server is committed, and pushed, within seconds rather than at the script's next quiet
+        // spell. Only when the site has the script and STATAMIC_GIT_ENABLED is true. Unset, on anywhere but a local
+        // machine; FEEDBACK_COMMIT=false turns it off.
+        'commit' => env('FEEDBACK_COMMIT'),
         // Who hears about new comments and replies from reviewers: the reviewers marked team: true, and these
         // addresses, comma separated. One digest email every digest_minutes, sent by Laravel's scheduler.
         'notify' => env('FEEDBACK_NOTIFY'),

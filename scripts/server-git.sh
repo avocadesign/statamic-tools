@@ -40,6 +40,10 @@
 #                             (for testing, or for a site that cannot boot)
 #   AVOCA_GIT_USER_NAME       Committer name when AVOCA_GIT_PATHS is set
 #   AVOCA_GIT_USER_EMAIL      Committer email when AVOCA_GIT_PATHS is set
+#   AVOCA_GIT_SUBJECT         Subject for what commit mode commits, such as the add-on's
+#                             "Feedback: comment on /partners" when a comment is made.
+#                             [BOT] is added when it is missing.
+#                             Default: Content saved on the server [BOT]
 #
 # State lives in .git/avoca/, which git never commits: the lock, when
 # uncommitted content was first seen, push failures, the last run, and the
@@ -58,6 +62,11 @@ REMOTE="${AVOCA_GIT_REMOTE:-origin}"
 QUIET_MINUTES="${AVOCA_GIT_QUIET_MINUTES:-10}"
 LOCK_WAIT="${AVOCA_GIT_LOCK_WAIT:-120}"
 PHP_BIN="${AVOCA_PHP:-php}"
+SUBJECT="${AVOCA_GIT_SUBJECT:-Content saved on the server [BOT]}"
+case "$SUBJECT" in
+    *"[BOT]") ;;
+    *) SUBJECT="$SUBJECT [BOT]" ;;
+esac
 PUSH_RETRY_MINUTES=10
 
 GIT_ENABLED=0
@@ -362,7 +371,7 @@ cmd_commit() {
             since="$(cat "$STATE/dirty-since")"
             newest="$(newest_change)"
             if [ "$FLAG" = --now ] || { [ $((now - since)) -ge "$quiet" ] && [ $((now - newest)) -ge "$quiet" ]; }; then
-                commit_dirty "Content saved on the server [BOT]" \
+                commit_dirty "$SUBJECT" \
                     "Committed by the Avoca server script because Statamic had not committed it."
             fi
         fi

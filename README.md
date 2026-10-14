@@ -65,6 +65,7 @@ The paths are set in `config/statamic-tools.php`.
 - `--diff` says what differs. `--force` takes the add-on's copy anyway, which is safe to undo because the copy is in git.
 - `avoca:site:check` warns when the add-on's copy has moved on, and says nothing about a site that has no copy or has changed its own on purpose.
 - Run it by hand, not from a deploy script: it exits non-zero when it refuses.
+- Feedback runs the site's copy too: a change to a comment runs `scripts/server-git.sh commit --now` once the response has gone, with `AVOCA_GIT_SUBJECT` set to say what changed, so comments are committed within seconds. The Feedback section has what a server needs for it.
 
 The package still holds the script at `vendor/avocadesign/statamic-tools/scripts/server-git.sh`, so a server set up before this and pointing at that path keeps working.
 
@@ -215,26 +216,24 @@ sees anything: the tab only appears in a browser that has signed in to review, o
   comment's ID, so comments made in two places never clash. Comments saved in `storage/app/feedback` by an earlier
   version move across the first time they're read. Reviewers' names and words go into the site's history, so keep
   feedback for private repositories.
-- **Committed as they're made,** on a server with Statamic's automatic git. Every change to a comment, made, replied
-  to, edited, resolved, reopened, raised or answered as a question, its pin moved or deleted, fires
-  `Avocadesign\StatamicTools\Feedback\FeedbackChanged`, which Statamic's git commits as it does a save in the control
-  panel, with a message such as `Feedback: comment on /partners`, and the site's own git commands add ` [BOT]`. Without
-  it, a comment made on the server waits, untracked, for the next save in the control panel. It needs:
-  - Statamic Pro, as Statamic's git does, and `STATAMIC_GIT_ENABLED=true` in the server's `.env`, with `content` among
+- **Committed as they're made,** through the site's `scripts/server-git.sh`, on Core as well as Pro. Every change to a
+  comment, made, replied to, edited, resolved, reopened, raised or answered as a question, its pin moved or deleted,
+  fires `Avocadesign\StatamicTools\Feedback\FeedbackChanged`. Once the response has gone, so the reviewer never waits,
+  the add-on runs `scripts/server-git.sh commit --now` from the site's root with a subject such as
+  `Feedback: comment on /partners [BOT]`, and the script commits the tracked content paths and pushes when the remote
+  can fast-forward, as its cron run does. Statamic's own git commits only saves in the control panel, and only with Pro,
+  so without this a comment made on the server waits, untracked, for the script's next quiet spell or a deploy. It runs
+  once per request however many changes the request made; the script's lock turns away a second run while one is
+  going, and cron catches anything missed. A failure goes in the site's log, never to the reviewer. It needs:
+  - the site's own `scripts/server-git.sh`, from `php please avoca:site:script`, executable;
+  - `STATAMIC_GIT_ENABLED=true` in the server's `.env`, which the script reads; Pro isn't needed, and `content` among
     the tracked paths in `config/statamic/git.php`, as the kit has it;
-  - `STATAMIC_GIT_PUSH=true` for each commit to be pushed, so it comes down with a pull;
-  - a queue worker, to take the commit off the reviewer's request. Statamic queues the commit on
-    `STATAMIC_GIT_QUEUE_CONNECTION`, the site's default connection when that's empty, and on `sync`, the default, the
-    commit and any push run while the reviewer waits for their comment to post.
+  - the web server's PHP user able to run git in the site's working copy and push with the same key as the cron job;
+  - cron still running `scripts/server-git.sh commit` every minute, as Server scripts says, for anything this misses.
 
-  `STATAMIC_GIT_DISPATCH_DELAY`, 5 minutes in the kit's `.env.example`, gathers the changes made in that time into one
-  commit, with Statamic's own message in place of the feedback one. Leave it empty for a commit per change, each with
-  its feedback message.
-
-  A commit still waiting takes in the next change too, since Statamic's commit job is unique while it waits and
-  commits every tracked change. The digest's record of when it last sent is kept in storage, which isn't tracked, so it
-  never makes a commit. To keep feedback out of a site's commits, list `FeedbackChanged` under `ignored_events` in
-  `config/statamic/git.php`.
+  `FEEDBACK_COMMIT=false` turns it off; unset, it is on anywhere but a local machine. Whatever else is waiting in the
+  tracked paths goes into the same commit. The digest's record of when it last sent is kept in storage, which isn't
+  tracked, so it never makes a commit.
 - **Weight.** Switched off, nothing is added to any page and the code that would add it is never registered, so
   production is untouched. Switched on, a page gets one deferred script of about 4 KB (under 2 KB compressed) and
   shows nothing more to a visitor. The tab appears for reviewers, and the widget, about 14 KB compressed, loads on the

@@ -2,6 +2,12 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.55 (15 October 2026)
+
+- **Comments are committed through the site's server git script, on Core as well as Pro.** v0.1.53 handed them to Statamic's git, which only runs with Pro. Now a change to a comment runs `scripts/server-git.sh commit --now` once the response has gone, so the reviewer never waits, and the comment is committed, and pushed where the remote can fast-forward, within seconds, with a subject such as `Feedback: comment on /partners [BOT]`. It needs the site's copy of the script, `STATAMIC_GIT_ENABLED=true`, and the web server's PHP user able to commit and push with the cron job's key; cron's every-minute run still catches anything missed. `FEEDBACK_COMMIT=false` turns it off, and unset it is on anywhere but a local machine. The README's Feedback section has the rest.
+- **The server git script takes a subject:** `AVOCA_GIT_SUBJECT` sets what commit mode commits as, with `[BOT]` added when it is missing. Unset, it is `Content saved on the server [BOT]` as before.
+- **To do on update:** a site with `scripts/server-git.sh` runs `php please avoca:site:script` to take the new copy, which `avoca:site:check` now says is behind. With the old copy, comments are still committed straight away, under the script's usual subject.
+
 ## v0.1.54 (15 October 2026)
 
 - **v0.1.53 broke every Pro site with git off,** locally and on most servers: every page and command threw "Statamic Git integration is disabled", because the add-on built Statamic's Git facade to listen for comments, and its constructor throws when git is off. The add-on now listens as `Git::listen()` does inside, without the facade, and a test boots a Pro site with git off.
