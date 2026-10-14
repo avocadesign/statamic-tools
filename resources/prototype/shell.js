@@ -1237,7 +1237,7 @@ function fbCompose() {
     return `<form class="fb-form fb-compose" data-fb-form="new">
         <p class="fb-where"><span class="fbc-n fbc-n--draft">+</span>New comment, at the + on the page</p>
         <textarea class="fb-input" data-fb-input="new" rows="3" maxlength="5000" placeholder="What would you change, or what do you think?" aria-label="Your comment" required></textarea>
-        ${fbStaff() ? '<label class="toggle"><input type="checkbox" name="decision"> Make it a decision</label>' : ''}
+        ${fbStaff() ? '<label class="toggle"><input type="checkbox" name="decision"> Make it a question</label>' : ''}
         ${fbError('new')}
         <div class="fb-row"><button type="submit" class="btn primary">Post</button><button type="button" class="btn" data-fb-act="cancel-new">Cancel</button></div>
     </form>`;
@@ -1246,7 +1246,7 @@ function fbCompose() {
 // Only a decision is labelled, on the card's top right corner: amber while it's to make, green with a tick once done.
 function fbState(c) {
     if (!c.decision) return '';
-    return `<span class="fbc-state ${fbIsDone(c) ? 'done' : 'decide'}">${fbIsDone(c) ? '✓ ' : ''}Decision</span>`;
+    return `<span class="fbc-state ${fbIsDone(c) ? 'done' : 'decide'}">${fbIsDone(c) ? '✓ ' : ''}Question</span>`;
 }
 
 function fbCard(c) {
@@ -1266,7 +1266,7 @@ function fbCard(c) {
         <div class="fbc-main">
             ${open && fbEditing(c.id) ? fbEditForm(c) : `<p class="fbc-body${open ? '' : ' clamp'}">${esc(c.body)}</p>`}
             ${c.options && typeof c.options === 'object' && Object.keys(c.options).length ? `<p class="fbc-opts">With ${Object.entries(c.options).map(([k, v]) => `${esc(k)}: ${esc(v)}`).join(' · ')}</p>` : ''}
-            ${fbIsDecided(c) ? `<div class="fbc-outcome"><b>Decided</b><p>${esc(d.outcome)}</p><small>${esc((d.decided_by || {}).name || '')}${d.decided_at ? ` · ${fbDate(d.decided_at)}` : ''}</small></div>` : ''}
+            ${fbIsDecided(c) ? `<div class="fbc-outcome"><b>Answered</b><p>${esc(d.outcome)}</p><small>${esc((d.decided_by || {}).name || '')}${d.decided_at ? ` · ${fbDate(d.decided_at)}` : ''}</small></div>` : ''}
             ${!open && replies.length ? `<p class="fbc-more">${replies.length} ${replies.length === 1 ? 'reply' : 'replies'}</p>` : ''}
             ${open ? fbThread(c) : ''}
         </div>
@@ -1281,9 +1281,9 @@ function fbActions(c) {
     let next = null;
     if (fbIsDecided(c)) { if (staff) next = ['reopen', 'Reopen']; }
     else if (c.status === 'resolved') next = ['reopen', 'Reopen'];
-    else if (c.decision) { if (staff) { next = ['decide', 'Record decision']; more.push(['resolve', 'Mark done']); } }
-    else next = ['resolve', 'Mark done'];
-    if (staff) more.push(c.decision ? ['drop', 'Make a comment'] : ['raise', 'Make it a decision']);
+    else if (c.decision) { if (staff) { next = ['decide', 'Record answer']; more.push(['resolve', 'Resolve']); } }
+    else next = ['resolve', 'Resolve'];
+    if (staff) more.push(c.decision ? ['drop', 'Make a comment'] : ['raise', 'Make it a question']);
     // The team can delete a comment made by mistake or as a test; a decision is made a comment again first.
     if (staff && !c.decision) more.push(['delete', 'Delete']);
     return { next, more };
@@ -1305,11 +1305,11 @@ function fbThread(c) {
     const acts = fb.deciding === c.id || fbEditing(c.id) ? '' : `${next ? `<button type="button" class="btn small" data-fb-act="${next[0]}" data-id="${c.id}">${next[1]}</button>` : ''}
         ${more.length ? `<span class="fbc-more"><button type="button" class="icon-btn tiny" data-fb-menu aria-expanded="false" aria-label="More actions" title="More actions">${ICON.more}</button>
             <span class="fbc-menu" hidden>${more.map(([act, label]) => `<button type="button" data-fb-act="${act}" data-id="${c.id}"${act === 'delete' ? ' class="danger"' : ''}>${label}</button>`).join('')}</span></span>` : ''}`;
-    return `${c.decision && c.decision.who ? `<p class="fbc-who">Who decides: ${esc(c.decision.who)}</p>` : ''}
+    return `${c.decision && c.decision.who ? `<p class="fbc-who">Who answers: ${esc(c.decision.who)}</p>` : ''}
         ${replies ? `<ul class="fbc-replies">${replies}</ul>` : ''}
         ${fb.deciding === c.id ? `<form class="fb-form" data-fb-form="outcome" data-id="${c.id}">
-            <textarea class="fb-input" data-fb-input="outcome-${c.id}" rows="2" maxlength="5000" placeholder="What was decided" aria-label="What was decided" required></textarea>
-            <div class="fb-row"><button type="submit" class="btn small primary">Record decision</button><button type="button" class="link-btn" data-fb-act="cancel-decide" data-id="${c.id}">Cancel</button></div>
+            <textarea class="fb-input" data-fb-input="outcome-${c.id}" rows="2" maxlength="5000" placeholder="The answer" aria-label="The answer" required></textarea>
+            <div class="fb-row"><button type="submit" class="btn small primary">Record answer</button><button type="button" class="link-btn" data-fb-act="cancel-decide" data-id="${c.id}">Cancel</button></div>
         </form>` : ''}
         <form class="fb-form fb-reply" data-fb-form="reply" data-id="${c.id}">
             <textarea class="fb-input" data-fb-input="reply-${c.id}" rows="1" maxlength="5000" placeholder="Reply" aria-label="Reply" required></textarea>
@@ -1352,12 +1352,12 @@ function fbSection(key) {
         ${fb.draft && fb.draft.page === key ? fbCompose() : ''}
         ${!list.length && !fb.draft ? '<p class="note-line">No comments here yet. Press Add comment, then click the spot you mean.</p>' : ''}
         ${open.map(c => fbCard(c)).join('')}
-        ${done.length ? `<details class="fold fb-resolved"${done.some(c => c.id === fb.open) ? ' open' : ''}><summary>Done <span class="fold-n">${done.length}</span></summary><div>${done.map(c => fbCard(c)).join('')}</div></details>` : ''}
+        ${done.length ? `<details class="fold fb-resolved"${done.some(c => c.id === fb.open) ? ' open' : ''}><summary>Resolved <span class="fold-n">${done.length}</span></summary><div>${done.map(c => fbCard(c)).join('')}</div></details>` : ''}
     </section>`;
 }
 
-const FB_FILTERS = [['comment', 'Comments'], ['decide', 'Decisions'], ['done', 'Done']];
-const FB_EMPTY = { comment: 'No comments yet.', decide: 'No decisions yet.', done: 'Nothing done yet.' };
+const FB_FILTERS = [['comment', 'Comments'], ['decide', 'Questions'], ['done', 'Resolved']];
+const FB_EMPTY = { comment: 'No comments yet.', decide: 'No questions yet.', done: 'Nothing resolved yet.' };
 
 // All pages: the feedback on the prototype, page by page, filtered to the comments still open, the decisions to make,
 // or what's done. Decisions from earlier versions are always in it; their other comments only when asked for.
@@ -1369,7 +1369,7 @@ function fbAll() {
     const scope = state.fbScope === 'all' ? 'all' : 'version';
     const byNum = (a, b) => (fb.num.get(a.id) || 0) - (fb.num.get(b.id) || 0);
     const list = fbFiltered(show, scope);
-    // Done beneath: with Comments the comments closed, with Decisions the decisions made. With Done, they're the list.
+    // Resolved beneath: with Comments the comments closed, with Questions those answered. With Resolved, they're the list.
     const done = show === 'done' ? [] : fbFiltered('done', scope).filter(c => (show === 'decide') === !!c.decision);
     const pages = [...list, ...done].map(c => c.page);
     const keys = [...ROUTES.map(r => r.key), ...Object.values(BOARDS).map(b => b.key), ...new Set(pages.filter(fbGone))];
@@ -1382,12 +1382,12 @@ function fbAll() {
     const go = key => boardOf(key) ? `data-fb-board="${boardOf(key)}"` : route(key) ? `data-go="${esc(route(key))}"` : '';
     return `<section class="fb-section">
         ${fbScopeBar()}
-        <div class="fb-filters" role="group" aria-label="Show">${FB_FILTERS.map(([k, label]) => { const n = fbFiltered(k, scope).length; return `<button type="button" class="chip-btn" data-fb-filter="${k}" aria-pressed="${show === k}">${label}${n ? ` <span class="muted">${n}</span>` : ''}</button>`; }).join('')}</div>
+        <div class="seg fb-filters" role="group" aria-label="Show">${FB_FILTERS.map(([k, label]) => { const n = fbFiltered(k, scope).length; return `<button type="button" data-fb-filter="${k}" aria-pressed="${show === k}">${label}${n ? `<span class="count">${n}</span>` : ''}</button>`; }).join('')}</div>
         ${VERSIONS.length > 1 ? `<label class="toggle"><input type="checkbox" id="fb-versions"${scope === 'all' ? ' checked' : ''}> Comments on earlier versions too</label>` : ''}
         ${groups.length ? groups.map(([key, cs, ds]) => `<div class="fb-group">
             <div class="fb-group-h"><h3>${key !== here && go(key) ? `<button type="button" class="fb-page" ${go(key)}>${esc(title(key))}<span aria-hidden="true">→</span></button>` : esc(title(key))}</h3>${key === here ? '<span class="fb-here">Showing</span>' : fbGone(key) ? '<span class="fb-here">Not in this version</span>' : ''}</div>
             ${cs.map(c => fbCard(c)).join('')}
-            ${ds.length ? `<details class="fold fb-resolved"${ds.some(c => c.id === fb.open) ? ' open' : ''}><summary>Done <span class="fold-n">${ds.length}</span></summary><div>${ds.map(c => fbCard(c)).join('')}</div></details>` : ''}
+            ${ds.length ? `<details class="fold fb-resolved"${ds.some(c => c.id === fb.open) ? ' open' : ''}><summary>Resolved <span class="fold-n">${ds.length}</span></summary><div>${ds.map(c => fbCard(c)).join('')}</div></details>` : ''}
         </div>`).join('') : `<p class="note-line">${FB_EMPTY[show]}</p>`}
     </section>`;
 }

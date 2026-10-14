@@ -175,7 +175,7 @@ class FeedbackController extends Controller
             ->all() ?: null;
 
         // The team can raise a comment as a decision as it posts it; anyone else is turned away before anything is kept.
-        abort_if(! empty($input['decision']) && ! $author['staff'], 403, 'Only the team can raise a decision.');
+        abort_if(! empty($input['decision']) && ! $author['staff'], 403, 'Only the team can make a comment a question.');
 
         $input['url'] = $this->path($input['url']);
         $comment = $this->store->create($input, $author);
@@ -193,12 +193,12 @@ class FeedbackController extends Controller
     public function decide(Request $request, string $id): JsonResponse
     {
         $by = $this->authorise($request);
-        abort_unless($by['staff'], 403, 'Only the team can make a decision.');
+        abort_unless($by['staff'], 403, 'Only the team can raise or answer a question.');
         $input = $request->validate([
             'state' => ['required', 'in:open,decided,none'],
             'outcome' => ['required_if:state,decided', 'nullable', 'string', 'max:5000'],
             'who' => ['nullable', 'string', 'max:120'],
-        ], ['outcome.required_if' => 'Write what was decided.']);
+        ], ['outcome.required_if' => 'Write the answer.']);
 
         return $this->found($this->store->decide($id, $input['state'], $by, $input['outcome'] ?? null, $input['who'] ?? null));
     }
@@ -277,7 +277,7 @@ class FeedbackController extends Controller
         abort_unless($by['staff'], 403, 'Only the team can delete a comment.');
         $comment = $this->store->find($id);
         abort_unless($comment !== null, 404);
-        abort_if(! empty($comment['decision']), 409, 'A decision can’t be deleted. Make it a comment first.');
+        abort_if(! empty($comment['decision']), 409, 'A question can’t be deleted. Make it a comment first.');
         abort_unless($this->store->delete($id), 500, 'The comment couldn’t be deleted.');
 
         return $this->json(['deleted' => $id]);

@@ -91,16 +91,19 @@ gets their improvements. What the prototype says is the site's own, one folder p
   when decisions were written into `data.js`, now draw nothing.
 - **Comments,** with `FEEDBACK_ENABLED=true` (see Feedback). The Comments button, with the number still open, opens the
   side panel; Add comment asks for a spot on either frame, and the comment's numbered pin sits on the element clicked in
-  both frames: graphite while open, amber for a decision to make, green once done. Done is one thing to a reviewer, a
-  decision made or a comment resolved, so the panel says Done for both. Comments are numbered in one sequence across
+  both frames: graphite while open, amber for a question to answer, green once resolved. Resolved is one thing to a
+  reviewer, a question answered or a comment closed, so the panel says Resolved for both. Reviewers see the team's
+  decisions as questions, and their outcomes as answers; the command, `decisions.md` and this README still call them
+  decisions. Comments are numbered in one sequence across
   the prototype, every version and page, in the order they were made, so a comment keeps its number. It lists this
-  page's comments in number order, with those done folded away, or with All pages every page's, filtered to Comments
-  (open comments, not decisions), Decisions (those still to make) or Done (comments closed and decisions made). With
-  Comments or Decisions, those done are folded away beneath each page. The pages come in the order of their first
+  page's comments in number order, with those resolved folded away, or with All pages every page's, filtered by a
+  button group to Comments (open comments, not questions), Questions (those still to answer) or Resolved (comments
+  closed and questions answered). With Comments or Questions, those resolved are folded away beneath each page. The
+  pages come in the order of their first
   comment, so the numbers read down the list. It switches the pins off and
   on; pointing at a comment shows its pin either way. Opening a comment brings its pin into sight, or takes you to its
-  page. An open comment has a slim reply box and one button for the next step: Mark done, Record decision (the team) or
-  Reopen; the other actions sit in a ⋯ menu: Edit for whoever wrote the comment, then the team's Make it a decision,
+  page. An open comment has a slim reply box and one button for the next step: Resolve, Record answer (the team) or
+  Reopen; the other actions sit in a ⋯ menu: Edit for whoever wrote the comment, then the team's Make it a question,
   Make a comment and Delete. Your own replies have Edit beneath them (see Feedback for who may edit). Delete asks first,
   and is for a comment made by mistake, twice or as a test; a decision is made a comment again before it can go, and a
   deleted comment can be found in git's history once it has been committed. A pin that covers
@@ -112,7 +115,7 @@ gets their improvements. What the prototype says is the site's own, one folder p
   site sets its own. The Sitemap and the Content model take comments too, from the Comments button in
   their title bars, pinned to a page box or a card; All pages lists them with the pages.
 - **Decisions** come from comments. The team (a control panel login, a reviewer marked `team: true`, or
-  `avoca:feedback`) raises a comment as a decision, or ticks Make it a decision as they post, and records what was
+  `avoca:feedback`) raises a comment as a decision, or ticks Make it a question as they post, and records what was
   decided. At sign-off, `php please avoca:feedback --write-decisions` copies them into `resources/site/decisions.md`.
 - **Page options.** A page can be shown more than one way, for reviewers to compare before choosing: `OPTIONS` in
   `data.js`, by page. A bar above the frames shows them on pages that have them, folded to one line of what's showing
@@ -168,7 +171,7 @@ sees anything: the tab only appears in a browser that has signed in to review, o
   panel closes it. Add comment, across the foot of the panel in the site's primary button colours, asks for a spot on
   the page, and the comment is pinned to the
   element clicked, at that point within it, so its numbered pin follows the element when the layout changes: graphite
-  while open, amber for a decision to make, green once done. A pin that covers something can be dragged to another
+  while open, amber for a question to answer, green once resolved. A pin that covers something can be dragged to another
   spot. Show comment pins switches them off and on, and pointing at a comment shows its pin either way. The tab's count
   takes the same colours. A site whose primary colour doesn't suit sets its own in its CSS:
   `#avoca-feedback { --feedback-accent: #…; --feedback-accent-ink: #…; }`. For

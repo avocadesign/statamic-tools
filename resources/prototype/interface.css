@@ -486,12 +486,10 @@ button.node:hover { border-color: var(--ink); }
 .fb-resolved > div { gap: 8px; }
 .fb-scope { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; font-size: 12.5px; color: var(--muted); }
 .fb-scope b { color: var(--ink); font-weight: 600; }
-/* The filters share the panel's width between them. */
-.fb-filters { display: flex; gap: 6px; }
-.fb-filters .chip-btn { flex: 1; padding: 5px 10px; text-align: center; }
-.chip-btn[aria-pressed="true"] { background: var(--sel); border-color: var(--sel); color: var(--sel-ink); }
-.chip-btn[aria-pressed="true"] .muted { color: inherit; opacity: .7; }
-/* Pages in All comments, each under a line that runs the panel's full width, with room between them. */
+/* The filters as one button group across the panel's width, like Notes and Comments above. */
+.fb-filters { display: flex; }
+.fb-filters button { flex: 1; padding: 5px 10px; font-size: 12.5px; }
+/* Pages in All pages, each under a line that runs the panel's full width, with room between them. */
 .fb-group { display: flex; flex-direction: column; gap: 8px; margin: 14px -20px 0; padding: 20px 20px 0; border-top: 1px solid var(--line); }
 /* A page's name, with Showing beside it when it's the one on show. */
 .fb-group-h { display: flex; align-items: baseline; gap: 8px; }

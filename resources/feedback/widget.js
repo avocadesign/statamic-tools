@@ -45,11 +45,12 @@
         '.toggle{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--ink);user-select:none}',
         '.toggle input{accent-color:var(--accent);width:15px;height:15px;margin:0}',
         // The filters share the panel's width between them.
-        '.chips{display:flex;gap:6px}',
-        '.chip{flex:1;padding:5px 10px;border:1px solid var(--line-2);border-radius:999px;background:var(--bg);font-size:12px;text-align:center}',
-        '.chip span{color:var(--muted)}',
-        '.chip[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}',
-        '.chip[aria-pressed=true] span{color:inherit;opacity:.7}',
+        // The filters as one button group, the chosen one raised, as in the prototype.
+        '.chips{display:flex;gap:2px;padding:3px;border:1px solid var(--line-2);border-radius:9px;background:var(--soft)}',
+        '.chip{flex:1;padding:5px 10px;border:0;border-radius:6px;background:transparent;font-size:12px;font-weight:600;text-align:center;white-space:nowrap;color:var(--muted)}',
+        '.chip:hover{color:var(--ink)}',
+        '.chip span{font-weight:500;opacity:.75}',
+        '.chip[aria-pressed=true]{background:var(--bg);color:var(--ink);box-shadow:0 1px 2px rgb(0 0 0/.12)}',
         '.body{flex:1;overflow:auto;padding:12px 16px;display:flex;flex-direction:column;gap:10px}',
         '.empty{margin:16px 0;color:var(--muted)}',
         '.card{position:relative;border:1px solid var(--line);border-radius:10px;background:var(--bg)}',
@@ -169,8 +170,8 @@
     ].join('');
 
     var BREAKPOINTS = [['2xl', 96], ['xl', 80], ['lg', 64], ['md', 48], ['sm', 40]];
-    var FILTERS = [['comment', 'Comments'], ['decide', 'Decisions'], ['done', 'Done']];
-    var EMPTY = { comment: 'No comments yet.', decide: 'No decisions yet.', done: 'Nothing done yet.' };
+    var FILTERS = [['comment', 'Comments'], ['decide', 'Questions'], ['done', 'Resolved']];
+    var EMPTY = { comment: 'No comments yet.', decide: 'No questions yet.', done: 'Nothing resolved yet.' };
     var PINS_KEY = 'avoca-feedback-pins';
 
     var state = {
@@ -422,7 +423,7 @@
     function byNumber(a, b) { return (state.numbers[a.id] || 0) - (state.numbers[b.id] || 0); }
     function find(id) { return state.all.filter(function (c) { return c.id === id; })[0] || null; }
 
-    // The filter All pages is showing: Comments, Decisions or Done.
+    // The filter All pages is showing: Comments, Questions or Resolved.
     function showing() { return state.show === 'decide' || state.show === 'done' ? state.show : 'comment'; }
     // The filter a comment is listed under, for opening it in All pages.
     function filterFor(c) { return done(c) ? 'done' : c.decision ? 'decide' : 'comment'; }
@@ -633,7 +634,7 @@
         html += list.filter(isOpen).map(card).join('');
         if (finished.length) {
             var opened = finished.some(function (c) { return c.id === state.openId; });
-            html += '<details class="fold"' + (opened ? ' open' : '') + '><summary>Done <span>' + finished.length + '</span></summary><div>' + finished.map(card).join('') + '</div></details>';
+            html += '<details class="fold"' + (opened ? ' open' : '') + '><summary>Resolved <span>' + finished.length + '</span></summary><div>' + finished.map(card).join('') + '</div></details>';
         }
         return html;
     }
@@ -643,7 +644,7 @@
     function allList() {
         var show = showing();
         var list = filtered(show);
-        // Done beneath: with Comments the comments closed, with Decisions the decisions made. With Done, they're the list.
+        // Resolved beneath: with Comments the comments closed, with Questions those answered. With Resolved, they're the list.
         var finished = show === 'done' ? [] : state.all.filter(function (c) { return done(c) && (show === 'decide') === !!c.decision; });
         var groups = {};
         var order = [];
@@ -666,7 +667,7 @@
             return '<div class="group"><div class="group-h"><h3>' + (url === path() ? esc(title) : '<a class="page" href="' + esc(url) + '">' + esc(title) + '<span aria-hidden="true">→</span></a>') + '</h3>' +
                 (url === path() ? '<span>This page</span>' : '') + '</div>' +
                 cs.map(card).join('') +
-                (ds.length ? '<details class="fold"' + (opened ? ' open' : '') + '><summary>Done <span>' + ds.length + '</span></summary><div>' + ds.map(card).join('') + '</div></details>' : '') +
+                (ds.length ? '<details class="fold"' + (opened ? ' open' : '') + '><summary>Resolved <span>' + ds.length + '</span></summary><div>' + ds.map(card).join('') + '</div></details>' : '') +
                 '</div>';
         }).join('');
     }
@@ -674,7 +675,7 @@
     function composer() {
         return '<form class="form compose" data-form="compose"><p class="where"><span class="num num--draft">+</span>New comment, at the + on the page</p>' +
             '<textarea name="body" data-keep="new" maxlength="5000" placeholder="What would you change, or what do you think?" aria-label="Your comment" required></textarea>' +
-            (staff() ? '<label class="toggle"><input type="checkbox" name="decision"> Make it a decision</label>' : '') +
+            (staff() ? '<label class="toggle"><input type="checkbox" name="decision"> Make it a question</label>' : '') +
             errorFor('new') +
             '<div class="row"><button class="primary">Post</button><button type="button" class="ghost cancel-compose">Cancel</button></div></form>';
     }
@@ -682,7 +683,7 @@
     // Only a decision is labelled, on the card's top right corner: amber while it's to make, green with a tick once done.
     function stateBadge(c) {
         if (!c.decision) return '';
-        return '<span class="state ' + (done(c) ? 'done' : 'decide') + '">' + (done(c) ? '✓ ' : '') + 'Decision</span>';
+        return '<span class="state ' + (done(c) ? 'done' : 'decide') + '">' + (done(c) ? '✓ ' : '') + 'Question</span>';
     }
 
     function by(person, time, edited) {
@@ -710,7 +711,7 @@
             '<span class="num num--' + k + '">' + (n || '·') + '</span>' + by(c.author, c.created_at, c.edited_at) + stateBadge(c) +
             '<span class="chev" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M3 4.5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>' +
             '<div class="card-main">' + (open && editing(c.id) ? editForm(c) : '<p class="text' + (open ? '' : ' clamp') + '">' + esc(c.body) + '</p>') +
-            (decided(c) ? '<div class="outcome"><b>Decided</b><p>' + esc(d.outcome) + '</p><small>' + esc((d.decided_by || {}).name || '') + (d.decided_at ? ' · ' + esc(ago(d.decided_at)) : '') + '</small></div>' : '') +
+            (decided(c) ? '<div class="outcome"><b>Answered</b><p>' + esc(d.outcome) + '</p><small>' + esc((d.decided_by || {}).name || '') + (d.decided_at ? ' · ' + esc(ago(d.decided_at)) : '') + '</small></div>' : '') +
             (!open && replies.length ? '<p class="more">' + replies.length + (replies.length === 1 ? ' reply' : ' replies') + '</p>' : '') +
             (open ? thread(c) : '') +
             '</div></article>';
@@ -723,9 +724,9 @@
         var next = null;
         if (decided(c)) { if (staff()) next = ['reopen', 'Reopen']; }
         else if (c.status === 'resolved') next = ['reopen', 'Reopen'];
-        else if (c.decision) { if (staff()) { next = ['decide', 'Record decision']; more.push(['resolve', 'Mark done']); } }
-        else next = ['resolve', 'Mark done'];
-        if (staff()) more.push(c.decision ? ['drop', 'Make a comment'] : ['raise', 'Make it a decision']);
+        else if (c.decision) { if (staff()) { next = ['decide', 'Record answer']; more.push(['resolve', 'Resolve']); } }
+        else next = ['resolve', 'Resolve'];
+        if (staff()) more.push(c.decision ? ['drop', 'Make a comment'] : ['raise', 'Make it a question']);
         // The team can delete a comment made by mistake or as a test; a decision is made a comment again first.
         if (staff() && !c.decision) more.push(['delete', 'Delete']);
         return { next: next, more: more };
@@ -744,10 +745,10 @@
             (a.more.length ? '<span class="more-wrap"><button type="button" class="icon small menu-toggle" aria-expanded="false" aria-label="More actions" title="More actions">' +
                 '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="3.5" cy="8" r="1.4" fill="currentColor"/><circle cx="8" cy="8" r="1.4" fill="currentColor"/><circle cx="12.5" cy="8" r="1.4" fill="currentColor"/></svg></button>' +
                 '<span class="menu" hidden>' + a.more.map(function (m) { return '<button type="button" data-act="' + m[0] + '"' + (m[0] === 'delete' ? ' class="danger"' : '') + '>' + m[1] + '</button>'; }).join('') + '</span></span>' : '');
-        return (c.decision && c.decision.who ? '<p class="who-decides">Who decides: ' + esc(c.decision.who) + '</p>' : '') +
+        return (c.decision && c.decision.who ? '<p class="who-decides">Who answers: ' + esc(c.decision.who) + '</p>' : '') +
             (replies ? '<ul class="replies">' + replies + '</ul>' : '') +
-            (state.deciding === c.id ? '<form class="form" data-form="outcome"><textarea name="outcome" data-keep="outcome-' + id + '" maxlength="5000" aria-label="What was decided" placeholder="What was decided" required></textarea>' +
-                '<div class="row"><button class="primary">Record decision</button><button type="button" class="link" data-act="cancel-decide">Cancel</button></div></form>' : '') +
+            (state.deciding === c.id ? '<form class="form" data-form="outcome"><textarea name="outcome" data-keep="outcome-' + id + '" maxlength="5000" aria-label="The answer" placeholder="The answer" required></textarea>' +
+                '<div class="row"><button class="primary">Record answer</button><button type="button" class="link" data-act="cancel-decide">Cancel</button></div></form>' : '') +
             '<form class="form reply" data-form="reply"><textarea name="body" data-keep="reply-' + id + '" rows="1" maxlength="5000" aria-label="Reply" placeholder="Reply" required></textarea>' +
             '<div class="foot-bar"><button class="ghost small send">Reply</button><span class="acts">' + acts + '</span></div></form>' +
             errorFor(c.id);

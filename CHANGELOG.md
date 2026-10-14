@@ -2,6 +2,13 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.52 (15 October 2026)
+
+- **Reviewers see decisions as questions.** In the comments panel, on the site and in the prototype, the filter is Questions, a card's badge says Question, the team makes a comment a question and records its answer, the outcome is headed Answered, and Who decides is Who answers. The prototype's help says a question to answer. Nothing stored changes, and the command and `resources/site/decisions.md` still call them decisions.
+- **Done is now Resolved:** the filter, the folded list beneath each page, the help, and the button, Resolve in place of Mark done.
+- **The filters are a button group,** the chosen one raised, like the prototype's Notes and Comments switch, on the site and in the prototype.
+- **To do on update:** nothing.
+
 ## v0.1.51 (15 October 2026)
 
 - **A Done filter** in the comments panel, on the site and in the prototype, lists the comments closed and the decisions made, page by page in number order, each decision with its outcome.
