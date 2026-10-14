@@ -2,6 +2,14 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.48 (14 October 2026)
+
+- **When the design is done, the control panel screenshots are checked,** before `design` is merged into `main`: every block in the page builder and every set in the text editor. Developer details on `/site/content` says which are missing or not added; the agent takes those, retakes any the design has made out of date, commits them together and lists in the pull request any it couldn't take. It is under Control panel screenshot, with a pointer from Branches and commits.
+- **The recipe has a Launch section.** At launch a site holds the add-on to the line it launches on, such as `^0.1.48` in place of the kit's `<2.0`, so later releases in that line still arrive and a new line waits for the developer; it records `launched:` with the date in `resources/site/updates.yaml`; and it finishes what the recipe leaves until launch, gathered into one list. Working on a launched site, the recipe applies to the change in hand: anything a newer recipe would build differently goes in the plan as a suggestion, and a release's To do on update is a suggestion too. Moving to a new line is a change of its own. Before you start now asks whether the site has launched.
+- **`avoca:site:check` warns when a launched site still lets the add-on move to a new line,** and says what to ask for instead. A site without `launched:`, or one taking the add-on from a branch or a local folder, gets no warning.
+- **A list inside a repeating item, such as the points on a card, is a grid with one text field,** under the recipe's grid or replicator guidance, rather than bullets in the item's text editor.
+- **To do on update:** nothing. A site whose design is already done can run the screenshot check at any time. A site already live can record `launched:` and narrow its constraint, as the Launch section says.
+
 ## v0.1.47 (14 October 2026)
 
 - **Every phone number, email address and social link, and the business's address, comes from Site Details,** even where a design shows it only once. Before, the recipe said so only for details used in more than one place.

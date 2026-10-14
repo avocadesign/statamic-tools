@@ -9,6 +9,7 @@ use Avocadesign\StatamicTools\Permissions\PermissionSets;
 use Avocadesign\StatamicTools\Site\AgencyLogo;
 use Avocadesign\StatamicTools\Site\Blocks;
 use Avocadesign\StatamicTools\Site\Catalogue;
+use Avocadesign\StatamicTools\Site\Launch;
 use Avocadesign\StatamicTools\Site\Llms;
 use Avocadesign\StatamicTools\Site\Scripts;
 use Avocadesign\StatamicTools\Site\Docs;
@@ -118,6 +119,13 @@ class SiteCheck extends Command
         // The kit shows the agency's logo in form emails and the site header until the client's arrives, and a site must
         // not reach client sign-off like that. Always a warning: it is expected while a site is being built.
         foreach (AgencyLogo::check() as $problem) {
+            $this->line('  <fg=yellow>!</> '.$problem);
+            $warnings++;
+        }
+
+        // A launched site holds the add-on to the release line it launched on, so a new line is a decision. Always a
+        // warning: the site works either way.
+        foreach (Launch::check() as $problem) {
             $this->line('  <fg=yellow>!</> '.$problem);
             $warnings++;
         }

@@ -13,12 +13,13 @@ Don't edit this file in `vendor/`. If a step is wrong, missing or contradicted b
 
 1. Work on the branch the change belongs on: `design` for design work, with `main` merged into it, or a branch of its own for a quick fix. See [Branches and commits](#branches-and-commits).
 2. Bring the add-on up to date. This recipe comes with it, so an old add-on means an old recipe. Run `composer show avocadesign/statamic-tools --latest`, and when `latest` is newer than `versions`, update as [Keeping the add-on current](#keeping-the-add-on-current) says, then read this recipe again from the top.
-3. Read `resources/site/catalogue.md`. It lists every block and text editor set the site has, with its fields, options, group and guidance. It is generated from the site's fieldsets, so trust it over any other list of blocks, including what you know from other Avoca sites.
-4. Read `resources/site/design.md` for the rules every block shares, and the collection records in `resources/site/collections/`.
-5. Open `/site/content` for a live preview of every block and set, and `/site/style` for colours, typography, spacing, buttons and colour schemes. On production both need a logged-in Statamic user.
-6. Run `php please avoca:library --json` to see what Avoca's library can install. Each item has a `handle`, `name`, `category` (`blocks`, `sets` or `presets`), `version`, `status` (`not installed`, `installed` or `update available`), `description`, and the `blocks` and `sets` it adds. `resources/site/installed.yaml` records what this site has installed, and at which version.
-7. Find out how the site is hosted. See [Hosting](#hosting). Every site runs the full static cache in production, so read [Static caching](#static-caching) before you build anything that differs by visitor or calls the site's server.
-8. If the site is designed in Paper, read [Designs from Paper](#designs-from-paper) before you build anything from the design.
+3. Find out whether the site has launched: `launched:` in `resources/site/updates.yaml`. On a launched site, read [Working on a launched site](#working-on-a-launched-site) before you plan.
+4. Read `resources/site/catalogue.md`. It lists every block and text editor set the site has, with its fields, options, group and guidance. It is generated from the site's fieldsets, so trust it over any other list of blocks, including what you know from other Avoca sites.
+5. Read `resources/site/design.md` for the rules every block shares, and the collection records in `resources/site/collections/`.
+6. Open `/site/content` for a live preview of every block and set, and `/site/style` for colours, typography, spacing, buttons and colour schemes. On production both need a logged-in Statamic user.
+7. Run `php please avoca:library --json` to see what Avoca's library can install. Each item has a `handle`, `name`, `category` (`blocks`, `sets` or `presets`), `version`, `status` (`not installed`, `installed` or `update available`), `description`, and the `blocks` and `sets` it adds. `resources/site/installed.yaml` records what this site has installed, and at which version.
+8. Find out how the site is hosted. See [Hosting](#hosting). Every site runs the full static cache in production, so read [Static caching](#static-caching) before you build anything that differs by visitor or calls the site's server.
+9. If the site is designed in Paper, read [Designs from Paper](#designs-from-paper) before you build anything from the design.
 
 ## How an Avoca site is put together
 
@@ -290,6 +291,7 @@ Content that repeats, such as cards, prices or statistics, goes in a grid or a r
 
 - **A replicator whenever an item has a text editor:** `import: article`, `common.text_rich`, `common.text_basic` or any other Bard field. A grid can't collapse its rows, so every row's editor is open at once and the field grows too tall to use: six cards with a text editor each is a long scroll to reach the sixth. A replicator's items collapse, so give it `collapse: accordion` and a `button_label` naming the item, such as `'Add card'`.
 - **A replicator when items come in more than one kind,** each with its own fields, which a grid can't do.
+- **A grid with one text field for a list inside an item,** such as the points on a card, one row per point, shown as a list. Keep lists out of an item's text editor, where they make one item taller than the rest. The block's guidance says how many points its design holds.
 - **A grid when every item is the same short form:** text fields, a textarea such as `common.text_plain`, a select, a toggle or a single image. Use `mode: stacked` once a row has more than three fields or a textarea, because `table` squeezes them into columns, and give it an `add_row` naming the item, such as `'Add a price'`, with `min_rows` or `max_rows` when the design needs them.
 
 Switching an existing field between the two changes how its content is saved, because a replicator records each item's set as its `type`. Move the saved content in the same pull request, as for any changed handle.
@@ -418,6 +420,8 @@ Every block needs a screenshot. It is the block's preview in the control panel's
 5. Open Developer details for the block on `/site/content`. Preview image must name the file, not say missing or not added.
 
 Retake the screenshot whenever the block's default look changes. Use a browser or screenshot tool you already have, and don't add a dependency to the site for it. If you can't take one, say so in the pull request and leave it for the developer. Don't commit a placeholder image. A library item brings its own screenshot and sets `image:` when it installs.
+
+**When the design is done,** before `design` is merged into `main`, go through every block in the page builder and every set in the text editor. The design reaches most of them through the tokens, so screenshots taken before it, the kit's own among them, no longer show this site. Open Developer details for each one on `/site/content`. Take a screenshot for any whose Preview image says missing or not added, with the steps above, a set's `image:` going on its entry in `resources/fieldsets/article.yaml`. Retake any whose screenshot no longer looks like its preview. Commit them together, and list in the pull request any you couldn't take.
 
 ### Catalogue and check
 
@@ -573,7 +577,7 @@ the start of each day when the work runs on:
    `latest` is the newest there is. When they match, there is nothing to do.
 2. When `latest` is a release line the site's constraint in `composer.json` doesn't allow, such as 2.0
    on a site that asks for `<2.0`, leave the constraint alone and tell the developer: moving a site to
-   a new line is a decision.
+   a new line is a decision. A launched site is held to its line on purpose, so say it once, in the plan.
 3. Otherwise run `composer update avocadesign/statamic-tools`, which takes the newest release the site
    allows and leaves its other packages as they are.
 4. Read `vendor/avocadesign/statamic-tools/CHANGELOG.md` for every release since the one the site had,
@@ -593,6 +597,7 @@ and has nothing to update.
 - **A quick fix goes on a branch of its own,** made from `main`, even when the fix comes from Paper.
 - **Bring `main` into `design` at the start of every session,** before anything else: `git fetch origin`, then `git merge origin/main` on `design`. It brings in quick fixes, and on a site whose content is edited on the server, what the client has saved there since. When the merge conflicts, stop and show the developer the conflicting files rather than choosing for them.
 - **Only `main` goes live.** Nothing on `design` or any other branch reaches the live site until it is merged into `main`, through a pull request the developer merges, as [One pull request](#4-one-pull-request) says.
+- **When the design is done,** before that pull request, check every block's and set's control panel screenshot and take any that are missing, as [Control panel screenshot](#control-panel-screenshot) says.
 - **When a page needs new sections, commit each one as soon as it is built,** before starting the next, then ask the developer whether to push. Don't push without a yes. Regenerate the catalogue before a commit that changes a fieldset or guidance file, so every commit passes the strict check, and name the page and the section in the message: `About: add the team section`.
 
 ## Review steps
@@ -660,3 +665,28 @@ Before a new site's first sign-off, check that the client's logo has replaced th
 - **The site header.** `resources/views/components/_logo.antlers.html` must show the client's SVG, not the agency's from `public/agencies/`.
 
 `php please avoca:site:check` warns while either one still points at `public/agencies/`, but never fails on it, even with `--strict`, because the agency's logo is expected while a site is being built. The control panel keeps the agency's logo, so leave that one. If the client's logo hasn't arrived yet, say so in the sign-off note rather than letting the site go to the client with the agency's.
+
+## Launch
+
+A site launches when it goes live for the client's visitors, after their sign-off. Until then the add-on takes every release, because the recipe is still shaping the site. From launch, a newer recipe shouldn't start changes nobody asked for on a live site.
+
+### At launch
+
+1. **Hold the add-on to the line the site launches on.** In `composer.json`, change `avocadesign/statamic-tools` from the kit's `<2.0` to `^` and the release the site has, such as `^0.1.48`, then run `composer update avocadesign/statamic-tools` so `composer.lock` records it. Under 1.0 that takes only the later releases of that line, such as 0.1.49, and from 1.0 every 1.x release. A release in the line carries fixes and recipe changes that ask nothing of a site, because one that asks something starts a new line. A new line then waits for the developer, as [Keeping the add-on current](#keeping-the-add-on-current) says.
+2. **Mark the launch** in `resources/site/updates.yaml` with the date: `launched: 2026-10-14`. It tells the next agent the site is live. `avoca:site:check` warns when a launched site still lets the add-on move to a new line.
+3. **Finish what the recipe leaves until launch:**
+   - `design` merged into `main`, the control panel screenshots checked first, as [Branches and commits](#branches-and-commits) says;
+   - Site Details holding the business's own details, none of the kit's samples, with the email filled in for [Forms](#forms);
+   - the client's logo in the form emails and the site header, as [Client sign-off](#5-client-sign-off-on-the-staging-preview) says;
+   - the structured data checked in Google's Rich Results Test, as [Structured data](#structured-data) says;
+   - `llms.txt` written, with no placeholders, as [What a site tells language models](#what-a-site-tells-language-models) says;
+   - every routed collection in the SEO global's sitemap collections, unless the plan says otherwise;
+   - the server ready for the full static cache: the strategy, the rewrite rule, the deploy script's two cache lines and the scheduler, as [Static caching](#static-caching) says;
+   - feedback switched off: `FEEDBACK_ENABLED=false`.
+4. **Commit `composer.json`, `composer.lock` and `resources/site/updates.yaml`** together: `Launch: hold the add-on to 0.1`.
+
+### Working on a launched site
+
+- **The recipe applies to the change in hand.** It keeps moving after a site launches, and a newer version may build something differently from how this site was built: a phone number typed into the footer, a grid holding a text editor, a screenshot from before the design. Don't bring those into line as part of other work. List what you noticed in the plan as suggestions, and change one only when the developer says so, as a change of its own.
+- **A release in the site's line asks nothing of it,** so its To do on update is a suggestion too, for the plan.
+- **Moving to a new line is a change of its own:** a plan listing each release's To do on update, a branch, `bash vendor/avocadesign/statamic-tools/scripts/check-site.sh` and the visual review on the pages it touches, and then the constraint moved to the new line, such as `^0.2.0`.
