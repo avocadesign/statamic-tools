@@ -2,6 +2,11 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.46 (14 October 2026)
+
+- **The recipe says when to use a grid and when a replicator** for content that repeats, under Building a new block's Fieldset, for blocks, sets and collection blueprints alike. Any item with a text editor goes in a replicator, collapsed as an accordion, because a grid can't collapse its rows and every editor stays open; so do items of more than one kind. A grid is for items that are the same short form, stacked once a row has more than three fields or a textarea. Switching an existing field between the two means moving its saved content.
+- **To do on update:** nothing. Existing grids with a text editor in each row still work; change them when the block is next worked on.
+
 ## v0.1.45 (13 October 2026)
 
 - **The recipe no longer assumes static generation.** Every Avoca site runs Statamic's full static cache in production, with PHP still behind it, so `nocache`, forms and requests from the browser to the site's own server are allowed. The recipe's Static generation rules are replaced by Static caching: the cached page is the same for everyone, so anything per visitor goes in a small `nocache` region; forms work, with the CSRF token filled in by JavaScript; which routes and query strings the cache keeps, and which to exclude; what clears it; the server's rewrite rule; how to check a page with the cache on locally; and why a staging site taking feedback runs the half strategy. Hosting, Before you start and the plan's checklist follow it, and the Testimonials preset's comment on random order no longer mentions a static build.
