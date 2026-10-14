@@ -2,6 +2,13 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.47 (14 October 2026)
+
+- **Every phone number, email address and social link, and the business's address, comes from Site Details,** even where a design shows it only once. Before, the recipe said so only for details used in more than one place.
+- **A design with real contact details means a question first.** When a footer, contact page or any other design shows real ones, rather than placeholders or the kit's sample values, the agent lists them beside what Site Details holds, in the plan, and asks whether to import them. The template reads them from Site Details whatever the answer. The Paper conversion table and the plan's checklist say the same.
+- **`main` is merged into `design` at the start of every session,** with `git fetch origin` and `git merge origin/main`, so the design branch has the quick fixes and, on a site edited on the server, the client's content. A conflict goes to the developer.
+- **To do on update:** nothing. A site whose footer or contact page types in a phone number, email address, social link or address should move it to Site Details when that part is next worked on.
+
 ## v0.1.46 (14 October 2026)
 
 - **The recipe says when to use a grid and when a replicator** for content that repeats, under Building a new block's Fieldset, for blocks, sets and collection blueprints alike. Any item with a text editor goes in a replicator, collapsed as an accordion, because a grid can't collapse its rows and every editor stays open; so do items of more than one kind. A grid is for items that are the same short form, stacked once a row has more than three fields or a textarea. Switching an existing field between the two means moving its saved content.

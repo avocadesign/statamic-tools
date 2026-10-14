@@ -11,7 +11,7 @@ Don't edit this file in `vendor/`. If a step is wrong, missing or contradicted b
 
 ## Before you start
 
-1. Work on the branch the change belongs on: `design` for design work, a branch of its own for a quick fix. See [Branches and commits](#branches-and-commits).
+1. Work on the branch the change belongs on: `design` for design work, with `main` merged into it, or a branch of its own for a quick fix. See [Branches and commits](#branches-and-commits).
 2. Bring the add-on up to date. This recipe comes with it, so an old add-on means an old recipe. Run `composer show avocadesign/statamic-tools --latest`, and when `latest` is newer than `versions`, update as [Keeping the add-on current](#keeping-the-add-on-current) says, then read this recipe again from the top.
 3. Read `resources/site/catalogue.md`. It lists every block and text editor set the site has, with its fields, options, group and guidance. It is generated from the site's fieldsets, so trust it over any other list of blocks, including what you know from other Avoca sites.
 4. Read `resources/site/design.md` for the rules every block shares, and the collection records in `resources/site/collections/`.
@@ -30,7 +30,8 @@ Don't edit this file in `vendor/`. If a step is wrong, missing or contradicted b
 
 ### Site Details global
 
-- Details used in more than one place, or that the client should be able to change, come from the Site Details global: phone numbers, email, address, social links, opening hours and key dates.
+- Every phone number, email address and social link, and the business's address, comes from the Site Details global, even where a design shows it only once, because the footer or another page will want it too. So does any other detail that could appear in more than one place or that the client should be able to change, such as opening hours and key dates.
+- When a design shows real contact details, such as in a footer or on a contact page, compare them with Site Details before you build. Placeholder copy in [square brackets] doesn't count, and nor do the kit's sample values, such as `123 Somewhere Street` and `email@address.com`, which Site Details holds until someone replaces them. Where Site Details is empty, holds a sample or says something different, list each of the design's details beside what Site Details holds, in the plan, and ask the developer whether to import them. Import only what they approve: a social link is an item in Social media, with the network's handle, or its URL where the item asks for one. Build the template to read every one of them from Site Details whatever the answer, and never type them into a template or a page.
 - When a site needs another detail, add a field to Site Details rather than typing the value into a template or a block. Put it in the section it belongs with, so a second phone number sits beside the first.
 - Give a group of related fields its own tab, such as a Festival dates tab holding several date fields.
 - The address is kept as separate parts, street, town, region, postcode and country, with the two map coordinates beside them, because search engines need clean strings rather than a block of rich text. The address shown on the site is built from those parts, so it and the site's structured data always say the same thing. The rich text address field under them is an override, for an address that has to read differently on the page. Structured data below has the rest.
@@ -248,6 +249,7 @@ Every value that comes back is one of three things:
 | An image | Content. Images added in Paper come back as Paper's own addresses. `get_fill_image` returns a reduced preview with the original's address in its metadata: download the original, save it into the images container under a file name that says what it shows, give it alt text, and set it on the entry. Never put it in a template. An image that went up from the site is already in the container. |
 | A logo or an icon | An SVG file: one the site already has, or exported from Paper. Never redrawn. |
 | Text | Content. It goes in entries and globals, never into a template. Text in [square brackets] is the prototype's placeholder copy, not the client's, so flag any that is still there. |
+| A phone number, email address, social link or address | Site Details, read from there by the template or the Contact Details set. Ask the developer whether to import the design's, as [Site Details global](#site-details-global) says. |
 | A part repeated across pages, such as a card | The decision order below: a block the site has, a library item, a change to a block, then a new block. |
 
 When a page is built, screenshot it at 390 and 1440 beside the Paper artboards, and list in the pull request every value that matched no token and what you did with it.
@@ -589,6 +591,7 @@ and has nothing to update.
 
 - **Design work goes on a branch called `design`.** That is the design stage, and every design brought down from Paper. Keep to the one branch for the whole stage, rather than a branch for each page, and create it from `main` when the site doesn't have one yet.
 - **A quick fix goes on a branch of its own,** made from `main`, even when the fix comes from Paper.
+- **Bring `main` into `design` at the start of every session,** before anything else: `git fetch origin`, then `git merge origin/main` on `design`. It brings in quick fixes, and on a site whose content is edited on the server, what the client has saved there since. When the merge conflicts, stop and show the developer the conflicting files rather than choosing for them.
 - **Only `main` goes live.** Nothing on `design` or any other branch reaches the live site until it is merged into `main`, through a pull request the developer merges, as [One pull request](#4-one-pull-request) says.
 - **When a page needs new sections, commit each one as soon as it is built,** before starting the next, then ask the developer whether to push. Don't push without a yes. Regenerate the catalogue before a commit that changes a fieldset or guidance file, so every commit passes the strict check, and name the page and the section in the message: `About: add the team section`.
 
@@ -607,6 +610,7 @@ Before you change any file, write a short plan and wait for the developer to app
 - for a collection: the answers you will give `avoca:make:collection`;
 - anything that depends on how the site is hosted, and anything that needs `nocache` or keeping out of the static cache;
 - for a design from Paper: every value that matched no token, and what you propose for each one;
+- for a design with real contact details: each one beside what Site Details holds, and whether to import it;
 - anything you will leave out.
 
 Don't build until the developer approves. If the work stops matching the plan, stop and say so.
