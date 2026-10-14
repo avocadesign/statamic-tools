@@ -2,6 +2,13 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.51 (15 October 2026)
+
+- **A Done filter** in the comments panel, on the site and in the prototype, lists the comments closed and the decisions made, page by page in number order, each decision with its outcome.
+- **Open is now Comments, and lists only comments.** Decisions still to make are under Decisions, and what's done under Done. Beneath each page, Comments folds away the comments closed and Decisions the decisions made.
+- **All comments is now All pages.** Opening a comment on another page, from a link or the panel, switches All pages to the filter that lists it.
+- **To do on update:** nothing.
+
 ## v0.1.50 (15 October 2026)
 
 - **Comments are numbered in one sequence, in the order they were made,** instead of starting again at 1 on every page: across the whole prototype, every version included, and separately across the site. A comment keeps its number, so it is the same in every list, on its pin and when the team talks about it.

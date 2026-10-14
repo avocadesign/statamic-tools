@@ -94,9 +94,10 @@ gets their improvements. What the prototype says is the site's own, one folder p
   both frames: graphite while open, amber for a decision to make, green once done. Done is one thing to a reviewer, a
   decision made or a comment resolved, so the panel says Done for both. Comments are numbered in one sequence across
   the prototype, every version and page, in the order they were made, so a comment keeps its number. It lists this
-  page's comments in number order, with those done folded away, or all the comments on the prototype, filtered to Open
-  or Decisions with those done folded away beneath each page, the pages in the order of their first comment so the
-  numbers read down the list, and switches the pins off and
+  page's comments in number order, with those done folded away, or with All pages every page's, filtered to Comments
+  (open comments, not decisions), Decisions (those still to make) or Done (comments closed and decisions made). With
+  Comments or Decisions, those done are folded away beneath each page. The pages come in the order of their first
+  comment, so the numbers read down the list. It switches the pins off and
   on; pointing at a comment shows its pin either way. Opening a comment brings its pin into sight, or takes you to its
   page. An open comment has a slim reply box and one button for the next step: Mark done, Record decision (the team) or
   Reopen; the other actions sit in a ⋯ menu: Edit for whoever wrote the comment, then the team's Make it a decision,
@@ -105,11 +106,11 @@ gets their improvements. What the prototype says is the site's own, one folder p
   deleted comment can be found in git's history once it has been committed. A pin that covers
   something can be dragged to another spot, and pins to the element it's dropped on. A comment belongs to its version,
   and opening one from an earlier version takes you to that version, where it was made. A decision shows in every
-  version: one whose page this version doesn't have is listed last in All comments, under the page's old title and
+  version: one whose page this version doesn't have is listed in All pages, under the page's old title and
   marked Not in this version, and one whose element has gone sits where it was made, ringed with a dashed line.
   Add comment and the comment counts take the site's primary button colours, as on the site; Feedback below says how a
   site sets its own. The Sitemap and the Content model take comments too, from the Comments button in
-  their title bars, pinned to a page box or a card; All comments lists them after the pages.
+  their title bars, pinned to a page box or a card; All pages lists them with the pages.
 - **Decisions** come from comments. The team (a control panel login, a reviewer marked `team: true`, or
   `avoca:feedback`) raises a comment as a decision, or ticks Make it a decision as they post, and records what was
   decided. At sign-off, `php please avoca:feedback --write-decisions` copies them into `resources/site/decisions.md`.
@@ -161,8 +162,8 @@ sees anything: the tab only appears in a browser that has signed in to review, o
 `?feedback=<id>` link.
 
 - **On the page,** it works as the prototype's comments do. A Comments tab on the right edge carries the number still
-  open on the site, and opens a panel: this page's comments, with those done folded away, or all the comments, page by
-  page, filtered to Open or Decisions, with those done folded away beneath each page. As in the prototype, one sequence
+  open on the site, and opens a panel: this page's comments, with those done folded away, or All pages, page by page,
+  filtered to Comments, Decisions or Done as in the prototype. As in the prototype, one sequence
   numbers every comment on the site in the order they were made. A click on the page outside the
   panel closes it. Add comment, across the foot of the panel in the site's primary button colours, asks for a spot on
   the page, and the comment is pinned to the

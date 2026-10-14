@@ -124,7 +124,7 @@
         '.fold[open]>summary::before{transform:rotate(90deg)}',
         '.fold>summary span{font:500 11px ui-monospace,monospace;color:var(--muted)}',
         '.fold>div{margin-top:8px;display:flex;flex-direction:column;gap:8px}',
-        // Pages in All comments, each under a line that runs the panel's full width, with room between them.
+        // Pages in All pages, each under a line that runs the panel's full width, with room between them.
         '.group{display:flex;flex-direction:column;gap:8px;margin:14px -16px 0;padding:20px 16px 0;border-top:1px solid var(--line)}',
         // The first page sits straight under the filters' own line.
         '.body > .group:first-child{margin-top:0;padding-top:4px;border-top:0}',
@@ -169,8 +169,8 @@
     ].join('');
 
     var BREAKPOINTS = [['2xl', 96], ['xl', 80], ['lg', 64], ['md', 48], ['sm', 40]];
-    var FILTERS = [['open', 'Open'], ['decide', 'Decisions']];
-    var EMPTY = { open: 'No comments yet.', decide: 'No decisions yet.' };
+    var FILTERS = [['comment', 'Comments'], ['decide', 'Decisions'], ['done', 'Done']];
+    var EMPTY = { comment: 'No comments yet.', decide: 'No decisions yet.', done: 'Nothing done yet.' };
     var PINS_KEY = 'avoca-feedback-pins';
 
     var state = {
@@ -422,9 +422,15 @@
     function byNumber(a, b) { return (state.numbers[a.id] || 0) - (state.numbers[b.id] || 0); }
     function find(id) { return state.all.filter(function (c) { return c.id === id; })[0] || null; }
 
+    // The filter All pages is showing: Comments, Decisions or Done.
+    function showing() { return state.show === 'decide' || state.show === 'done' ? state.show : 'comment'; }
+    // The filter a comment is listed under, for opening it in All pages.
+    function filterFor(c) { return done(c) ? 'done' : c.decision ? 'decide' : 'comment'; }
+
     function filtered(show) {
         return state.all.filter(function (c) {
             if (show === 'open') return isOpen(c);
+            if (show === 'comment') return !c.decision && c.status === 'open';
             if (show === 'decide') return toDecide(c);
             if (show === 'done') return done(c);
             return true;
@@ -603,17 +609,17 @@
             '<div class="row"><button class="primary">Continue</button></div></form>';
     }
 
-    // This page or all comments; all comments adds its filters.
+    // This page or all pages; all pages adds its filters.
     function scopeBar() {
         var all = state.scope === 'all';
         var open = state.all.filter(isOpen).length;
         return '<div class="scope"><p>' +
             (all ? '<button type="button" class="link" data-scope="page">This page</button>' : '<b>This page</b>') + '<span aria-hidden="true">·</span>' +
-            (all ? '<b>All comments</b>' : '<button type="button" class="link" data-scope="all">All comments' + (open ? ' (' + open + ' open)' : '') + '</button>') +
+            (all ? '<b>All pages</b>' : '<button type="button" class="link" data-scope="all">All pages' + (open ? ' (' + open + ' open)' : '') + '</button>') +
             '</p></div>' +
             (all ? '<div class="chips" role="group" aria-label="Show">' + FILTERS.map(function (f) {
                 var n = filtered(f[0]).length;
-                return '<button type="button" class="chip" data-show="' + f[0] + '" aria-pressed="' + ((state.show === 'decide' ? 'decide' : 'open') === f[0]) + '">' + f[1] + (n ? ' <span>' + n + '</span>' : '') + '</button>';
+                return '<button type="button" class="chip" data-show="' + f[0] + '" aria-pressed="' + (showing() === f[0]) + '">' + f[1] + (n ? ' <span>' + n + '</span>' : '') + '</button>';
             }).join('') + '</div>' : '');
     }
 
@@ -635,10 +641,10 @@
     // All the feedback on the site, page by page, in the order of each page's first comment showing, so the numbers
     // read down the list. Each page's comments open or to decide, with those done folded away beneath, as on the page.
     function allList() {
-        var show = state.show === 'decide' ? 'decide' : 'open';
+        var show = showing();
         var list = filtered(show);
-        // Done beneath: every comment done, or with Decisions, the decisions made.
-        var finished = state.all.filter(function (c) { return done(c) && (show === 'open' || c.decision); });
+        // Done beneath: with Comments the comments closed, with Decisions the decisions made. With Done, they're the list.
+        var finished = show === 'done' ? [] : state.all.filter(function (c) { return done(c) && (show === 'decide') === !!c.decision; });
         var groups = {};
         var order = [];
         var add = function (c, key) {
@@ -1167,7 +1173,7 @@
             if (c) {
                 state.openId = c.id;
                 state.scope = onPage(c) ? 'page' : 'all';
-                if (!onPage(c)) state.show = 'all';
+                if (!onPage(c)) state.show = filterFor(c);
             }
             render();
             if (c && onPage(c)) show(c);

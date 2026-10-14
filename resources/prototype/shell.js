@@ -803,6 +803,7 @@ function fbIndex() {
 function fbFiltered(show, scope) {
     return fb.comments.filter(c => scope === 'all' || c.version === VERSION.id || c.decision).filter(c => {
         if (show === 'open') return c.status === 'open' && !fbIsDecided(c);
+        if (show === 'comment') return !c.decision && c.status === 'open';
         if (show === 'decide') return fbToDecide(c);
         if (show === 'done') return fbIsDone(c);
         return true;
@@ -1044,10 +1045,12 @@ function fbShow(id) {
     const c = fb.comments.find(x => x.id === id);
     if (!c) return;
     if (fbElsewhere(c)) { location.href = `${VERSIONS.find(v => v.id === c.version).url}?comment=${encodeURIComponent(id)}`; return; }
-    // A page this version doesn't have can't be opened, so you stay where you are, with the comment open in All comments.
+    // A page this version doesn't have can't be opened, so you stay where you are, with the comment open in All pages,
+    // under the filter that lists it.
     if (fbGone(c.page)) {
         fb.open = id;
         state.fbList = 'all';
+        state.fbShow = fbIsDone(c) ? 'done' : c.decision ? 'decide' : 'comment';
         if (fbBoard()) fb.board = true;
         else { state.notes = true; state.railTab = 'comments'; }
         save();
@@ -1329,13 +1332,13 @@ function fbFoot() {
         <label class="toggle"><input type="checkbox" data-fb-pins${state.pins ? ' checked' : ''}> Show comment pins</label></div>`;
 }
 
-// This page or all feedback, and the Comment button.
+// This page or all pages, and the Comment button.
 function fbScopeBar() {
     const all = state.fbList === 'all';
     const here = fbBoard() ? fbBoard().label : 'This page';
     const open = fbFiltered('open', 'version').length;
     return `<div class="fb-h">
-        <p class="fb-scope">${all ? `<button type="button" class="link-btn" data-fb-list="page">${here}</button>` : `<b>${here}</b>`}<span aria-hidden="true">·</span>${all ? '<b>All comments</b>' : `<button type="button" class="link-btn" data-fb-list="all">All comments${open ? ` (${open} open)` : ''}</button>`}</p>
+        <p class="fb-scope">${all ? `<button type="button" class="link-btn" data-fb-list="page">${here}</button>` : `<b>${here}</b>`}<span aria-hidden="true">·</span>${all ? '<b>All pages</b>' : `<button type="button" class="link-btn" data-fb-list="all">All pages${open ? ` (${open} open)` : ''}</button>`}</p>
     </div>`;
 }
 
@@ -1353,20 +1356,21 @@ function fbSection(key) {
     </section>`;
 }
 
-const FB_FILTERS = [['open', 'Open'], ['decide', 'Decisions']];
-const FB_EMPTY = { open: 'No comments yet.', decide: 'No decisions yet.' };
+const FB_FILTERS = [['comment', 'Comments'], ['decide', 'Decisions'], ['done', 'Done']];
+const FB_EMPTY = { comment: 'No comments yet.', decide: 'No decisions yet.', done: 'Nothing done yet.' };
 
-// All the feedback on the prototype, page by page, filtered to what needs doing. Decisions from earlier versions are
-// always in it; their other comments only when asked for.
-// Each page's comments open or to decide, with those done folded away beneath, as on the page. Pages come in the order
-// of their first comment showing, so the numbers read down the list.
+// All pages: the feedback on the prototype, page by page, filtered to the comments still open, the decisions to make,
+// or what's done. Decisions from earlier versions are always in it; their other comments only when asked for.
+// With Comments or Decisions, each page's open ones, with those done folded away beneath; with Done, the comments
+// closed and the decisions made. Pages come in the order of their first comment showing, so the numbers read down the
+// list.
 function fbAll() {
-    const show = state.fbShow === 'decide' ? 'decide' : 'open';
+    const show = ['decide', 'done'].includes(state.fbShow) ? state.fbShow : 'comment';
     const scope = state.fbScope === 'all' ? 'all' : 'version';
     const byNum = (a, b) => (fb.num.get(a.id) || 0) - (fb.num.get(b.id) || 0);
     const list = fbFiltered(show, scope);
-    // Done beneath: every comment done, or with Decisions, the decisions made.
-    const done = fbFiltered('done', scope).filter(c => show === 'open' || c.decision);
+    // Done beneath: with Comments the comments closed, with Decisions the decisions made. With Done, they're the list.
+    const done = show === 'done' ? [] : fbFiltered('done', scope).filter(c => (show === 'decide') === !!c.decision);
     const pages = [...list, ...done].map(c => c.page);
     const keys = [...ROUTES.map(r => r.key), ...Object.values(BOARDS).map(b => b.key), ...new Set(pages.filter(fbGone))];
     const groups = keys.map(key => [key, list.filter(c => c.page === key).sort(byNum), done.filter(c => c.page === key).sort(byNum)]).filter(([, cs, ds]) => cs.length || ds.length)
