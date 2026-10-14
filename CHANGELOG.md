@@ -2,6 +2,11 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.54 (15 October 2026)
+
+- **v0.1.53 broke every Pro site with git off,** locally and on most servers: every page and command threw "Statamic Git integration is disabled", because the add-on built Statamic's Git facade to listen for comments, and its constructor throws when git is off. The add-on now listens as `Git::listen()` does inside, without the facade, and a test boots a Pro site with git off.
+- **To do on update:** skip v0.1.53. A site that took it updates to this release.
+
 ## v0.1.53 (15 October 2026)
 
 - **Comments are committed as they're made,** on a server with Statamic's automatic git. Every change to a comment's file, made, replied to, edited, resolved, reopened, raised or answered as a question, its pin moved or deleted, fires `FeedbackChanged`, which Statamic's git commits, and pushes where the server pushes, as it does a save in the control panel, with a message such as `Feedback: comment on /partners`. Before, a comment made on the server stayed untracked until someone saved something in the control panel. It needs Statamic Pro and `STATAMIC_GIT_ENABLED=true`, as Statamic's git does. With `STATAMIC_GIT_DISPATCH_DELAY` set, as the kit's `.env.example` has it, changes are gathered into one commit with Statamic's own message. The README's Feedback section has the settings.
