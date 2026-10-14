@@ -5,7 +5,10 @@ Avoca Tools uses semantic versioning. While the version starts with 0, a release
 ## v0.1.46 (14 October 2026)
 
 - **The recipe says when to use a grid and when a replicator** for content that repeats, under Building a new block's Fieldset, for blocks, sets and collection blueprints alike. Any item with a text editor goes in a replicator, collapsed as an accordion, because a grid can't collapse its rows and every editor stays open; so do items of more than one kind. A grid is for items that are the same short form, stacked once a row has more than three fields or a textarea. Switching an existing field between the two means moving its saved content.
-- **To do on update:** nothing. Existing grids with a text editor in each row still work; change them when the block is next worked on.
+- **Design work goes on a branch called `design`,** for the whole design stage and every design brought down from Paper. A quick fix, even one from Paper, goes on a branch of its own from `main`. Only `main` goes live, so both reach the live site through a pull request into `main`. The recipe's new Branches and commits section has this, and Before you start, Designs from Paper and the pull request step point to it.
+- **When a page needs new sections, each one is committed as soon as it is built,** and the agent asks the developer whether to push before starting the next.
+- **The recipe checks for a newer add-on** at the start of every piece of work, and each day when the work runs on, under Updates' new Keeping the add-on current: `composer show avocadesign/statamic-tools --latest`, then `composer update avocadesign/statamic-tools` within the site's constraint, the changelog's To do on update for each release missed, the catalogue and the strict check, `composer.lock` committed on its own, and the recipe read again. A new release line outside the constraint goes to the developer. The add-on's releases don't wait the runner's three days.
+- **To do on update:** nothing. Existing grids with a text editor in each row still work; change them when the block is next worked on. A site without a `design` branch gets one from `main` when design work starts.
 
 ## v0.1.45 (13 October 2026)
 

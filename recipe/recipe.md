@@ -11,12 +11,14 @@ Don't edit this file in `vendor/`. If a step is wrong, missing or contradicted b
 
 ## Before you start
 
-1. Read `resources/site/catalogue.md`. It lists every block and text editor set the site has, with its fields, options, group and guidance. It is generated from the site's fieldsets, so trust it over any other list of blocks, including what you know from other Avoca sites.
-2. Read `resources/site/design.md` for the rules every block shares, and the collection records in `resources/site/collections/`.
-3. Open `/site/content` for a live preview of every block and set, and `/site/style` for colours, typography, spacing, buttons and colour schemes. On production both need a logged-in Statamic user.
-4. Run `php please avoca:library --json` to see what Avoca's library can install. Each item has a `handle`, `name`, `category` (`blocks`, `sets` or `presets`), `version`, `status` (`not installed`, `installed` or `update available`), `description`, and the `blocks` and `sets` it adds. `resources/site/installed.yaml` records what this site has installed, and at which version.
-5. Find out how the site is hosted. See [Hosting](#hosting). Every site runs the full static cache in production, so read [Static caching](#static-caching) before you build anything that differs by visitor or calls the site's server.
-6. If the site is designed in Paper, read [Designs from Paper](#designs-from-paper) before you build anything from the design.
+1. Work on the branch the change belongs on: `design` for design work, a branch of its own for a quick fix. See [Branches and commits](#branches-and-commits).
+2. Bring the add-on up to date. This recipe comes with it, so an old add-on means an old recipe. Run `composer show avocadesign/statamic-tools --latest`, and when `latest` is newer than `versions`, update as [Keeping the add-on current](#keeping-the-add-on-current) says, then read this recipe again from the top.
+3. Read `resources/site/catalogue.md`. It lists every block and text editor set the site has, with its fields, options, group and guidance. It is generated from the site's fieldsets, so trust it over any other list of blocks, including what you know from other Avoca sites.
+4. Read `resources/site/design.md` for the rules every block shares, and the collection records in `resources/site/collections/`.
+5. Open `/site/content` for a live preview of every block and set, and `/site/style` for colours, typography, spacing, buttons and colour schemes. On production both need a logged-in Statamic user.
+6. Run `php please avoca:library --json` to see what Avoca's library can install. Each item has a `handle`, `name`, `category` (`blocks`, `sets` or `presets`), `version`, `status` (`not installed`, `installed` or `update available`), `description`, and the `blocks` and `sets` it adds. `resources/site/installed.yaml` records what this site has installed, and at which version.
+7. Find out how the site is hosted. See [Hosting](#hosting). Every site runs the full static cache in production, so read [Static caching](#static-caching) before you build anything that differs by visitor or calls the site's server.
+8. If the site is designed in Paper, read [Designs from Paper](#designs-from-paper) before you build anything from the design.
 
 ## How an Avoca site is put together
 
@@ -146,6 +148,8 @@ A page that could be built more than one way, where the client should compare th
 ## Designs from Paper
 
 Some sites are designed in Paper between the prototype and the build. The prototype's pages go up into a Paper file, the design is done there, and it comes back down into the site. That only works when Paper and the site use the same names, so the Paper file holds the site's own design tokens, and anything that comes back as a plain number is turned into the site's token, utility or setting before it reaches a template. Commands that move the tokens each way are planned. Until they exist, do it by hand with Paper's tools, as below.
+
+Work on the `design` branch, both up to Paper and back down, unless the change is a quick fix. See [Branches and commits](#branches-and-commits).
 
 The numbers in this section are the kit's defaults. Where a site has changed its tokens, take its own values from `/site/style` at the same width.
 
@@ -557,6 +561,37 @@ The rules the runner works to, written down here because they are the point of t
 - **A green check before a pull request exists.** An update nobody verified is worse than no update,
   because it looks like it was checked.
 
+### Keeping the add-on current
+
+The runner keeps the fleet current once a week, and the add-on, this recipe with it, can change more
+often than that. So check for a newer release at the start of every piece of work, and again at
+the start of each day when the work runs on:
+
+1. Run `composer show avocadesign/statamic-tools --latest`. `versions` is the release the site has and
+   `latest` is the newest there is. When they match, there is nothing to do.
+2. When `latest` is a release line the site's constraint in `composer.json` doesn't allow, such as 2.0
+   on a site that asks for `<2.0`, leave the constraint alone and tell the developer: moving a site to
+   a new line is a decision.
+3. Otherwise run `composer update avocadesign/statamic-tools`, which takes the newest release the site
+   allows and leaves its other packages as they are.
+4. Read `vendor/avocadesign/statamic-tools/CHANGELOG.md` for every release since the one the site had,
+   and do what each one's To do on update asks.
+5. Run `php please avoca:site:catalogue` and `php please avoca:site:check --strict`.
+6. Commit `composer.lock`, with the catalogue when it changed, in a commit of its own before your own
+   work: `Update the add-on to v0.1.46`.
+7. Read this recipe again. It is the new version now, and a step you followed may have changed.
+
+The add-on is Avoca's own, so its releases don't wait the three days the runner gives other packages.
+A site that takes the add-on from a local folder, as Avoca's sandbox does, always runs the working copy
+and has nothing to update.
+
+## Branches and commits
+
+- **Design work goes on a branch called `design`.** That is the design stage, and every design brought down from Paper. Keep to the one branch for the whole stage, rather than a branch for each page, and create it from `main` when the site doesn't have one yet.
+- **A quick fix goes on a branch of its own,** made from `main`, even when the fix comes from Paper.
+- **Only `main` goes live.** Nothing on `design` or any other branch reaches the live site until it is merged into `main`, through a pull request the developer merges, as [One pull request](#4-one-pull-request) says.
+- **When a page needs new sections, commit each one as soon as it is built,** before starting the next, then ask the developer whether to push. Don't push without a yes. Regenerate the catalogue before a commit that changes a fieldset or guidance file, so every commit passes the strict check, and name the page and the section in the message: `About: add the team section`.
+
 ## Review steps
 
 Every change goes through these five steps, in order.
@@ -601,7 +636,7 @@ If a check fails, fix the cause. Never weaken a check or work around it.
 
 ### 4. One pull request
 
-Make the change on its own branch, and open one pull request that holds all of it, so it is reviewed and reverted as one: the fieldset, the template, the guidance file, the screenshot and the catalogue change, with the page builder or text editor entry. Add, when they apply, token changes, the collection record and blueprint, `resources/site/installed.yaml` for a library install, and role permissions.
+Make the change on the branch [Branches and commits](#branches-and-commits) gives it, and open one pull request into `main` that holds all of it, so it is reviewed and reverted as one: the fieldset, the template, the guidance file, the screenshot and the catalogue change, with the page builder or text editor entry. Add, when they apply, token changes, the collection record and blueprint, `resources/site/installed.yaml` for a library install, and role permissions.
 
 In the description, give the option you chose and why, the check output, the review screenshots, and anything left undone, such as a screenshot you could not take. Don't merge it yourself.
 
