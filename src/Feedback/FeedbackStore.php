@@ -149,6 +149,58 @@ final class FeedbackStore
         });
     }
 
+    /**
+     * Changes a comment's text. It records who changed it and when, so anyone who has already replied can see the text
+     * moved. The earlier text isn't kept here: git has it once the file has been committed. Who may is canEdit's to
+     * say and the controller's to check.
+     *
+     * @param  array{name: string, staff: bool}  $by
+     */
+    public function edit(string $id, string $body, array $by): ?array
+    {
+        return $this->change($id, fn (array $comment) => [...$comment, 'body' => $body, 'edited_by' => $by, 'edited_at' => now()->toIso8601String()]);
+    }
+
+    /**
+     * Changes one reply's text, found by its place in the thread, and records who changed it and when, as for a
+     * comment. Null when the comment or the reply isn't there.
+     *
+     * @param  array{name: string, staff: bool}  $by
+     */
+    public function editReply(string $id, int $reply, string $body, array $by): ?array
+    {
+        $comment = $this->find($id);
+        if ($comment === null || ! is_array($comment['replies'][$reply] ?? null)) {
+            return null;
+        }
+
+        return $this->change($id, function (array $comment) use ($reply, $body, $by) {
+            $comment['replies'][$reply] = [...$comment['replies'][$reply], 'body' => $body, 'edited_by' => $by, 'edited_at' => now()->toIso8601String()];
+
+            return $comment;
+        });
+    }
+
+    /**
+     * Whether someone may change what an author wrote. Anyone may change their own words, matched by name because a
+     * comment keeps its author's name and not their email, and the team may also change anything the team wrote. Only
+     * a reviewer changes a reviewer's words. Without a list of reviewers a name is whatever someone typed to sign in,
+     * so this is only as strong as the sign-in, as resolving is.
+     *
+     * @param  array<string, mixed>  $author
+     * @param  array{name: string, staff: bool}  $by
+     */
+    public static function canEdit(array $author, array $by): bool
+    {
+        $staff = (bool) ($author['staff'] ?? false);
+        if ($staff !== (bool) ($by['staff'] ?? false)) {
+            return false;
+        }
+        $name = mb_strtolower(trim((string) ($author['name'] ?? '')));
+
+        return $staff || ($name !== '' && $name === mb_strtolower(trim((string) ($by['name'] ?? ''))));
+    }
+
     /** @param  array{name: string, staff: bool}  $by */
     public function resolve(string $id, array $by): ?array
     {

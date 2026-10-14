@@ -710,7 +710,8 @@ function placeDrawer() {
 // resolve. The team (a control panel login, or a reviewer marked team) can also raise a comment as a decision and
 // record what was decided. A decision carries from one version to the next, so it shows whichever version raised it.
 const FB = Object.assign({ on: false, base: '' }, window.PROTOTYPE_FEEDBACK);
-const fb = { session: null, comments: [], num: new Map(), draft: null, open: null, deciding: null, picking: false, hover: null, error: '', errorFor: null, board: false };
+// editing is the comment or reply having its text changed: the comment's ID, and the reply's place or null.
+const fb = { session: null, comments: [], num: new Map(), draft: null, open: null, deciding: null, editing: null, picking: false, hover: null, error: '', errorFor: null, board: false };
 
 // Comments can be made on the Sitemap and the Content model too, pinned to their page boxes and cards. Each is a page
 // of its own for comments, under a key no route can have.
@@ -724,6 +725,10 @@ const fbHere = () => fbBoard() ? fbBoard().key : parseRoute(state.route).key;
 
 const fbSigned = () => !!(fb.session && fb.session.viewer);
 const fbStaff = () => fbSigned() && !!fb.session.viewer.staff;
+// Whoever wrote something can change it, and the team can change the team's. The server checks the same.
+const fbMine = person => fbSigned() && !!person && !!person.staff === fbStaff()
+    && (fbStaff() || String(person.name || '').trim().toLowerCase() === String(fb.session.viewer.name).trim().toLowerCase());
+const fbEditing = (id, reply = null) => !!fb.editing && fb.editing.id === id && fb.editing.reply === reply;
 const fbIsDecided = c => !!(c.decision && c.decision.state === 'decided');
 // A page's comments: this version's, and decisions from any version.
 const fbPage = key => fb.comments.filter(c => c.page === key && (c.version === VERSION.id || c.decision));
@@ -988,6 +993,7 @@ function fbOpen(id) {
     if (!fb.comments.some(c => c.id === id)) return;
     fb.open = id;
     fb.deciding = null;
+    fb.editing = null;
     fbToComments();
     fbRefresh();
     tellFrames({ type: 'cpin-hot', id });
@@ -1001,6 +1007,7 @@ function fbToggle(id) {
     if (fb.open !== id && c && (c.page !== fbHere() || fbElsewhere(c))) { fbShow(id); return; }
     fb.open = fb.open === id ? null : id;
     fb.deciding = null;
+    fb.editing = null;
     fbRefresh();
     if (fbBoard()) { if (fb.open) fbRevealPin(fb.open); return; }
     tellFrames({ type: 'cpin-hot', id: fb.open });
@@ -1136,9 +1143,15 @@ function fbSubmit(f) {
         if (!outcome) return;
         return fbRun(fbApi('POST', `comments/${id}/decision`, { state: 'decided', outcome }).then(res => { fb.deciding = null; fbPut(res.comment); fbClear(`outcome-${id}`); }), f, id);
     }
+    if (kind === 'edit') {
+        const body = val('textarea');
+        if (!body) return;
+        const reply = f.dataset.reply;
+        return fbRun(fbApi('POST', `comments/${id}${reply != null ? `/replies/${reply}` : ''}/edit`, { body }).then(res => { fb.editing = null; fbPut(res.comment); }), f, id);
+    }
 }
 
-function fbAct(act, id) {
+function fbAct(act, id, el) {
     const post = (path, body) => fbRun(fbApi('POST', `comments/${id}/${path}`, body).then(res => fbPut(res.comment)), null, id);
     if (act === 'comment') fbStartComment();
     else if (act === 'cancel-new') { fb.draft = null; fb.error = ''; fbRefresh(); }
@@ -1160,8 +1173,20 @@ function fbAct(act, id) {
             fbBoardPins();
         }), null, id);
     }
-    else if (act === 'decide') { fb.deciding = id; fbRefresh(); fbFocus(`[data-fb-input="outcome-${id}"]`); }
+    else if (act === 'decide') { fb.deciding = id; fb.editing = null; fbRefresh(); fbFocus(`[data-fb-input="outcome-${id}"]`); }
     else if (act === 'cancel-decide') { fb.deciding = null; fbRefresh(); }
+    else if (act === 'edit' || act === 'edit-reply') {
+        const reply = act === 'edit' ? null : Number(el.dataset.reply);
+        fb.editing = { id, reply };
+        fb.deciding = null;
+        fb.error = '';
+        fbRefresh();
+        const sel = `[data-fb-input="edit-${id}${reply == null ? '' : `-${reply}`}"]`;
+        fbFocus(sel);
+        // With the cursor at the end of the text, ready to add to it.
+        requestAnimationFrame(() => { const el = $(sel); if (el) el.setSelectionRange(el.value.length, el.value.length); });
+    }
+    else if (act === 'cancel-edit') { fb.editing = null; fb.error = ''; fbRefresh(); }
 }
 
 function fbClick(t) {
@@ -1179,7 +1204,7 @@ function fbClick(t) {
         return true;
     }
     if (t.dataset.fbToggle) { fbToggle(t.dataset.fbToggle); return true; }
-    if (t.dataset.fbAct) { fbAct(t.dataset.fbAct, t.dataset.id); return true; }
+    if (t.dataset.fbAct) { fbAct(t.dataset.fbAct, t.dataset.id, t); return true; }
     if (t.dataset.fbFilter) { state.fbShow = t.dataset.fbFilter; save(); renderRail(); return true; }
     if (t.dataset.fbList) { state.fbList = t.dataset.fbList; save(); renderRail(); $('#rail').scrollTop = 0; return true; }
     if (t.dataset.railTab) { state.railTab = t.dataset.railTab; save(); renderRail(); return true; }
@@ -1229,12 +1254,12 @@ function fbCard(c) {
     return `<article class="fbc fbc--${kind}${open ? ' is-open' : ''}" data-fb="${c.id}">
         <button type="button" class="fbc-head" data-fb-toggle="${c.id}" aria-expanded="${open}" aria-label="${open ? 'Close' : 'Open'} comment ${n || ''} from ${esc(author)}">
             <span class="fbc-n fbc-n--${kind}">${n || '•'}</span>
-            <span class="fbc-meta"><b>${esc(author)}</b><span>${fbDate(c.created_at)}${c.version !== VERSION.id ? ` · ${esc(fbVersionLabel(c.version))}` : ''}</span></span>
+            <span class="fbc-meta"><b>${esc(author)}</b><span>${fbDate(c.created_at)}${c.edited_at ? ' · edited' : ''}${c.version !== VERSION.id ? ` · ${esc(fbVersionLabel(c.version))}` : ''}</span></span>
             ${fbState(c)}
             <span class="fbc-chev" aria-hidden="true">${ICON.chev}</span>
         </button>
         <div class="fbc-main">
-            <p class="fbc-body${open ? '' : ' clamp'}">${esc(c.body)}</p>
+            ${open && fbEditing(c.id) ? fbEditForm(c) : `<p class="fbc-body${open ? '' : ' clamp'}">${esc(c.body)}</p>`}
             ${c.options && typeof c.options === 'object' && Object.keys(c.options).length ? `<p class="fbc-opts">With ${Object.entries(c.options).map(([k, v]) => `${esc(k)}: ${esc(v)}`).join(' · ')}</p>` : ''}
             ${fbIsDecided(c) ? `<div class="fbc-outcome"><b>Decided</b><p>${esc(d.outcome)}</p><small>${esc((d.decided_by || {}).name || '')}${d.decided_at ? ` · ${fbDate(d.decided_at)}` : ''}</small></div>` : ''}
             ${!open && replies.length ? `<p class="fbc-more">${replies.length} ${replies.length === 1 ? 'reply' : 'replies'}</p>` : ''}
@@ -1243,10 +1268,11 @@ function fbCard(c) {
     </article>`;
 }
 
-// What can be done with a comment: the one next step as a button, anything else the team can do in a menu.
+// What can be done with a comment: the one next step as a button, anything else in a menu, Edit first for whoever
+// wrote it.
 function fbActions(c) {
     const staff = fbStaff();
-    const more = [];
+    const more = fbMine(c.author) ? [['edit', 'Edit']] : [];
     let next = null;
     if (fbIsDecided(c)) { if (staff) next = ['reopen', 'Reopen']; }
     else if (c.status === 'resolved') next = ['reopen', 'Reopen'];
@@ -1258,10 +1284,20 @@ function fbActions(c) {
     return { next, more };
 }
 
+// Changing a comment's or a reply's text, in its place, starting from the text as it stands.
+function fbEditForm(c, reply = null) {
+    const body = reply == null ? c.body : c.replies[reply].body;
+    return `<form class="fb-form fb-edit" data-fb-form="edit" data-id="${c.id}"${reply == null ? '' : ` data-reply="${reply}"`}>
+        <textarea class="fb-input" data-fb-input="edit-${c.id}${reply == null ? '' : `-${reply}`}" maxlength="5000" aria-label="${reply == null ? 'Comment' : 'Reply'}" required>${esc(body)}</textarea>
+        <div class="fb-row"><button type="submit" class="btn small primary">Save</button><button type="button" class="link-btn" data-fb-act="cancel-edit" data-id="${c.id}">Cancel</button></div>
+    </form>`;
+}
+
 function fbThread(c) {
-    const replies = (c.replies || []).map(r => `<li><p class="fbc-meta"><b>${esc((r.author || {}).name || 'Someone')}</b><span>${fbDate(r.created_at)}</span></p><p class="fbc-body">${esc(r.body)}</p></li>`).join('');
+    const replies = (c.replies || []).map((r, i) => `<li><p class="fbc-meta"><b>${esc((r.author || {}).name || 'Someone')}</b><span>${fbDate(r.created_at)}${r.edited_at ? ' · edited' : ''}</span></p>${fbEditing(c.id, i) ? fbEditForm(c, i)
+        : `<p class="fbc-body">${esc(r.body)}</p>${fbMine(r.author) && !fb.editing ? `<button type="button" class="link-btn fbc-edit" data-fb-act="edit-reply" data-id="${c.id}" data-reply="${i}">Edit</button>` : ''}`}</li>`).join('');
     const { next, more } = fbActions(c);
-    const acts = fb.deciding === c.id ? '' : `${next ? `<button type="button" class="btn small" data-fb-act="${next[0]}" data-id="${c.id}">${next[1]}</button>` : ''}
+    const acts = fb.deciding === c.id || fbEditing(c.id) ? '' : `${next ? `<button type="button" class="btn small" data-fb-act="${next[0]}" data-id="${c.id}">${next[1]}</button>` : ''}
         ${more.length ? `<span class="fbc-more"><button type="button" class="icon-btn tiny" data-fb-menu aria-expanded="false" aria-label="More actions" title="More actions">${ICON.more}</button>
             <span class="fbc-menu" hidden>${more.map(([act, label]) => `<button type="button" data-fb-act="${act}" data-id="${c.id}"${act === 'delete' ? ' class="danger"' : ''}>${label}</button>`).join('')}</span></span>` : ''}`;
     return `${c.decision && c.decision.who ? `<p class="fbc-who">Who decides: ${esc(c.decision.who)}</p>` : ''}
@@ -1525,6 +1561,7 @@ document.addEventListener('keydown', e => {
         versionMenu(false);
         displayMenu(false);
         if (fb.picking) fbPick(false);
+        else if (fb.editing) { fb.editing = null; fb.error = ''; fbRefresh(); }
         else if (!$('#help').hidden) closeHelp();
         else if (state.view === 'model' && state.entity) clearEntity();
         else closeSidebar();

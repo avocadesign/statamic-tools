@@ -88,6 +88,8 @@
         '.outcome small{color:var(--muted);font-size:11.5px}',
         '.replies{margin:0;padding:0 0 0 12px;list-style:none;border-left:2px solid var(--line-2);display:flex;flex-direction:column;gap:10px}',
         '.replies .by{margin-bottom:2px}',
+        '.replies .reply-edit{margin-top:4px;font-weight:500;color:var(--muted)}',
+        '.form.edit textarea{field-sizing:content;max-height:320px}',
         // An open comment's foot: a slim reply box, its Reply button once something is typed, the next step and a menu.
         '.form.reply textarea{min-height:34px;field-sizing:content;max-height:200px;resize:none}',
         '.foot-bar{display:flex;align-items:center;gap:8px}',
@@ -183,6 +185,8 @@
         openId: null,
         hoverId: null,
         deciding: null,
+        // The comment or reply having its text changed: the comment's ID, and the reply's place in its thread or null.
+        editing: null,
         picking: false,
         draft: null,
         error: null,
@@ -409,6 +413,12 @@
     function onPage(c) { return c.url === path(); }
     function signed() { return !!(state.session && state.session.viewer); }
     function staff() { return signed() && !!state.session.viewer.staff; }
+    // Whoever wrote something can change it, and the team can change the team's. The server checks the same.
+    function mine(person) {
+        if (!signed() || !person || !!person.staff !== staff()) return false;
+        return staff() || String(person.name || '').trim().toLowerCase() === String(state.session.viewer.name).trim().toLowerCase();
+    }
+    function editing(id, reply) { return !!state.editing && state.editing.id === id && state.editing.reply === (reply == null ? null : reply); }
     function byNumber(a, b) { return (state.numbers[a.id] || 0) - (state.numbers[b.id] || 0); }
     function find(id) { return state.all.filter(function (c) { return c.id === id; })[0] || null; }
 
@@ -666,10 +676,18 @@
         return '<span class="state ' + (done(c) ? 'done' : 'decide') + '">' + (done(c) ? '✓ ' : '') + 'Decision</span>';
     }
 
-    function by(person, time) {
+    function by(person, time, edited) {
         var name = (person && person.name) || 'Someone';
         return '<span class="by"><span class="name"><b>' + esc(name) + '</b>' + (person && person.staff ? '<span class="badge">team</span>' : '') + '</span>' +
-            '<time datetime="' + esc(time) + '">' + esc(ago(time)) + '</time></span>';
+            '<time datetime="' + esc(time) + '">' + esc(ago(time)) + (edited ? ' · edited' : '') + '</time></span>';
+    }
+
+    // Changing a comment's or a reply's text, in its place, starting from the text as it stands.
+    function editForm(c, reply) {
+        var body = reply == null ? c.body : c.replies[reply].body;
+        return '<form class="form edit" data-form="edit"' + (reply == null ? '' : ' data-reply="' + reply + '"') + '>' +
+            '<textarea name="body" data-keep="edit-' + esc(c.id) + (reply == null ? '' : '-' + reply) + '" maxlength="5000" aria-label="' + (reply == null ? 'Comment' : 'Reply') + '" required>' + esc(body) + '</textarea>' +
+            '<div class="row"><button class="primary">Save</button><button type="button" class="link" data-act="cancel-edit">Cancel</button></div></form>';
     }
 
     function card(c) {
@@ -680,18 +698,19 @@
         var replies = c.replies || [];
         return '<article class="card card--' + k + (open ? ' is-open' : '') + (hotId() === c.id ? ' hot' : '') + '" data-id="' + esc(c.id) + '">' +
             '<button type="button" class="card-head toggle" aria-expanded="' + open + '" aria-label="' + (open ? 'Close' : 'Open') + ' comment ' + (n || '') + ' from ' + esc((c.author || {}).name || 'someone') + '">' +
-            '<span class="num num--' + k + '">' + (n || '·') + '</span>' + by(c.author, c.created_at) + stateBadge(c) +
+            '<span class="num num--' + k + '">' + (n || '·') + '</span>' + by(c.author, c.created_at, c.edited_at) + stateBadge(c) +
             '<span class="chev" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M3 4.5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>' +
-            '<div class="card-main"><p class="text' + (open ? '' : ' clamp') + '">' + esc(c.body) + '</p>' +
+            '<div class="card-main">' + (open && editing(c.id) ? editForm(c) : '<p class="text' + (open ? '' : ' clamp') + '">' + esc(c.body) + '</p>') +
             (decided(c) ? '<div class="outcome"><b>Decided</b><p>' + esc(d.outcome) + '</p><small>' + esc((d.decided_by || {}).name || '') + (d.decided_at ? ' · ' + esc(ago(d.decided_at)) : '') + '</small></div>' : '') +
             (!open && replies.length ? '<p class="more">' + replies.length + (replies.length === 1 ? ' reply' : ' replies') + '</p>' : '') +
             (open ? thread(c) : '') +
             '</div></article>';
     }
 
-    // What can be done with a comment: the one next step as a button, anything else the team can do in a menu.
+    // What can be done with a comment: the one next step as a button, anything else in a menu, Edit first for whoever
+    // wrote it.
     function actions(c) {
-        var more = [];
+        var more = mine(c.author) ? [['edit', 'Edit']] : [];
         var next = null;
         if (decided(c)) { if (staff()) next = ['reopen', 'Reopen']; }
         else if (c.status === 'resolved') next = ['reopen', 'Reopen'];
@@ -705,9 +724,12 @@
 
     function thread(c) {
         var id = esc(c.id);
-        var replies = (c.replies || []).map(function (r) { return '<li>' + by(r.author, r.created_at) + '<p class="text">' + esc(r.body) + '</p></li>'; }).join('');
+        var replies = (c.replies || []).map(function (r, i) {
+            return '<li>' + by(r.author, r.created_at, r.edited_at) + (editing(c.id, i) ? editForm(c, i) : '<p class="text">' + esc(r.body) + '</p>' +
+                (mine(r.author) && !state.editing ? '<button type="button" class="link reply-edit" data-act="edit-reply" data-reply="' + i + '">Edit</button>' : '')) + '</li>';
+        }).join('');
         var a = actions(c);
-        var acts = state.deciding === c.id ? '' :
+        var acts = state.deciding === c.id || editing(c.id) ? '' :
             (onPage(c) ? '' : '<a class="ghost small" href="' + esc(c.url + '?feedback=' + c.id) + '">Go to page</a>') +
             (a.next ? '<button type="button" class="ghost small" data-act="' + a.next[0] + '">' + a.next[1] + '</button>' : '') +
             (a.more.length ? '<span class="more-wrap"><button type="button" class="icon small menu-toggle" aria-expanded="false" aria-label="More actions" title="More actions">' +
@@ -933,6 +955,7 @@
             if (Date.now() - dragged < 400 || pin.dataset.pin === 'draft') return;
             state.openId = pin.dataset.pin;
             state.deciding = null;
+            state.editing = null;
             state.scope = 'page';
             openPanel();
             var opened = ui.wrap.querySelector('.card.is-open');
@@ -940,7 +963,7 @@
             return;
         }
         var act = t.closest('[data-act]');
-        if (act && id) return action(act.dataset.act, find(id));
+        if (act && id) return action(act.dataset.act, find(id), act);
         if (t.closest('.toggle') && id) return toggle(id);
         // A folded card opens from anywhere on it.
         if (cardEl && !cardEl.classList.contains('is-open') && !t.closest('a, button, textarea, input, label, summary')) return toggle(id);
@@ -949,12 +972,13 @@
     function toggle(id) {
         state.openId = state.openId === id ? null : id;
         state.deciding = null;
+        state.editing = null;
         render();
         var c = state.openId ? find(state.openId) : null;
         if (c && onPage(c)) show(c, true);
     }
 
-    function action(act, c) {
+    function action(act, c, el) {
         if (!c) return;
         var post = function (path, body) {
             return api('POST', 'comments/' + c.id + '/' + path, body || {})
@@ -987,12 +1011,24 @@
         }
         if (act === 'decide') {
             state.deciding = c.id;
+            state.editing = null;
             render();
             var box = ui.wrap.querySelector('[data-keep="outcome-' + c.id + '"]');
             if (box) box.focus();
             return;
         }
         if (act === 'cancel-decide') { state.deciding = null; render(); }
+        if (act === 'edit' || act === 'edit-reply') {
+            var reply = act === 'edit' ? null : Number(el.dataset.reply);
+            state.editing = { id: c.id, reply: reply };
+            state.deciding = null;
+            state.error = null;
+            render();
+            var text = ui.wrap.querySelector('[data-keep="edit-' + c.id + (reply == null ? '' : '-' + reply) + '"]');
+            if (text) { text.focus(); text.setSelectionRange(text.value.length, text.value.length); }
+            return;
+        }
+        if (act === 'cancel-edit') { state.editing = null; state.error = null; render(); }
     }
 
     function onSubmit(e) {
@@ -1032,6 +1068,15 @@
             return;
         }
 
+        if (kind === 'edit') {
+            if (!String(data.body || '').trim()) return busy(false);
+            var reply = form.dataset.reply;
+            api('POST', 'comments/' + id + (reply != null ? '/replies/' + reply : '') + '/edit', { body: data.body })
+                .then(function (res) { state.editing = null; put(res.comment); state.error = null; render(); })
+                .catch(function (error) { busy(false); fail(error, id); });
+            return;
+        }
+
         if (kind === 'compose') {
             if (!String(data.body || '').trim() || !state.draft) return busy(false);
             var width = window.innerWidth;
@@ -1066,6 +1111,7 @@
 
     function escape() {
         if (state.picking) { stopPicking(); return openPanel(); }
+        if (state.editing) { state.editing = null; state.error = null; return render(); }
         if (state.panel) close();
     }
 

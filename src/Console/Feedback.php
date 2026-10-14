@@ -26,8 +26,9 @@ class Feedback extends Command
         {--resolve=* : Resolve the comment with this ID}
         {--reopen=* : Reopen the comment with this ID}
         {--reply= : Reply to the comment with this ID, with --message}
-        {--message= : The reply}
-        {--as=Developer : The name a reply or a resolve is recorded under}
+        {--edit= : Change the text of the comment with this ID, one the team wrote, to --message}
+        {--message= : The reply, or the comment\'s new text}
+        {--as=Developer : The name a reply, a resolve or an edit is recorded under}
         {--from= : A server\'s address, such as https://staging.example.com, to work with its comments instead}
         {--key= : The server\'s FEEDBACK_KEY, when it differs from this site\'s}
         {--decisions : Only the comments raised as decisions}
@@ -79,6 +80,17 @@ class Feedback extends Command
                 return self::FAILURE;
             }
         }
+        if ($id = $this->option('edit')) {
+            $message = trim((string) $this->option('message'));
+            if ($message === '') {
+                $this->error('Editing a comment needs --message: its new text.');
+
+                return self::FAILURE;
+            }
+            if (! $this->edit((string) $id, $message)) {
+                return self::FAILURE;
+            }
+        }
 
         foreach ((array) $this->option('raise') as $id) {
             if (! $this->decision($id, FeedbackStore::TO_DECIDE)) {
@@ -106,7 +118,7 @@ class Feedback extends Command
             }
         }
 
-        if ($this->option('resolve') || $this->option('reopen') || $this->option('reply') || $this->option('raise') || $this->option('decide') || $this->option('drop-decision') || $this->option('delete')) {
+        if ($this->option('resolve') || $this->option('reopen') || $this->option('reply') || $this->option('edit') || $this->option('raise') || $this->option('decide') || $this->option('drop-decision') || $this->option('delete')) {
             return self::SUCCESS;
         }
 
@@ -237,6 +249,42 @@ class Feedback extends Command
     }
 
     /**
+     * Changes a comment's text. The command acts for the team, so, as in the panel, it changes what the team wrote and
+     * never a reviewer's words.
+     */
+    private function edit(string $id, string $message): bool
+    {
+        $as = ['name' => (string) $this->option('as'), 'staff' => true];
+
+        if ($this->option('from')) {
+            $response = $this->remote()->post($this->endpoint("api/comments/{$id}/edit"), ['body' => $message]);
+            if (! $response->successful()) {
+                $this->error("Couldn't edit {$id}: the server answered {$response->status()}".($response->status() === 403 ? ', because a reviewer wrote it, and only they can change their words.' : '.'));
+
+                return false;
+            }
+        } else {
+            $store = app(FeedbackStore::class);
+            $comment = $store->find($id);
+            if ($comment === null) {
+                $this->error("There is no comment {$id}.");
+
+                return false;
+            }
+            if (! FeedbackStore::canEdit((array) ($comment['author'] ?? []), $as)) {
+                $this->error("{$id} was written by a reviewer, and only they can change their words.");
+
+                return false;
+            }
+            $store->edit($id, $message, $as);
+        }
+
+        $this->info("Edited {$id}.");
+
+        return true;
+    }
+
+    /**
      * Deletes a comment made by mistake or as a test. A decision is the record of what was agreed, so it is never
      * deleted: take the decision off with --drop-decision first. Here, the file goes, and stays in git's history.
      */
@@ -349,12 +397,13 @@ class Feedback extends Command
         };
         $this->line('<options=bold>'.$e($comment['id']).'</> '.$status.$badge.'  '.$place.($where !== '' ? "  <fg=gray>{$where}</>" : ''));
         $this->line('  '.$e($author['name'] ?? 'Someone').($author['staff'] ?? false ? ' (team)' : '').', '.$this->ago($comment['created_at'] ?? null)
+            .(! empty($comment['edited_at']) ? ', edited' : '')
             .(isset($viewport['width']) ? ', '.(int) $viewport['width'].'px wide'.(isset($viewport['breakpoint']) ? ' ('.$e($viewport['breakpoint']).')' : '') : ''));
         foreach (preg_split('/\R/', (string) ($comment['body'] ?? '')) as $line) {
             $this->line('  '.$e($line));
         }
         foreach ((array) ($comment['replies'] ?? []) as $reply) {
-            $this->line('    <fg=gray>↳ '.$e($reply['author']['name'] ?? 'Someone').', '.$this->ago($reply['created_at'] ?? null).':</> '.$e(str_replace("\n", ' ', (string) $reply['body'])));
+            $this->line('    <fg=gray>↳ '.$e($reply['author']['name'] ?? 'Someone').', '.$this->ago($reply['created_at'] ?? null).(! empty($reply['edited_at']) ? ', edited' : '').':</> '.$e(str_replace("\n", ' ', (string) $reply['body'])));
         }
         if (! empty($anchor['selector'])) {
             $this->line('  <fg=gray>element: '.$e($anchor['selector']).'</>');

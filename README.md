@@ -96,7 +96,8 @@ gets their improvements. What the prototype says is the site's own, one folder p
   folded away, or all the comments on the prototype, filtered to Open or Decisions with those done folded away beneath each page, and switches the pins off and
   on; pointing at a comment shows its pin either way. Opening a comment brings its pin into sight, or takes you to its
   page. An open comment has a slim reply box and one button for the next step: Mark done, Record decision (the team) or
-  Reopen; the team's other actions, Make it a decision, Make a comment and Delete, sit in a ⋯ menu. Delete asks first,
+  Reopen; the other actions sit in a ⋯ menu: Edit for whoever wrote the comment, then the team's Make it a decision,
+  Make a comment and Delete. Your own replies have Edit beneath them (see Feedback for who may edit). Delete asks first,
   and is for a comment made by mistake, twice or as a test; a decision is made a comment again before it can go, and a
   deleted comment can be found in git's history once it has been committed. A pin that covers
   something can be dragged to another spot, and pins to the element it's dropped on. A comment belongs to its version,
@@ -185,6 +186,12 @@ sees anything: the tab only appears in a browser that has signed in to review, o
       team: true          # can raise and record decisions, and sees the prototype's content model
   ```
 - **Replies and done.** Anyone signed in can reply, mark a comment as done and reopen it. Done records who and when.
+- **Editing.** Whoever wrote a comment or a reply can change its text: Edit in the comment's ⋯ menu, or beneath the
+  reply. The team can also edit anything the team wrote, so a comment stays editable whether its author signed in to
+  the control panel or through the list, but nobody edits a reviewer's words except that reviewer. Authors are matched
+  by name, as comments keep a name and not an email, so without a list of reviewers this is only as strong as the
+  sign-in. An edited comment says so beside its time, and records who edited it and when; the earlier text is in git's
+  history once committed. Edits aren't in the digest. A decision's outcome isn't edited: reopen it and record it again.
 - **Decisions.** The team can raise a comment as a decision to make, record what was decided, reopen it or take the
   decision off. Reviewers can't. Decisions made on the prototype carry from one version to the next.
 - **The team hears about new comments** by email: one digest every 10 minutes of what reviewers said since the last,
@@ -213,6 +220,7 @@ php please avoca:feedback                          # open comments on this site,
 php please avoca:feedback --all --json             # every comment, as JSON
 php please avoca:feedback --resolve=<id> --as=Claude
 php please avoca:feedback --reply=<id> --message="Done, have a look"
+php please avoca:feedback --edit=<id> --message="Is the timeline the home page?"   # the team's comments only
 php please avoca:feedback --from=https://staging.example.com --key=…
 php please avoca:feedback --decisions              # only the comments raised as decisions
 php please avoca:feedback --raise=<id> --who="The client"

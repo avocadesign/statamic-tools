@@ -228,6 +228,33 @@ class FeedbackController extends Controller
         return $this->found($this->store->reply($id, $input['body'], $author));
     }
 
+    /**
+     * Changes a comment's text: whoever wrote it can, and the team can change the team's. Never a reviewer's words for
+     * them, which is why this checks who wrote it rather than only who is asking.
+     */
+    public function edit(Request $request, string $id): JsonResponse
+    {
+        $by = $this->authorise($request);
+        $input = $request->validate(['body' => ['required', 'string', 'max:5000']], ['body.required' => 'Write a comment first.']);
+        $comment = $this->store->find($id);
+        abort_unless($comment !== null, 404);
+        abort_unless(FeedbackStore::canEdit((array) ($comment['author'] ?? []), $by), 403, 'Only whoever wrote this can edit it.');
+
+        return $this->found($this->store->edit($id, $input['body'], $by));
+    }
+
+    /** Changes a reply's text, by its place in the thread, on the same terms as a comment's. */
+    public function editReply(Request $request, string $id, string $reply): JsonResponse
+    {
+        $by = $this->authorise($request);
+        $input = $request->validate(['body' => ['required', 'string', 'max:5000']], ['body.required' => 'Write a reply first.']);
+        $existing = $this->store->find($id)['replies'][(int) $reply] ?? null;
+        abort_unless(is_array($existing), 404);
+        abort_unless(FeedbackStore::canEdit((array) ($existing['author'] ?? []), $by), 403, 'Only whoever wrote this can edit it.');
+
+        return $this->found($this->store->editReply($id, (int) $reply, $input['body'], $by));
+    }
+
     public function resolve(Request $request, string $id): JsonResponse
     {
         return $this->found($this->store->resolve($id, $this->authorise($request)));

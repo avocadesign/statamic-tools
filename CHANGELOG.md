@@ -2,6 +2,12 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.49 (15 October 2026)
+
+- **People can edit their own comments and replies,** on the site and in the prototype: Edit in a comment's ⋯ menu, or beneath your own reply, changes the text in place, with Save and Cancel, and Escape cancels. The team can also edit anything the team wrote, but only a reviewer edits a reviewer's words, and the server checks this whatever the panel shows. Authors are matched by name, since comments keep a name and not an email. An edited comment or reply shows "edited" beside its time and records who edited it and when. Edits aren't in the team's digest, and a decision's outcome is still changed by reopening it.
+- **`avoca:feedback --edit=<id> --message="…"`** changes a comment's text from the command line, here or on a server with `--from`, so a long comment can be shortened without opening the panel. The command acts for the team, so it edits the team's comments and never a reviewer's. Listings say "edited" beside the time of anything edited.
+- **To do on update:** nothing.
+
 ## v0.1.48 (14 October 2026)
 
 - **When the design is done, the control panel screenshots are checked,** before `design` is merged into `main`: every block in the page builder and every set in the text editor. Developer details on `/site/content` says which are missing or not added; the agent takes those, retakes any the design has made out of date, commits them together and lists in the pull request any it couldn't take. It is under Control panel screenshot, with a pointer from Branches and commits.

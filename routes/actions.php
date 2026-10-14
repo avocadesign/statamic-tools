@@ -18,7 +18,9 @@ Route::middleware(FeedbackEnabled::class)->prefix('feedback')->name('statamic-to
     Route::middleware('throttle:60,1')->group(function () {
         Route::get('comments', [FeedbackController::class, 'index'])->name('index');
         Route::post('comments', [FeedbackController::class, 'store'])->name('store');
+        Route::post('comments/{id}/edit', [FeedbackController::class, 'edit'])->name('edit');
         Route::post('comments/{id}/replies', [FeedbackController::class, 'reply'])->name('reply');
+        Route::post('comments/{id}/replies/{reply}/edit', [FeedbackController::class, 'editReply'])->whereNumber('reply')->name('edit-reply');
         Route::post('comments/{id}/resolve', [FeedbackController::class, 'resolve'])->name('resolve');
         Route::post('comments/{id}/reopen', [FeedbackController::class, 'reopen'])->name('reopen');
         Route::post('comments/{id}/decision', [FeedbackController::class, 'decide'])->name('decide');
@@ -30,6 +32,7 @@ Route::middleware(FeedbackEnabled::class)->prefix('feedback')->name('statamic-to
         ->withoutMiddleware([PreventRequestForgery::class, ValidateCsrfToken::class])
         ->group(function () {
             Route::get('comments', [FeedbackController::class, 'index'])->name('index');
+            Route::post('comments/{id}/edit', [FeedbackController::class, 'edit'])->name('edit');
             Route::post('comments/{id}/replies', [FeedbackController::class, 'reply'])->name('reply');
             Route::post('comments/{id}/resolve', [FeedbackController::class, 'resolve'])->name('resolve');
             Route::post('comments/{id}/reopen', [FeedbackController::class, 'reopen'])->name('reopen');

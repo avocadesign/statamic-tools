@@ -293,6 +293,62 @@ class FeedbackTest extends TestCase
         $this->assertNull($this->store->find($decision['id']));
     }
 
+    public function test_people_edit_their_own_comments_and_replies_and_the_team_edits_the_teams(): void
+    {
+        $this->reviewers("reviewers:\n  - name: Jane Client\n    email: jane@example.com\n  - name: Mia Client\n    email: mia@example.com\n  - name: Sam Team\n    email: sam@avoca.design\n    team: true\n  - name: Jan Team\n    email: jan@avoca.design\n    team: true\n");
+        $comment = $this->comment();
+        $edit = "/!/statamic-tools/feedback/comments/{$comment['id']}/edit";
+        $as = fn (string $email) => $this->signedIn(['email' => $email]);
+
+        $this->postJson($edit, ['body' => 'Shorter'])->assertUnauthorized();
+        $as('mia@example.com')->postJson($edit, ['body' => 'Shorter'])->assertForbidden();
+        // The team can't put words in a reviewer's mouth.
+        $as('sam@avoca.design')->postJson($edit, ['body' => 'Shorter'])->assertForbidden();
+        $as('jane@example.com')->postJson($edit, ['body' => ''])->assertUnprocessable();
+        $as('jane@example.com')->postJson('/!/statamic-tools/feedback/comments/01M4ZZ0000000000000000000A/edit', ['body' => 'Shorter'])->assertNotFound();
+        $this->assertSame('Make the heading shorter', $this->store->find($comment['id'])['body']);
+
+        $edited = $as('jane@example.com')->postJson($edit, ['body' => 'Make the heading much shorter'])->assertOk()->json('comment');
+        $this->assertSame(['Make the heading much shorter', 'Jane Client'], [$edited['body'], $edited['edited_by']['name']]);
+        $this->assertNotEmpty($edited['edited_at']);
+        $this->assertSame('Make the heading much shorter', $this->store->find($comment['id'])['body']);
+
+        // A reply the team wrote is the team's to change, and its reviewer's isn't.
+        $this->store->reply($comment['id'], 'Done, have a lok', ['name' => 'Sam Team', 'staff' => true]);
+        $this->store->reply($comment['id'], 'Thanks', self::PERSON);
+        $reply = fn (int $n) => "/!/statamic-tools/feedback/comments/{$comment['id']}/replies/{$n}/edit";
+        $as('jane@example.com')->postJson($reply(0), ['body' => 'Done'])->assertForbidden();
+        $as('jan@avoca.design')->postJson($reply(1), ['body' => 'Thanks!'])->assertForbidden();
+        $as('jan@avoca.design')->postJson($reply(2), ['body' => 'Done'])->assertNotFound();
+        $this->signedIn(['email' => 'jan@avoca.design'])->postJson("/!/statamic-tools/feedback/comments/{$comment['id']}/replies/first/edit", ['body' => 'Done'])->assertNotFound();
+
+        $replies = $as('jan@avoca.design')->postJson($reply(0), ['body' => 'Done, have a look'])->assertOk()->json('comment.replies');
+        $this->assertSame(['Done, have a look', 'Sam Team', 'Jan Team'], [$replies[0]['body'], $replies[0]['author']['name'], $replies[0]['edited_by']['name']]);
+        $as('jane@example.com')->postJson($reply(1), ['body' => 'Thanks, looks good'])->assertOk()
+            ->assertJsonPath('comment.replies.1.body', 'Thanks, looks good')->assertJsonPath('comment.replies.1.edited_by.name', 'Jane Client');
+    }
+
+    public function test_the_command_edits_the_teams_comments_but_not_a_reviewers(): void
+    {
+        $reviewers = $this->comment();
+        $team = $this->store->create(['url' => '/about', 'body' => 'Is the timeline the home page? A long explanation follows.'], ['name' => 'Brendyn', 'staff' => true]);
+
+        $this->artisan('avoca:feedback', ['--edit' => $team['id']])->expectsOutput('Editing a comment needs --message: its new text.')->assertFailed();
+        $this->artisan('avoca:feedback', ['--edit' => $reviewers['id'], '--message' => 'Shorter'])
+            ->expectsOutput("{$reviewers['id']} was written by a reviewer, and only they can change their words.")
+            ->assertFailed();
+        $this->artisan('avoca:feedback', ['--edit' => $team['id'], '--message' => 'Is the timeline the home page?', '--as' => 'Claude'])
+            ->expectsOutput("Edited {$team['id']}.")
+            ->assertSuccessful();
+        $this->assertSame(['Is the timeline the home page?', 'Claude'], [$this->store->find($team['id'])['body'], $this->store->find($team['id'])['edited_by']['name']]);
+        $this->assertSame('Make the heading shorter', $this->store->find($reviewers['id'])['body']);
+
+        config(['statamic-tools.feedback.key' => 'developer-key']);
+        $key = ['X-Feedback-Key' => 'developer-key'];
+        $this->postJson("/!/statamic-tools/feedback/api/comments/{$reviewers['id']}/edit", ['body' => 'Shorter'], $key)->assertForbidden();
+        $this->postJson("/!/statamic-tools/feedback/api/comments/{$team['id']}/edit", ['body' => 'Timeline on home?'], $key)->assertOk()->assertJsonPath('comment.body', 'Timeline on home?');
+    }
+
     public function test_a_prototype_comment_keeps_its_version_page_and_frame_and_lists_apart_from_the_sites(): void
     {
         $this->comment('/about');
