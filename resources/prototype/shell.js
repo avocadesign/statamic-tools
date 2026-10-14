@@ -791,11 +791,13 @@ function fbLoad() {
         .catch(err => { if (err.status === 401 && fb.session) fb.session.viewer = null; fbRefresh(); });
 }
 
-// Each page numbers its comments from the oldest, the same in the panel, on the pins and in the Feedback tab.
+// One running number across the prototype's comments, every version's, in the order they were made, so a comment's
+// number never changes and is the same in the panel, on the pins and in the Feedback tab. IDs are in time order too,
+// for two made in the same second.
 function fbIndex() {
     fb.num = new Map();
-    const pages = new Set(fb.comments.map(c => c.page));
-    pages.forEach(key => fbPage(key).sort((a, b) => String(a.created_at).localeCompare(String(b.created_at))).forEach((c, i) => fb.num.set(c.id, i + 1)));
+    [...fb.comments].sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)) || String(a.id).localeCompare(String(b.id)))
+        .forEach((c, i) => fb.num.set(c.id, i + 1));
 }
 
 function fbFiltered(show, scope) {
@@ -1337,17 +1339,16 @@ function fbScopeBar() {
     </div>`;
 }
 
-// The page's comments: decisions to make, then open comments, with everything done folded away.
+// The page's comments in number order, decisions among them, with everything done folded away.
 function fbSection(key) {
     const list = fbPage(key).sort((a, b) => (fb.num.get(a.id) || 0) - (fb.num.get(b.id) || 0));
-    const toDecide = list.filter(fbToDecide);
-    const open = list.filter(c => !c.decision && c.status === 'open');
+    const open = list.filter(c => !fbIsDone(c));
     const done = list.filter(fbIsDone);
     return `<section class="fb-section">
         ${fbScopeBar()}
         ${fb.draft && fb.draft.page === key ? fbCompose() : ''}
         ${!list.length && !fb.draft ? '<p class="note-line">No comments here yet. Press Add comment, then click the spot you mean.</p>' : ''}
-        ${[...toDecide, ...open].map(c => fbCard(c)).join('')}
+        ${open.map(c => fbCard(c)).join('')}
         ${done.length ? `<details class="fold fb-resolved"${done.some(c => c.id === fb.open) ? ' open' : ''}><summary>Done <span class="fold-n">${done.length}</span></summary><div>${done.map(c => fbCard(c)).join('')}</div></details>` : ''}
     </section>`;
 }
@@ -1357,7 +1358,8 @@ const FB_EMPTY = { open: 'No comments yet.', decide: 'No decisions yet.' };
 
 // All the feedback on the prototype, page by page, filtered to what needs doing. Decisions from earlier versions are
 // always in it; their other comments only when asked for.
-// Each page's comments open or to decide, with those done folded away beneath, as on the page.
+// Each page's comments open or to decide, with those done folded away beneath, as on the page. Pages come in the order
+// of their first comment showing, so the numbers read down the list.
 function fbAll() {
     const show = state.fbShow === 'decide' ? 'decide' : 'open';
     const scope = state.fbScope === 'all' ? 'all' : 'version';
@@ -1367,7 +1369,8 @@ function fbAll() {
     const done = fbFiltered('done', scope).filter(c => show === 'open' || c.decision);
     const pages = [...list, ...done].map(c => c.page);
     const keys = [...ROUTES.map(r => r.key), ...Object.values(BOARDS).map(b => b.key), ...new Set(pages.filter(fbGone))];
-    const groups = keys.map(key => [key, list.filter(c => c.page === key).sort(byNum), done.filter(c => c.page === key).sort(byNum)]).filter(([, cs, ds]) => cs.length || ds.length);
+    const groups = keys.map(key => [key, list.filter(c => c.page === key).sort(byNum), done.filter(c => c.page === key).sort(byNum)]).filter(([, cs, ds]) => cs.length || ds.length)
+        .sort(([, as, ad], [, bs, bd]) => byNum(as[0] || ad[0], bs[0] || bd[0]));
     const title = key => boardOf(key) ? BOARDS[boardOf(key)].label : (ROUTES.find(r => r.key === key) || {}).title || ([...list, ...done].find(c => c.page === key && c.title) || {}).title || key;
     const route = key => { const r = ROUTES.find(x => x.key === key); return r ? sampleRoute(r) : null; };
     const here = fbHere();

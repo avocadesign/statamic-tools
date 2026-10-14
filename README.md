@@ -92,8 +92,11 @@ gets their improvements. What the prototype says is the site's own, one folder p
 - **Comments,** with `FEEDBACK_ENABLED=true` (see Feedback). The Comments button, with the number still open, opens the
   side panel; Add comment asks for a spot on either frame, and the comment's numbered pin sits on the element clicked in
   both frames: graphite while open, amber for a decision to make, green once done. Done is one thing to a reviewer, a
-  decision made or a comment resolved, so the panel says Done for both. It lists this page's comments, with those done
-  folded away, or all the comments on the prototype, filtered to Open or Decisions with those done folded away beneath each page, and switches the pins off and
+  decision made or a comment resolved, so the panel says Done for both. Comments are numbered in one sequence across
+  the prototype, every version and page, in the order they were made, so a comment keeps its number. It lists this
+  page's comments in number order, with those done folded away, or all the comments on the prototype, filtered to Open
+  or Decisions with those done folded away beneath each page, the pages in the order of their first comment so the
+  numbers read down the list, and switches the pins off and
   on; pointing at a comment shows its pin either way. Opening a comment brings its pin into sight, or takes you to its
   page. An open comment has a slim reply box and one button for the next step: Mark done, Record decision (the team) or
   Reopen; the other actions sit in a ⋯ menu: Edit for whoever wrote the comment, then the team's Make it a decision,
@@ -159,7 +162,8 @@ sees anything: the tab only appears in a browser that has signed in to review, o
 
 - **On the page,** it works as the prototype's comments do. A Comments tab on the right edge carries the number still
   open on the site, and opens a panel: this page's comments, with those done folded away, or all the comments, page by
-  page, filtered to Open or Decisions, with those done folded away beneath each page. A click on the page outside the
+  page, filtered to Open or Decisions, with those done folded away beneath each page. As in the prototype, one sequence
+  numbers every comment on the site in the order they were made. A click on the page outside the
   panel closes it. Add comment, across the foot of the panel in the site's primary button colours, asks for a spot on
   the page, and the comment is pinned to the
   element clicked, at that point within it, so its numbered pin follows the element when the layout changes: graphite

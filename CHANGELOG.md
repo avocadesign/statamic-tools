@@ -2,6 +2,12 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.50 (15 October 2026)
+
+- **Comments are numbered in one sequence, in the order they were made,** instead of starting again at 1 on every page: across the whole prototype, every version included, and separately across the site. A comment keeps its number, so it is the same in every list, on its pin and when the team talks about it.
+- **Lists read in number order.** A page's comments are listed by number, decisions among them rather than first, with those done still folded away beneath. In All comments, pages come in the order of their first comment showing, so the numbers run down the list; the site's panel no longer puts the page you're on first.
+- **To do on update:** nothing. Comments already made are renumbered once, by when they were made.
+
 ## v0.1.49 (15 October 2026)
 
 - **People can edit their own comments and replies,** on the site and in the prototype: Edit in a comment's ⋯ menu, or beneath your own reply, changes the text in place, with Save and Cancel, and Escape cancels. The team can also edit anything the team wrote, but only a reviewer edits a reviewer's words, and the server checks this whatever the panel shows. Authors are matched by name, since comments keep a name and not an email. An edited comment or reply shows "edited" beside its time and records who edited it and when. Edits aren't in the team's digest, and a decision's outcome is still changed by reopening it.

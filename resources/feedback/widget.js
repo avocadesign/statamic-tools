@@ -448,12 +448,13 @@
         });
     }
 
+    // One running number across the site's comments, in the order they were made, so a comment's number never changes
+    // and is the same in every list and on its pin. IDs are in time order too, for two made in the same second.
     function index() {
-        var pages = {};
-        state.all.slice().sort(function (a, b) { return a.created_at < b.created_at ? -1 : 1; }).forEach(function (c) {
-            pages[c.url] = (pages[c.url] || 0) + 1;
-            state.numbers[c.id] = pages[c.url];
-        });
+        state.numbers = {};
+        state.all.slice().sort(function (a, b) {
+            return a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : a.id < b.id ? -1 : 1;
+        }).forEach(function (c, i) { state.numbers[c.id] = i + 1; });
         state.ctx.setCount(state.all.filter(isOpen).length);
     }
 
@@ -622,7 +623,8 @@
         var finished = list.filter(done);
         var html = state.draft ? composer() : '';
         if (!list.length && !state.draft) html += '<p class="empty">No comments on this page yet. Press Add comment, then click the spot you mean.</p>';
-        html += list.filter(toDecide).concat(list.filter(function (c) { return !c.decision && c.status === 'open'; })).map(card).join('');
+        // In number order, decisions among the comments, so the numbers read down the list.
+        html += list.filter(isOpen).map(card).join('');
         if (finished.length) {
             var opened = finished.some(function (c) { return c.id === state.openId; });
             html += '<details class="fold"' + (opened ? ' open' : '') + '><summary>Done <span>' + finished.length + '</span></summary><div>' + finished.map(card).join('') + '</div></details>';
@@ -630,8 +632,8 @@
         return html;
     }
 
-    // All the feedback on the site, page by page, this page first.
-    // Each page's comments open or to decide, with those done folded away beneath, as on the page.
+    // All the feedback on the site, page by page, in the order of each page's first comment showing, so the numbers
+    // read down the list. Each page's comments open or to decide, with those done folded away beneath, as on the page.
     function allList() {
         var show = state.show === 'decide' ? 'decide' : 'open';
         var list = filtered(show);
@@ -646,7 +648,8 @@
         list.forEach(function (c) { add(c, 'open'); });
         finished.forEach(function (c) { add(c, 'done'); });
         if (!order.length) return '<p class="empty">' + EMPTY[show] + '</p>';
-        order.sort(function (a, b) { return (b === path()) - (a === path()); });
+        var first = function (url) { return (groups[url].open.length ? groups[url].open : groups[url].done).slice().sort(byNumber)[0]; };
+        order.sort(function (a, b) { return byNumber(first(a), first(b)); });
         return order.map(function (url) {
             var g = groups[url];
             var cs = g.open.sort(byNumber);
