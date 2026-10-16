@@ -11,6 +11,7 @@ use Avocadesign\StatamicTools\Site\Blocks;
 use Avocadesign\StatamicTools\Site\Catalogue;
 use Avocadesign\StatamicTools\Site\Launch;
 use Avocadesign\StatamicTools\Site\Llms;
+use Avocadesign\StatamicTools\Site\CriticalCss;
 use Avocadesign\StatamicTools\Site\Scripts;
 use Avocadesign\StatamicTools\Site\Docs;
 use Illuminate\Console\Command;
@@ -170,6 +171,10 @@ class SiteCheck extends Command
         // owning it is the point. Always a warning: the site works either way.
         $warnings += $this->checkServerScripts();
 
+        // The critical CSS entry, on a site that has one. Always a warning: a site renders either way, and the cost of
+        // a missed @source line is the top of the page moving a moment after it paints, not a broken page.
+        $warnings += $this->checkCriticalCss();
+
         // Render the pages the way a browser would and make sure everything appears.
         foreach (['style', 'content'] as $page) {
             $response = app()->handle(Request::create("/{$prefix}/{$page}", 'GET'));
@@ -204,6 +209,39 @@ class SiteCheck extends Command
         $this->info('Site pages are in step with the fieldsets'.($warnings ? " ({$warnings} warning(s))" : '.'));
 
         return self::SUCCESS;
+    }
+
+    /** Writes the lines for the critical CSS entry, and returns how many of them are warnings. */
+    private function checkCriticalCss(): int
+    {
+        $critical = CriticalCss::make();
+        if (! $critical->exists()) {
+            return 0;   // a site without one is a site the recipe has nothing to say about
+        }
+
+        $path = $critical->path();
+        $warnings = 0;
+
+        if (! $critical->inViteInput()) {
+            $this->line("  <fg=yellow>!</> {$path} is not in the input list in vite.config.js, so it is never built");
+            $warnings++;
+        }
+
+        if (! $critical->inlinedByLayout()) {
+            $this->line("  <fg=yellow>!</> {$path} is built but the layout does not inline it with vite:content");
+            $warnings++;
+        }
+
+        foreach ($critical->uncovered() as $view) {
+            $this->line("  <fg=yellow>!</> {$view} paints above the fold and no @source line in {$path} covers it: its utilities arrive when the full sheet lands");
+            $warnings++;
+        }
+
+        if ($warnings === 0) {
+            $this->line("  <fg=green>✓</> {$path} covers what paints above the fold");
+        }
+
+        return $warnings;
     }
 
     /** Writes the lines for the server scripts the site has a copy of, and returns how many of them are warnings. */

@@ -132,6 +132,7 @@ Nothing measures what is above the fold, and nothing needs to. The recipe alread
   `media="print"` is how a stylesheet loads without blocking the render; `onload` switches it to `all` once it has. The `noscript` copy is there because a browser with JavaScript off never runs that `onload`, and without it the site would be left with only its critical CSS.
 
 - **It cannot go stale, but the list can.** Every `npm run build` regenerates it from the templates as they are then, so a change to the header's markup or to a token is picked up with no step to remember. What is not automatic is the list: a partial added to the header or the page header, and not added to `@source`, has its utilities missing at first paint and arriving when the full sheet lands. Add the line in the same pull request as the partial.
+- **`avoca:site:check` checks the list for you.** On a site with a `critical.css` it follows the partials the header and the page header render and warns for any that no `@source` line covers, which is the one way this goes wrong quietly. It says nothing about a site that has no `critical.css`, and it is always a warning: the page renders either way.
 - **Check it after any change to what is above the fold.** Load a page with the network throttled and watch the first paint: the header, the page header and its buttons should arrive in their final shape. Anything that jumps when the full sheet lands is a missing `@source` line or a shared import that only `site.css` has.
 
 ## The prototype

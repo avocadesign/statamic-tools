@@ -11,6 +11,9 @@ return [
         // Entry point whose @import graph is scanned for @theme tokens.
         'css_entry' => 'resources/css/site.css',
 
+        // The critical CSS entry, inlined by the layout. A site without one is checked for nothing.
+        'critical_css' => 'resources/css/critical.css',
+
         // Type-scale tokens listed by value only, not set as a specimen (they are display sizes).
         'type_scale_note_only' => ['text-8xl', 'text-9xl'],
 
