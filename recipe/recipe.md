@@ -114,15 +114,25 @@ Don't edit this file in `vendor/`. If a step is wrong, missing or contradicted b
 
 ### Critical CSS
 
-A site's CSS is one stylesheet, `site.css`, loaded by the single `{{ vite }}` tag in the layout's head. That is the right default: one request, compressed, served from a CDN edge. Critical CSS splits it in two, an inline block holding what paints above the fold and the full sheet loaded after it, and it is not free: every change to the above-fold design leaves the inline block wrong until it is regenerated, and the page header renders on every page.
+The site's CSS is built twice from the same Tailwind pipeline. `site.css` is everything; `critical.css` is what the page needs to paint the top of itself, inlined in the head so the first paint never waits on a stylesheet. The full sheet then loads without blocking. avoca.design runs this: 50.8 KB of critical against 146 KB of site, which is 10.2 KB against 25.1 KB compressed.
 
-- **Don't add it by default, and never by hand on one site.** Add it when a measurement asks for it. Take the numbers first: the compressed size of `site.css` over the wire, whether the CDN is serving brotli rather than gzip, and the page's Largest Contentful Paint. A stylesheet of a few tens of kilobytes compressed and cached at an edge has little to give here, and one that has grown to hundreds of kilobytes should lose the weight before it is hidden. Put it in the plan with the numbers that justify it.
-- **The method is `php please avoca:css:critical`, which is not built yet.** Until it exists, a site that needs critical CSS is a change to plan with the developer, and the work belongs in the add-on, not in the site. A method invented per site is the thing this section exists to prevent: it would be regenerated differently, or not at all, on every site that had one.
-- **What the command will do.** Render the pages `php please avoca:site:urls` names, in a headless browser at a phone width and a desktop width, and extract the rules that apply above the fold. `avoca:site:urls` already chooses the fewest pages that cover the most templates, blueprints and blocks, which is the same question critical CSS asks, so the two stay in step by construction. It writes one file per template to `resources/css/critical/<template>.css`, committed with the rest of the site.
-- **What the layout will do.** Inline the file for the template being rendered, and load `site.css` after the first paint rather than before it. The fonts stay preloaded where they are: the two faces the page sets above the fold are already named in the head for the same reason.
-- **Regenerate it with the design, in the same pull request.** A change to the page header, the first block on a key page, the tokens in `colours.css`, `theme.css` or `typography.css`, or the button styles, all change what is above the fold. The command is cheap to re-run; a stale inline block shows as a flash of the wrong design on the first paint, which is worse than not having it.
-- **It lands in the static cache.** The inline block is part of the HTML Statamic writes to `public/static`, so regenerating it means clearing and warming the cache, which the deploy scripts already do in that order. Nothing else about [Static caching](#static-caching) changes.
-- **Why an Avoca site can do this at all.** Three decisions elsewhere in this recipe make it possible, and they hold whether or not a site uses critical CSS. The page header is a partial on every page rather than a block at the top of the page builder, so the above-fold markup has the same shape everywhere. Each component's CSS is its own file in `resources/css/components/`, so what is above the fold is separable. The tokens sit in three files of their own, small enough to go into every critical set whole.
+Nothing measures what is above the fold, and nothing needs to. The recipe already puts everything above it in the same few partials: the header, the navigation, the page header. The critical entry names those partials and Tailwind generates the utilities they use, so the answer comes from the build rather than from a browser.
+
+- **`resources/css/critical.css` is a second Vite entry**, listed in `input` in `vite.config.js` beside `site.css`. It starts `@import "tailwindcss" source(none);`, which brings Tailwind in without scanning anything, and then names what to scan.
+- **The `@source` list is the above-fold partials**, one line each: the layout, the default template, the header, every navigation partial, the logo, the page header, the button partials, the page builder's block wrapper, and the Peak Tools partials the layout renders before them, such as the skip links and the noscript snippet. A path can name a directory.
+- **The shared imports come above it**: the tokens in `theme.css` and `colours.css`, `typography.css`, and the component files the header and page header use, such as `buttons.css`. These are imported by both entries on purpose, and the duplication is the point: the heading's size and the button's shape have to be right at first paint or the page reflows when the full sheet lands. Say in a comment at the top of the file which imports are shared, so the next person keeps the two in step.
+- **The layout inlines it and defers the rest**, which is three lines in the head:
+
+```antlers
+<style>{{ vite:content src="resources/css/critical.css" directory="_build" }}</style>
+<link rel="stylesheet" href="{{ vite:asset src='resources/css/site.css' directory='_build' }}" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="{{ vite:asset src='resources/css/site.css' directory='_build' }}"></noscript>
+```
+
+  `media="print"` is how a stylesheet loads without blocking the render; `onload` switches it to `all` once it has. The `noscript` copy is there because a browser with JavaScript off never runs that `onload`, and without it the site would be left with only its critical CSS.
+
+- **It cannot go stale, but the list can.** Every `npm run build` regenerates it from the templates as they are then, so a change to the header's markup or to a token is picked up with no step to remember. What is not automatic is the list: a partial added to the header or the page header, and not added to `@source`, has its utilities missing at first paint and arriving when the full sheet lands. Add the line in the same pull request as the partial.
+- **Check it after any change to what is above the fold.** Load a page with the network throttled and watch the first paint: the header, the page header and its buttons should arrive in their final shape. Anything that jumps when the full sheet lands is a missing `@source` line or a shared import that only `site.css` has.
 
 ## The prototype
 
