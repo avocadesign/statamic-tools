@@ -2,6 +2,11 @@
 
 Avoca Tools uses semantic versioning. While the version starts with 0, a release that breaks something sites rely on, or needs them to do something when they update, moves the middle number (0.1 to 0.2). Anything else moves the last number (0.1.0 to 0.1.1).
 
+## v0.1.56 (16 October 2026)
+
+- **The recipe says how critical CSS is generated, under Colours and design tokens.** A site's CSS stays one stylesheet by default, and critical CSS is added when a measurement asks for it, never by hand on one site. The method is `php please avoca:css:critical`, which is not built yet: it will render the pages `avoca:site:urls` names at a phone and a desktop width, extract what paints above the fold, and write one file per template to `resources/css/critical/`, which the layout inlines while `site.css` loads after the first paint. Until the command exists, a site that needs it is a change to plan with the developer and the work belongs here, not in the site. The section also says to regenerate it with the design in the same pull request, that it lands in the static cache like any other markup, and which three decisions already in the recipe make it possible at all: the page header as a partial on every page, a file per component in `resources/css/components/`, and the tokens in three small files of their own.
+- **To do on update:** nothing. No site has critical CSS, and none should add it without the numbers the section asks for.
+
 ## v0.1.55 (15 October 2026)
 
 - **Comments are committed through the site's server git script, on Core as well as Pro.** v0.1.53 handed them to Statamic's git, which only runs with Pro. Now a change to a comment runs `scripts/server-git.sh commit --now` once the response has gone, so the reviewer never waits, and the comment is committed, and pushed where the remote can fast-forward, within seconds, with a subject such as `Feedback: comment on /partners [BOT]`. It needs the site's copy of the script, `STATAMIC_GIT_ENABLED=true`, and the web server's PHP user able to commit and push with the cron job's key; cron's every-minute run still catches anything missed. `FEEDBACK_COMMIT=false` turns it off, and unset it is on anywhere but a local machine. The README's Feedback section has the rest.
