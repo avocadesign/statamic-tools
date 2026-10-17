@@ -7,6 +7,7 @@ use Avocadesign\StatamicTools\Console\CheckName;
 use Avocadesign\StatamicTools\Console\Feedback;
 use Avocadesign\StatamicTools\Console\FeedbackNotify;
 use Avocadesign\StatamicTools\Console\SiteCatalogue;
+use Avocadesign\StatamicTools\Console\SiteAudit;
 use Avocadesign\StatamicTools\Console\SiteCheck;
 use Avocadesign\StatamicTools\Console\LibraryInstall;
 use Avocadesign\StatamicTools\Console\LibraryList;
@@ -48,6 +49,7 @@ class ServiceProvider extends AddonServiceProvider
         SiteInstall::class,
         SiteScript::class,
         SiteUrls::class,
+        SiteAudit::class,
         SiteCheck::class,
         SiteCatalogue::class,
         SitePermissions::class,

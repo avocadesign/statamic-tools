@@ -15,6 +15,7 @@ The machinery Avoca Design sites share: reference pages for clients, plus the ch
 - `php please avoca:make:collection`: makes a collection with a page builder or custom blueprint, a listing block, editor access and a record an AI agent finishes it from.
 - `php please avoca:site:permissions`: gives the editor role the permissions for every collection, taxonomy, navigation, global set and asset container that isn't opted out. `--dry-run` lists what it would add.
 - `php please avoca:site:check`: checks the reference pages, guidance files and catalogue against the fieldsets. Add `--strict` in CI to fail on missing guidance or a stale catalogue, or `--stubs` to create guidance files for blocks and sets that have none. It also warns when a library item the site hasn't installed uses a handle the site already has, and while form emails or the site header still show the agency's logo rather than the client's, and when feedback is switched on in production.
+- `php please avoca:site:audit`: reads the site's templates, CSS and scripts against the recipe's rules for tokens, styling, critical CSS, scripts, images and comments, and lists what breaks them. Advisory unless `--strict`. See [Audit](#audit).
 - `php please avoca:check-name {handle}`: says whether a handle is free for a new block, set or collection, as [Names](#names) describes.
 - `php please avoca:prototype:version {version}`: starts a new version of the site's prototype as a copy of the newest. See [Prototype](#prototype).
 - `php please avoca:feedback`: lists, replies to and resolves the comments people pinned to the site's pages during a review, here or on a server. See [Feedback](#feedback).
@@ -54,6 +55,7 @@ The rest are `--sk-ink` (text), `--sk-ground` (page background), `--sk-on-accent
 | `resources/site/installed.yaml` | `avoca:library:install`, `avoca:site:script` | `avoca:library:list`, `avoca:site:check` |
 | `scripts/server-git.sh` | `avoca:site:script`, then the site | cron and the deploy script on the server |
 | `storage/design-check/<run>`, which git ignores | `scripts/design-check.sh` | `scripts/design-check.sh compare` |
+| `resources/site/audit-ignore.yaml` | people | `avoca:site:audit` |
 
 The paths are set in `config/statamic-tools.php`.
 
@@ -128,6 +130,45 @@ Known noise:
 - **Pixels can differ while styles match.** A band of pixels in a block can differ between two runs of the same code while its computed styles are identical; Whoosh's Close block did at 1100 wide. Judge it by the styles, or take both runs again.
 - **A photo can redraw slightly differently** when the stacking around it changes, such as an `isolate` on an ancestor. Identical styles with photo pixels that differ point to a stacking change, which is worth finding rather than ignoring. `--mask-images` leaves images out of the screenshots when their resampling isn't repeatable on a machine.
 - **Content that changes on every request** differs every time, such as a random order or today's date. So does motion a script drives frame by frame rather than with CSS or a timer.
+
+## Audit
+
+`php please avoca:site:audit` reads the site's templates, CSS and scripts against the recipe's rules for tokens, styling, critical CSS, scripts, images and comments, so a port or a new block is caught before review rather than found by hand. It renders nothing and changes nothing. Each finding gives the file and line, what was found, the rule it breaks and the recipe section the rule comes from:
+
+```
+Styling recipe.md#styling
+  A source's BEM classes are rewritten as utilities, or as data- hooks where CSS has to stay [bem-class]
+    ! resources/css/components/cards.css:25 cards: 14 BEM classes, .cards__intro, .cards__panel and 12 more, written in _cards.antlers.html
+```
+
+What it looks for:
+
+- **Colours and design tokens.** A token that only points at one of Tailwind's, such as `--t-h2: var(--text-3xl)`, though not the names the kit and Peak read, such as `--btn-*`, `--typography-*` and `--prose-*`, nor a name a rule sets again, as a colour scheme does. Two tokens in one of Tailwind's namespaces holding the same value, Tailwind's own steps among them when `node_modules` is installed. A spacing scale of the site's own, such as `--s1` to `--s10`, or `--spacing-18` steps Tailwind already makes. Tokens declared anywhere but `theme.css`, `colours.css`, `typography.css` and `peak.css`, though a component's stylesheet may keep its own parameters on `:root`.
+- **Styling.** BEM class names, once for each block where a stylesheet defines them. A class `resources/css` defines that only one template uses. A stylesheet that only imports another. A rule that sets a property `peak.css` sets for the same selector. A Tailwind entry without `source(none)`. Colours and type sizes written into a template, as arbitrary values or in a `style` attribute, though not in an inline SVG or an email.
+- **Critical CSS.** An `@source` line in a file `critical.css` imports. More than two page-specific `critical-*.css` sheets. A page-specific sheet that adds less than 2 KB gzipped to `critical.css`, measured from the last build in `public/`; with no build, it says so and skips it.
+- **Scripts.** `querySelector`, `closest` or `matches` given a class. A custom property read with `getPropertyValue` that only a stylesheet sets: not the template's `style`, a script or an `@theme static` token. An Alpine plugin nothing uses. A captcha, map, video or booking script the layout prints for every page.
+- **Images.** A bare `<img>`, other than an SVG, an image a script chooses, one inside `<noscript>`, an email's and the figure and picture partials' own.
+- **Comments.** A template comment over two lines or about 160 characters, an `@desc` over one line, a CSS or JS comment over four lines of text, and a file of more than 600 characters that is over 40% comments. A docblock, the kit's `<!-- /path -->` markers, commented-out code and the site's copies of vendor views are left out.
+
+It is advisory, so it exits 0 whatever it finds; `--strict` fails when it finds anything. `--all` lists every finding rather than the first eight of each rule, and `--json` reports as JSON. Paths narrow the report to those files or folders, such as a new block's:
+
+```bash
+php please avoca:site:audit resources/views/page_builder/_cards.antlers.html resources/views/page_builder/cards
+```
+
+`--root` audits the site in another folder, so Avoca's sandbox can audit a site whose add-on predates the audit.
+
+A finding the site keeps on purpose goes in `resources/site/audit-ignore.yaml`: the rule, the file (or a glob, or a folder ending in `/`), words the finding contains when the rule finds more than one thing in the file, and why.
+
+```yaml
+-
+  rule: bem-class
+  path: resources/css/components/home-hero.css
+  match: home-hero
+  reason: The hero's illustrated scene, keyed by the classes it was drawn with; utilities can't express it.
+```
+
+An entry with no reason silences nothing and is a finding itself, and an entry that no longer matches anything is listed so it can go.
 
 ## Prototype
 

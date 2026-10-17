@@ -726,11 +726,13 @@ Run these and quote their real output in the pull request:
 ```
 php please avoca:site:catalogue
 php please avoca:site:check --strict
+php please avoca:site:audit
 npm run build
 ```
 
 - The strict check must pass. It proves every block and set has a template and a guidance file, and that the committed catalogue is current.
 - It doesn't prove the guidance is written or that the screenshot exists. Check both yourself, in the files and on `/site/content`.
+- `avoca:site:audit` reads the templates, CSS and scripts against [Colours and design tokens](#colours-and-design-tokens), [Styling](#styling), [Critical CSS](#critical-css), [Scripts](#scripts), [Images](#images) and [Comments](#comments), and lists each finding with its file, line and rule. It is advisory, so it passes whatever it finds. Fix what the change brought in, and name its files to see only theirs: `php please avoca:site:audit resources/views/page_builder/_cards.antlers.html`. A finding the site keeps on purpose, such as an illustrated scene's own stylesheet, goes in `resources/site/audit-ignore.yaml` with its reason, so it is decided once rather than explained in every pull request.
 - `npm run build` proves the CSS and JavaScript still build with any new classes.
 
 If a check fails, fix the cause. Never weaken a check or work around it.
