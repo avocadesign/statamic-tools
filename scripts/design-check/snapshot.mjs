@@ -111,8 +111,8 @@ const pad = opts.pad ?? 24
 const png = opts.png ?? true
 const dpr = opts.dpr ?? 1
 const media = opts.reduced ? 'reduce' : 'no-preference'
-// More than one at a time is quicker, but a snapshot can stall for minutes, most often in the first few:
-// why isn't known yet.
+// Four at a time is about three times quicker, but two runs of the same code agree less often: on Whoosh,
+// the Outcomes graphics and a photo in Examples came out different in every pair of runs.
 const jobs = Math.max(1, opts.jobs || 1)
 // A page with public/hot takes its CSS and scripts from the Vite dev server; two runs should use the same.
 const assets = existsSync(path.join(SITE, 'public', 'hot')) ? 'vite dev server' : 'build'
@@ -307,8 +307,7 @@ async function freeze({ final, repaintImages }) {
     // or scroll, and a scroll-triggered reveal must not start in the middle of it.
     for (const type of ['scroll', 'resize', 'wheel', 'mousemove', 'mouseover', 'mouseout', 'mouseenter', 'mouseleave', 'pointermove', 'pointerover', 'pointerout', 'pointerenter', 'pointerleave', 'focusin', 'focusout']) {
         window.addEventListener(type, (e) => e.stopImmediatePropagation(), { capture: true })
-    }
-    document.querySelectorAll('video, audio').forEach((m) => { try { m.pause(); m.currentTime = 0 } catch {} })
+    }    document.querySelectorAll('video, audio').forEach((m) => { try { m.pause(); m.currentTime = 0 } catch {} })
     finishAll()
     await document.fonts.ready
 
@@ -424,6 +423,12 @@ function collect({ selector, index }) {
 /* The area to photograph: the block and anything of it that overflows, in document coordinates. */
 function clipArea({ selector, index, pad, maskImages }) {
     const root = window.__snapRoot(selector, index)
+    // Nothing moves while the picture is taken. To draw what lies beyond the viewport, Chrome styles the page
+    // again, and a transition can start from that (Whoosh's Close cards slid open and shut), to be caught at a
+    // different point on every run. The styles have already been recorded.
+    const still = document.createElement('style')
+    still.textContent = '*, *::before, *::after { transition: none !important }'
+    document.head.append(still)
     if (maskImages) root.querySelectorAll('img').forEach((img) => img.style.setProperty('visibility', 'hidden', 'important'))
     let { left, top, right, bottom } = root.getBoundingClientRect()
     for (const el of root.querySelectorAll('*')) {
@@ -460,8 +465,10 @@ try {
 }
 const chrome = await browser.version()
 
-async function open(url, width, height) {
-    const page = await browser.newPage()
+async function open(url, width, height, context = browser.defaultBrowserContext()) {
+    // Each page in a window of its own. A tab behind another is hidden and gets no animation frames, so
+    // with several jobs its waits for a frame stalled until Chrome happened to bring it to the front.
+    const page = await context.newPage({ type: 'window' })
     await page.setViewport({ width, height, deviceScaleFactor: dpr })
     await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: media }])
     const errors = []
@@ -488,7 +495,7 @@ async function open(url, width, height) {
 }
 
 /* Every width and state of one block, into its own folder. */
-async function snapshotBlock({ url, selector, index, out, verbose }) {
+async function snapshotBlock({ url, selector, index, out, verbose, context }) {
     await mkdir(out, { recursive: true })
     const meta = { url, block: selector, index, media, widths, heights, states: states.map((s) => s.name), dpr, chrome, assets, runs: [] }
     let nodes = 0
@@ -496,7 +503,7 @@ async function snapshotBlock({ url, selector, index, out, verbose }) {
     for (const [i, width] of widths.entries()) {
         for (const state of states) {
             const t = Date.now()
-            const { page, errors } = await open(url, width, heights[i])
+            const { page, errors } = await open(url, width, heights[i], context)
             try {
                 await page.evaluate(place, { selector, index, scroll, pad })
                 if (state.js) await page.evaluate(freeze, { final: false })
@@ -543,13 +550,20 @@ async function snapshotBlock({ url, selector, index, out, verbose }) {
     return { nodes, pageErrors: [...pageErrors] }
 }
 
-/* Run fn over items, at most `jobs` at a time. */
+/* Run fn over items, at most `jobs` at a time. Each worker has a browser context of its own: Chrome holds
+   back a request for a page that another tab in the same context is loading, so four blocks of one page
+   would wait for it one after another. */
 async function pool(items, jobs, fn) {
     let next = 0
     const worker = async () => {
-        while (next < items.length) {
-            const i = next++
-            await fn(items[i], i)
+        const context = await browser.createBrowserContext()
+        try {
+            while (next < items.length) {
+                const i = next++
+                await fn(items[i], i, context)
+            }
+        } finally {
+            await context.close()
         }
     }
     await Promise.all(Array.from({ length: Math.min(jobs, items.length) }, worker))
@@ -582,9 +596,9 @@ try {
         // Every page's blocks first, then the blocks, --jobs at a time: each is still a page of its own,
         // loaded fresh, and a page like /site/content takes seconds to render.
         const found = []
-        await pool(opts.pages, jobs, async (p) => {
+        await pool(opts.pages, jobs, async (p, i, context) => {
             try {
-                const { page } = await open(opts.base + p, widths[0], heights[0])
+                const { page } = await open(opts.base + p, widths[0], heights[0], context)
                 found.push({ p, blocks: await page.evaluate(() => window.__snapBlocks()) })
                 await page.close()
             } catch (e) {
@@ -602,10 +616,10 @@ try {
         const lines = []
         const seen = new Map()
         let said = 0
-        await pool(todo, jobs, async ({ p, selector, index, name }, i) => {
+        await pool(todo, jobs, async ({ p, selector, index, name }, i, context) => {
             const t = Date.now()
             try {
-                const { nodes, pageErrors } = await snapshotBlock({ url: opts.base + p, selector, index, out: path.join(opts.out, name) })
+                const { nodes, pageErrors } = await snapshotBlock({ url: opts.base + p, selector, index, out: path.join(opts.out, name), context })
                 lines[i] = { name, nodes, s: (Date.now() - t) / 1000, pageErrors }
                 written.push(name)
             } catch (e) {
