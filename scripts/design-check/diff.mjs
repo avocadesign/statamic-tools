@@ -3,7 +3,7 @@
     Compare one block's two snapshot folders, written by snapshot.mjs. scripts/design-check.sh compare runs
     this for every block in two runs, and for one block's detail when it is named.
 
-      node diff.mjs <before>/<page>/<block> <after>/<page>/<block> [--threshold 0] [--max-pixels 0] [--raw]
+      node diff.mjs <before>/<page>/<block> <after>/<page>/<block> [--threshold 2] [--max-pixels 0] [--raw]
           [--show 8] [--keys 40] [--logical] [--diff-dir <dir>]
 
     Layer 1, computed styles: elements are matched by DOM path (child index + tag), never by class.
@@ -16,7 +16,8 @@
       custom properties the block declares (BEM vars replaced by utilities are expected), and the block's
       y position on the page (another block above it may have changed).
     Layer 2, pixels: the block's PNGs, a pixel differs when any channel moves by more than --threshold
-      (0 by default: a conversion is proved pixel for pixel); the check fails when more than --max-pixels
+      (2 by default, which leaves out how Chrome resamples a photo from one run to the next; a real change
+      of colour shows in the computed styles); the check fails when more than --max-pixels
       differ. A diff image is written for each pair that differs, into _diff in the after folder.
 
     Exit: 0 identical, 1 differences, 2 could not compare. No packages: PNGs are decoded with node:zlib.
@@ -27,7 +28,7 @@ import path from 'node:path'
 
 const argv = process.argv.slice(2)
 const dirs = []
-const opts = { threshold: 0, maxPixels: 0, raw: false, show: 8, keys: 40, logical: false }
+const opts = { threshold: 2, maxPixels: 0, raw: false, show: 8, keys: 40, logical: false }
 for (let i = 0; i < argv.length; i++) {
     const a = argv[i]
     if (a === '--threshold') opts.threshold = Number(argv[++i])

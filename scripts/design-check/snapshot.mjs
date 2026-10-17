@@ -184,6 +184,39 @@ async function place({ selector, index, scroll, pad }) {
     const failed = Array.from(document.fonts).filter((f) => f.status === 'error')
     if (failed.length) throw new Error(`The font ${failed.map((f) => `${f.family} ${f.weight} ${f.style}`).join(', ')} didn't load`)
 
+    // A face with font-display: optional that misses its first 100ms is never used on that page, however
+    // soon it arrives, so text would be in the site's font on one run and the fallback on the next. Each
+    // @font-face is added again from script, loaded and with display: block, which the browser prefers to
+    // the stylesheet's copy: blocks are always drawn in the site's own fonts. A resize lets anything that
+    // measured text measure it again.
+    const rules = []
+    const collectRules = (list) => {
+        for (const rule of list) {
+            if (rule instanceof CSSFontFaceRule) rules.push(rule)
+            else if (rule.cssRules) collectRules(rule.cssRules)
+        }
+    }
+    for (const sheet of document.styleSheets) {
+        try { collectRules(sheet.cssRules) } catch {} // a stylesheet from another origin can't be read
+    }
+    const descriptors = { weight: 'font-weight', style: 'font-style', stretch: 'font-stretch', unicodeRange: 'unicode-range', featureSettings: 'font-feature-settings', variationSettings: 'font-variation-settings', ascentOverride: 'ascent-override', descentOverride: 'descent-override', lineGapOverride: 'line-gap-override', sizeAdjust: 'size-adjust' }
+    const again = await within(Promise.all(rules.map(async (rule) => {
+        const base = rule.parentStyleSheet?.href || location.href
+        const src = rule.style.getPropertyValue('src').replace(/url\((['"]?)([^'")]+)\1\)/g, (m, q, url) => `url("${new URL(url, base).href}")`)
+        const options = { display: 'block' }
+        for (const [key, property] of Object.entries(descriptors)) {
+            const value = rule.style.getPropertyValue(property)
+            if (value) options[key] = value
+        }
+        const face = new FontFace(rule.style.getPropertyValue('font-family').trim().replace(/^(['"])(.*)\1$/, '$2'), src, options)
+        return face.load().then(() => face, () => null)
+    })), 'A web font')
+    again.filter(Boolean).forEach((face) => document.fonts.add(face))
+    if (again.some(Boolean)) {
+        await raf()
+        window.dispatchEvent(new Event('resize'))
+    }
+
     // Scroll to a fixed place and fire a scroll, so scroll-triggered reveals run even at y=0.
     // 'top' puts the top of the block, or of anything rising out of it, `pad` below the top of the viewport.
     // 'silent' scrolls to the same place but no scroll listener hears it: the block is in view, and

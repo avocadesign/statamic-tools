@@ -84,12 +84,12 @@ bash vendor/avocadesign/statamic-tools/scripts/design-check.sh after
 bash vendor/avocadesign/statamic-tools/scripts/design-check.sh compare before after
 ```
 
-A run first runs `npm run build`. Then it takes every page builder block, plus the header, the page header and the footer, on each page `php please avoca:site:urls` names, at 390 and 1440 wide. A block is found by the comment its template starts with, `<!-- /page_builder/_<handle>.antlers.html -->`, never by its class. Each block is recorded in two ways:
+A run first runs `npm run build`, and the site is served from that build while the run lasts. With the Vite dev server on, `public/hot` is set aside until the run ends, even when it's stopped with Ctrl-C, so the browser gets the build in the meantime. Only one run goes at a time. Then it takes every page builder block, plus the header, the page header and the footer, on each page `php please avoca:site:urls` names, at 390 and 1440 wide. A block is found by the comment its template starts with, `<!-- /page_builder/_<handle>.antlers.html -->`, never by its class. Each block is recorded in two ways:
 
 - **Computed styles.** Every element in the block, with its `::before` and `::after`, its box and every computed property. Elements are matched by their place in the DOM, never by class, so renaming every class can't hide a change. Colours are compared by the pixel they paint, so a hex value and the oklch token that replaced it count as equal.
-- **Pixels.** A screenshot of the block, compared pixel for pixel. Everything outside the block is hidden first, so a change to one block can't make its neighbour differ.
+- **Pixels.** A screenshot of the block, compared pixel for pixel. A pixel counts as different when a channel moves more than 2 levels, which leaves out how Chrome resamples a photo from one run to the next; a real change of colour shows in the styles, and `--threshold 0` counts every level. Everything outside the block is hidden first, so a change to one block can't make its neighbour differ.
 
-Each block is taken on a page of its own, loaded fresh, one at a time. `--jobs 4` takes four at once, which is quicker, but a snapshot can then stall for minutes, most often among the first few. Every web font is loaded before anything is measured. A block whose fonts or images haven't arrived after 20 seconds fails, rather than being taken half drawn. Timers of a second or more never fire, so an autoplaying carousel is taken on the slide it loads on, however long the page took.
+Each block is taken on a page of its own, loaded fresh, one at a time. `--jobs 4` takes four at once, which is quicker, but a snapshot can then stall for minutes, most often among the first few. Every web font is loaded before anything is measured, and used even where the site's `font-display: optional` would leave a late font out, so text is always in the site's own fonts. A block whose fonts or images haven't arrived after 20 seconds fails, rather than being taken half drawn. Timers of a second or more never fire, so an autoplaying carousel is taken on the slide it loads on, however long the page took.
 
 `compare` prints one line per block, such as `home/proof_strip: SAME`, and exits 1 when any block differs. To see what changed, name the block. You get each property as `before -> after` with the elements it touches, and a diff image for each screenshot that differs:
 
@@ -119,7 +119,7 @@ Runs go in `storage/design-check/<name>`, which has a `.gitignore` of its own. A
 
 Keep the two runs comparable:
 
-- **Take both runs the same way:** both from the Vite dev server (`public/hot` present) or both from a build. A run always builds first, because the layout inlines the critical CSS from the last build even when the dev server is on, and a stale build paints old rules over the change. `compare` warns when the two runs took their CSS differently.
+- **Leave the build to the run.** Both runs are served from the build each makes, never from the Vite dev server. With several pages open, the dev server delivered fonts late, so two runs of the same code came out different. `--no-build` uses whatever was built last, so build after any change before using it. `compare` warns when one run of an older version took its CSS from the dev server.
 - **Serve the site with Herd or Valet.** `php artisan serve` answers one request per worker, and Chrome holds six connections open, so with `--jobs` give it `PHP_CLI_SERVER_WORKERS=8` or more. Otherwise fonts and images stall.
 - **Keep the static cache off:** `STATAMIC_STATIC_CACHING_STRATEGY=null`, as it is locally. A run refuses to start with it on, because cached pages would show the site as it was before the change.
 - **Keep the content the same.** On a site whose content is edited on the server, don't pull its `[BOT]` commits between the two runs.
@@ -127,7 +127,7 @@ Keep the two runs comparable:
 
 Known noise:
 
-- **Pixels can differ while styles match.** A band of pixels in a block can differ between two runs of the same code while its computed styles are identical; Whoosh's Close block did at 1100 wide. Judge it by the styles, or take both runs again.
+- **Pixels can differ while styles match.** A band of pixels in a block can differ between two runs of the same code while its computed styles are identical; Whoosh's Close block did at 1100 wide, by up to 2 levels, which the threshold leaves out. Judge anything more by the styles, or take both runs again.
 - **A photo can redraw slightly differently** when the stacking around it changes, such as an `isolate` on an ancestor. Identical styles with photo pixels that differ point to a stacking change, which is worth finding rather than ignoring. `--mask-images` leaves images out of the screenshots when their resampling isn't repeatable on a machine.
 - **Content that changes on every request** differs every time, such as a random order or today's date. So does motion a script drives frame by frame rather than with CSS or a timer.
 

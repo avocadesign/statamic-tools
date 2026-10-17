@@ -10,8 +10,10 @@
 #   bash vendor/avocadesign/statamic-tools/scripts/design-check.sh after
 #   bash vendor/avocadesign/statamic-tools/scripts/design-check.sh compare before after
 #
-# A run builds the assets, then snapshots every page builder block and layout partial (the header, the
-# page header, the footer) on the pages `php please avoca:site:urls` names, at a phone and a desktop
+# A run builds the assets and serves the site from that build: with the Vite dev server on, public/hot is
+# set aside until the run ends, and only one run at a time is allowed. It then snapshots every page builder
+# block and layout partial (the header, the page header, the footer) on the pages `php please
+# avoca:site:urls` names, at a phone and a desktop
 # width: every element's computed styles, matched by its place in the DOM rather than its class, and a
 # screenshot of the block alone. Fonts are loaded first, and timers of a second or more never fire, so
 # a carousel is taken on the slide it loads on. A run of the whole site replaces an earlier run of the
@@ -43,7 +45,8 @@
 #
 # Compare prints one line per block, SAME or DIFFERENT. Name a block, such as home/proof_strip, for
 # every difference: each property as before -> after with the elements it touches, and a diff image
-# for each screenshot that differs. A pixel differs at the first level by default; --threshold eases it.
+# for each screenshot that differs. A pixel differs when a channel moves more than 2 levels, which leaves
+# out how Chrome resamples a photo between runs; --threshold 0 counts every level.
 #
 # Runs go in storage/design-check/<name>, which keeps itself out of git.
 # Exit codes: 0 done, or the same; 1 a block failed, or differs; 2 could not run.
@@ -173,8 +176,40 @@ if [ ${#pages[@]} -eq 0 ]; then
 fi
 [ ${#pages[@]} -gt 0 ] || fail "No pages to check." 2
 
-# The layout inlines the critical CSS from the last build, even with the Vite dev server on, so a stale
-# build paints old rules over the change.
+mkdir -p "$runs"
+[ -f "$runs/.gitignore" ] || printf '*\n' > "$runs/.gitignore"
+
+# One run at a time: a run sets public/hot aside and puts it back, and a second would put it back early.
+lock="$runs/.running"
+if [ -f "$lock" ] && kill -0 "$(cat "$lock" 2>/dev/null)" 2>/dev/null; then
+    fail "Another design check is running (process $(cat "$lock")). Wait for it to finish." 2
+fi
+echo $$ > "$lock"
+stash="$runs/hot"
+# A run killed outright leaves the dev server's address in the stash: put it back, unless the dev server
+# has written a new one since.
+if [ -f "$stash" ]; then
+    if [ -f public/hot ]; then rm -f "$stash"; else mv "$stash" public/hot; fi
+fi
+finish() {
+    if [ -f "$stash" ]; then
+        mv "$stash" public/hot
+        echo "==> public/hot put back: the Vite dev server serves the site again"
+    fi
+    rm -f "$lock"
+}
+trap finish EXIT
+trap 'exit 130' INT TERM
+
+# Pages are served from the build this run makes, never from the Vite dev server. With public/hot present,
+# every stylesheet and font comes from Vite, which with several pages open delivered fonts late: two runs
+# of the same code came out different. So public/hot is set aside until the run ends.
+if [ -f public/hot ]; then
+    mv public/hot "$stash"
+    echo "==> Served from the build: public/hot set aside until the run ends"
+fi
+
+# The build is what every page is drawn from, so a stale one would hide the change.
 if [ "$build" = true ]; then
     echo "==> npm run build"
     log="$(mktemp)"
@@ -182,8 +217,6 @@ if [ "$build" = true ]; then
     rm -f "$log"
 fi
 
-mkdir -p "$runs"
-[ -f "$runs/.gitignore" ] || printf '*\n' > "$runs/.gitignore"
 out="$runs/$name"
 # A run of the whole site is complete in itself, so nothing from an earlier one can stand in for a block
 # that failed this time. A block's states are added to whatever run is there.
