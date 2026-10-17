@@ -34,7 +34,8 @@
 #   --reduced           prefers-reduced-motion: reduce.
 #   --scroll <how>      top (the default), silent (in view, before a scroll-triggered reveal), none or <px>.
 #   --base <url>        the site's address. Default: APP_URL from .env.
-#   --jobs <n>          how many blocks to take at once, each on a page of its own. Default: 4.
+#   --jobs <n>          how many blocks to take at once, each on a page of its own. Default: 1. More
+#                       is quicker, but a snapshot can stall for minutes.
 #   --no-build          don't run npm run build first.
 #   Also --name, --pad, --dpr, --no-png, --mask-images: see design-check/snapshot.mjs.
 #

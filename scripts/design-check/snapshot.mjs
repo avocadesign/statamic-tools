@@ -13,12 +13,12 @@
     Options:
       [--widths 390,1440] [--heights 844,900] [--index 0] [--name <folder>]
       [--state 'name=js'] ... [--state 'name=hover:<selector>'] [--reduced] [--scroll top|silent|none|<px>]
-      [--pad 24] [--no-png] [--mask-images] [--dpr 1] [--no-repaint] [--headful] [--commit <text>] [--jobs 4]
+      [--pad 24] [--no-png] [--mask-images] [--dpr 1] [--no-repaint] [--headful] [--commit <text>] [--jobs 1]
 
     Without --block, every page builder block and layout partial on each page is taken: the element that
     follows each <!-- /page_builder/_<handle>.antlers.html --> and <!-- /layout/_<name>.antlers.html -->
     comment, leaving out any inside another. They are written to <out>/<page>/<handle>, and a second one
-    of the same block on a page to <handle>-2. --jobs says how many blocks are taken at once (4).
+    of the same block on a page to <handle>-2. --jobs says how many blocks are taken at once (1).
 
     --block takes @<handle> for a page builder block, @<view path> for any other template, such as
     @layout/_header or @components/_pull_quote, or a CSS selector. A template is found by its comment,
@@ -111,7 +111,9 @@ const pad = opts.pad ?? 24
 const png = opts.png ?? true
 const dpr = opts.dpr ?? 1
 const media = opts.reduced ? 'reduce' : 'no-preference'
-const jobs = Math.max(1, opts.jobs || 4)
+// More than one at a time is quicker, but a snapshot can stall for minutes, most often in the first few:
+// why isn't known yet.
+const jobs = Math.max(1, opts.jobs || 1)
 // A page with public/hot takes its CSS and scripts from the Vite dev server; two runs should use the same.
 const assets = existsSync(path.join(SITE, 'public', 'hot')) ? 'vite dev server' : 'build'
 
@@ -544,7 +546,7 @@ try {
             written.push(name)
         }
     } else {
-        // Every page's blocks first, then the blocks, several at a time: each is still a page of its own,
+        // Every page's blocks first, then the blocks, --jobs at a time: each is still a page of its own,
         // loaded fresh, and a page like /site/content takes seconds to render.
         const found = []
         await pool(opts.pages, jobs, async (p) => {
