@@ -6,7 +6,8 @@ Avoca Tools uses semantic versioning. While the version starts with 0, a release
 
 A new release line, the first since v0.1.55. The recipe now builds blocks with Tailwind utilities in their templates, the add-on brings the design check that proves a conversion changes nothing and an audit of a site against the recipe, and critical CSS has a method. Each part below says what a site does about it.
 
-- **To do on update:** a site made from the starter kit asks for `<2.0` and takes this release with `composer update avocadesign/statamic-tools`. A launched site is held to 0.1, so it moves only on purpose, as the recipe's Working on a launched site says: change its constraint to `^0.2.0`, then follow each part's To do on update below.
+- **The starter kit asks for `>=0.2.0 <1.0`:** a new site starts on this release and takes every release after it up to 1.0, which is a move made on purpose. It asked for `<2.0`.
+- **To do on update:** a site that asks for `<2.0` takes this release with `composer update avocadesign/statamic-tools`, and can narrow its constraint to the kit's `>=0.2.0 <1.0`. A launched site is held to 0.1, so it moves only on purpose, as the recipe's Working on a launched site says: change its constraint to `^0.2.0`, then follow each part's To do on update below.
 
 ### Persist, and overriding an add-on's views
 

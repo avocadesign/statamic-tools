@@ -449,7 +449,7 @@ A collection made with `--no-editor-access` is opted out by `editor_access: fals
 Sites made from the Avoca starter kit get the addon while the kit installs. For any other site:
 
 ```bash
-composer require "avocadesign/statamic-tools:<2.0"
+composer require "avocadesign/statamic-tools:>=0.2.0 <1.0"
 ```
 
 It needs Statamic 6. It comes from Packagist, so Composer needs no repository entry and no
@@ -460,8 +460,8 @@ credentials, on a computer or on a server.
 Releases are git tags on GitHub, such as `v0.1.0`, and `CHANGELOG.md` says what each one changed. Each site records the version it runs in its `composer.lock`, so sites can run different versions side by side.
 
 - `composer show avocadesign/statamic-tools` shows the version a site runs.
-- `composer update avocadesign/statamic-tools` moves a site to the newest release it allows. Sites made from the Avoca starter kit ask for `<2.0`, so that includes every release line up to and including 1.x, the launch line. At launch a site narrows that to the line it launches on, such as `^0.1.48`, and records `launched:` in `resources/site/updates.yaml`: see Launch in the recipe.
-- To hold a site on one release line, pin it there: `composer require "avocadesign/statamic-tools:^1.0"`. Read the changelog entry of any release that changes how a site works.
+- `composer update avocadesign/statamic-tools` moves a site to the newest release it allows. Sites made from the Avoca starter kit ask for `>=0.2.0 <1.0`, so that includes every release from 0.2.0 up to 1.0, which a site moves to on purpose. At launch a site narrows that to the line it launches on, such as `^0.2.0`, and records `launched:` in `resources/site/updates.yaml`: see Launch in the recipe.
+- To hold a site on one release line, pin it there: `composer require "avocadesign/statamic-tools:^0.2.0"`. Read the changelog entry of any release that changes how a site works.
 - After any update, run `php please avoca:site:catalogue`, commit the catalogue if it changed, and run `php please avoca:site:check --strict`.
 
 To make a release:
@@ -469,7 +469,7 @@ To make a release:
 1. Add the release to `CHANGELOG.md` and commit it on `main`.
 2. Tag that commit, such as `git tag -a v0.1.1 -m "Avoca Tools v0.1.1"`.
 3. Push `main` and the tag: `git push origin main v0.1.1`.
-4. A release that changes how sites work goes in the changelog with a note on what to do about it. Sites ask for `<2.0`, so only a 2.0 release needs the starter kit's constraint changed and sites moved on purpose. A launched site is held to its line, so it takes a new line only when it is moved on purpose.
+4. A release that changes how sites work goes in the changelog with a note on what to do about it. Sites ask for `>=0.2.0 <1.0`, so only 1.0 needs the starter kit's constraint changed and sites moved on purpose. A launched site is held to its line, so it takes a new line only when it is moved on purpose.
 
 The sandbox requires the addon as `*@dev` from its local folder, so it always runs the code being worked on.
 

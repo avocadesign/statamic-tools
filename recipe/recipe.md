@@ -682,8 +682,8 @@ the start of each day when the work runs on:
 
 1. Run `composer show avocadesign/statamic-tools --latest`. `versions` is the release the site has and
    `latest` is the newest there is. When they match, there is nothing to do.
-2. When `latest` is a release line the site's constraint in `composer.json` doesn't allow, such as 2.0
-   on a site that asks for `<2.0`, leave the constraint alone and tell the developer: moving a site to
+2. When `latest` is a release line the site's constraint in `composer.json` doesn't allow, such as 1.0
+   on a site that asks for the kit's `>=0.2.0 <1.0`, or 0.3 on a launched site held to `^0.2.0`, leave the constraint alone and tell the developer: moving a site to
    a new line is a decision. A launched site is held to its line on purpose, so say it once, in the plan.
 3. Otherwise run `composer update avocadesign/statamic-tools`, which takes the newest release the site
    allows and leaves its other packages as they are.
@@ -782,7 +782,7 @@ A site launches when it goes live for the client's visitors, after their sign-of
 
 ### At launch
 
-1. **Hold the add-on to the line the site launches on.** In `composer.json`, change `avocadesign/statamic-tools` from the kit's `<2.0` to `^` and the release the site has, such as `^0.1.48`, then run `composer update avocadesign/statamic-tools` so `composer.lock` records it. Under 1.0 that takes only the later releases of that line, such as 0.1.49, and from 1.0 every 1.x release. A release in the line carries fixes and recipe changes that ask nothing of a site, because one that asks something starts a new line. A new line then waits for the developer, as [Keeping the add-on current](#keeping-the-add-on-current) says.
+1. **Hold the add-on to the line the site launches on.** In `composer.json`, change `avocadesign/statamic-tools` from the kit's `>=0.2.0 <1.0` to `^` and the release the site has, such as `^0.2.0`, then run `composer update avocadesign/statamic-tools` so `composer.lock` records it. Under 1.0 that takes only the later releases of that line, such as 0.2.1, and from 1.0 every 1.x release. A release in the line carries fixes and recipe changes that ask nothing of a site, because one that asks something starts a new line. A new line then waits for the developer, as [Keeping the add-on current](#keeping-the-add-on-current) says.
 2. **Mark the launch** in `resources/site/updates.yaml` with the date: `launched: 2026-10-14`. It tells the next agent the site is live. `avoca:site:check` warns when a launched site still lets the add-on move to a new line.
 3. **Finish what the recipe leaves until launch:**
    - `design` merged into `main`, the control panel screenshots checked first, as [Branches and commits](#branches-and-commits) says;
