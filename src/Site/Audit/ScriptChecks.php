@@ -50,9 +50,7 @@ final class ScriptChecks
             $sources[$path] = [$js, Js::withoutComments($js)];
         }
         foreach ($this->files->templates() as $path => $html) {
-            if (! str_starts_with($path, 'resources/views/vendor/')) {
-                $sources[$path] = [$html, Markup::withoutComments($html)];
-            }
+            $sources[$path] = [$html, Markup::withoutComments($html)];
         }
 
         foreach ($sources as $path => [$original, $code]) {

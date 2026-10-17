@@ -32,8 +32,10 @@ final class Audit
             (new $check($files, $out))->run();
         }
 
+        // A site's copies of vendor views only override the vendor's file, so they are read for what they use but never reported.
+        $findings = array_values(array_filter($out->all(), fn (array $f) => ! str_starts_with($f['path'], 'resources/views/vendor/')));
         $ignores = Ignores::load($files);
-        $result = $ignores->apply($out->all());
+        $result = $ignores->apply($findings);
         $notes = $out->notes();
         if ($ignores->problem() !== null) {
             $notes[] = $ignores->problem();

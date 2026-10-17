@@ -139,28 +139,33 @@ class SiteAuditTest extends TestCase
         $this->assertSame(['resources/css/peak.css:1 critical.css imports this file, so its @source "../views/**/*" scans for the critical sheet too'], $this->found('critical-shared-source'));
     }
 
-    public function test_page_specific_critical_sheets_are_few_and_each_saves_enough(): void
+    public function test_a_page_specific_critical_sheet_has_to_save_the_other_pages_enough(): void
     {
         $this->write('resources/css/critical.css', "@import \"tailwindcss\" source(none);\n");
-        foreach (['forms', 'map', 'estimate'] as $name) {
+        foreach (['forms', 'map', 'faq'] as $name) {
             $this->write("resources/css/critical-{$name}.css", "@import \"./critical.css\";\n");
         }
-        $this->assertSame(['resources/css/critical-estimate.css:1 3 page-specific critical sheets: critical-estimate.css, critical-forms.css, critical-map.css'], $this->found('critical-sheets'));
         $this->assertContains('no build in public/ to measure, so the critical sheets were not compared: run npm run build', Audit::make($this->root)->run()['notes']);
 
-        $base = str_repeat('.a{color:red}', 50);
+        // Rules that don't compress away, so the sizes are what the rules add.
+        $rules = fn (string $prefix, int $count) => implode('', array_map(fn ($i) => ".{$prefix}".md5($prefix.$i).'{width:'.$i.'px}', range(1, $count)));
+        $base = $rules('a', 300);
+        $saving = fn (string $css) => 1 - strlen(gzencode($base, 9)) / strlen(gzencode($css, 9));
+        for ($n = 1, $faq = ''; $saving($faq = $base.$rules('q', $n)) < 0.12; $n++) {
+        }
         $this->write('public/build/assets/critical.css', $base);
-        $this->write('public/build/assets/critical-forms.css', $base.'.form{display:grid}');
-        $this->write('public/build/assets/critical-map.css', $base.implode('', array_map(fn ($i) => '.m'.md5((string) $i).'{width:'.$i.'px}', range(1, 400))));
-        $this->write('public/build/manifest.json', json_encode([
-            'resources/css/critical.css' => ['file' => 'assets/critical.css'],
-            'resources/css/critical-forms.css' => ['file' => 'assets/critical-forms.css'],
-            'resources/css/critical-map.css' => ['file' => 'assets/critical-map.css'],
-        ]));
+        $this->write('public/build/assets/critical-forms.css', $base.$rules('f', 3));
+        $this->write('public/build/assets/critical-map.css', $base.$rules('m', 300));
+        $this->write('public/build/assets/critical-faq.css', $faq);
+        $this->write('public/build/manifest.json', json_encode(array_merge(
+            ['resources/css/critical.css' => ['file' => 'assets/critical.css']],
+            ...array_map(fn ($name) => ["resources/css/critical-{$name}.css" => ['file' => "assets/critical-{$name}.css"]], ['forms', 'map', 'faq']),
+        )));
 
-        $small = $this->found('critical-small');
-        $this->assertCount(1, $small);
-        $this->assertStringStartsWith('resources/css/critical-forms.css:1 adds 0.0 KB gzipped to critical.css', $small[0]);
+        $found = $this->found('critical-saving');
+        $this->assertCount(1, $found, 'the map sheet saves the other pages half their critical CSS');
+        $this->assertMatchesRegularExpression('~^resources/css/critical-forms\.css:1 saves the other pages [0-9]% of their critical CSS~', $found[0]);
+        $this->assertMatchesRegularExpression('~^critical-faq\.css saves the other pages 1[0-4]% .*: on the line for a sheet of its own$~m', implode("\n", Audit::make($this->root)->run()['notes']));
     }
 
     public function test_a_script_that_finds_elements_by_class_is_found(): void
@@ -215,46 +220,76 @@ class SiteAuditTest extends TestCase
         $this->assertSame(['resources/views/layout/_page_header.antlers.html:2 <img src="{{ glide:hero_image width="1280" }}"> has no srcset or sizes: use the figure or picture partial'], $this->found('bare-img'));
     }
 
-    public function test_long_template_comments_and_a_long_desc_are_found(): void
+    public function test_a_long_desc_is_found(): void
     {
-        $this->write('resources/views/page_builder/_note.antlers.html', implode("\n", [
-            '{{#',
-            '    @name Note',
-            '    @desc The Note page builder block,',
-            '    which runs on.',
-            '    @set page.page_builder.note',
-            '#}}',
-            '<!-- /page_builder/_note.antlers.html -->',
-            '{{# text column #}}',
-            '{{# One line,',
-            '    two lines,',
-            '    three lines. #}}',
-            '{{# '.str_repeat('word ', 35).'#}}',
-            '{{# <div class="old">',
-            '    </div>',
-            '    <p>commented out</p> #}}',
-        ]));
+        $this->write('resources/views/page_builder/_note.antlers.html', "{{#\n    @name Note\n    @desc The Note page builder block,\n    which runs on.\n    @set page.page_builder.note\n#}}\n");
 
         $this->assertSame(['resources/views/page_builder/_note.antlers.html:3 @desc runs to 2 lines'], $this->found('desc-long'));
+    }
+
+    public function test_a_comment_that_repeats_the_code_s_values_is_found_but_one_that_gives_context_is_not(): void
+    {
+        $this->write('resources/views/page_builder/_note.antlers.html', implode("\n", [
+            '<!-- /page_builder/_note.antlers.html -->',
+            '{{# text panel: white, 860px at most, on the left #}}',
+            '<div class="bg-white max-w-[860px]">',
+            '{{# skip button, a 32px circle that widens on hover #}}',
+            '<button class="size-8 rounded-full hover:w-auto lg:px-2" data-skip></button>',
+            '{{# Buttons sit a clear step below the text: the column gap plus mt-6. #}}',
+            '{{ partial:components/buttons class="mt-6" }}',
+            '{{# A long note that says why this works the way it does, which a reader would never guess from the markup, and which names data-skip and --note-gap so they can find what reads them. #}}',
+            '<div data-skip style="--note-gap: 2rem"></div>',
+            '{{# <div class="old">2px 4px</div> #}}',
+            '</div>',
+        ]));
+        $this->write('resources/css/components/ring.css', "/* the focus ring, a solid 2px line in the readable pink */\n.ring { outline: 2px solid var(--color-accent); }\n/* 9999px, not rounded-full's infinite radius, which animates differently */\n.pill { border-radius: 9999px; }\n");
+
         $this->assertSame([
-            'resources/views/page_builder/_note.antlers.html:9 a comment of 3 lines: One line, two lines, three lines.',
-            'resources/views/page_builder/_note.antlers.html:12 a comment of 174 characters: word word word word word word word word word word word wo…',
-        ], $this->found('comment-long'), 'a docblock, a marker and commented-out markup are not long comments');
+            'resources/css/components/ring.css:1 repeats 2px, pink from the code beside it: the focus ring, a solid 2px line in the readable pink',
+            'resources/views/page_builder/_note.antlers.html:2 repeats 860px, white from the code beside it: text panel: white, 860px at most, on the left',
+        ], $this->found('comment-restates'), 'one value repeated, as 32px is size-8, is not enough; names say what reads them; commented-out code is code');
     }
 
-    public function test_long_css_and_js_comments_are_found_but_commented_out_code_is_not(): void
+    public function test_a_comment_that_tells_history_is_found(): void
     {
-        $this->write('resources/css/fonts.css', "/*\n@font-face {\n    font-family: 'Awesome';\n    src: url('a.woff2');\n    font-weight: 400;\n}\n*/\n");
-        $this->write('resources/js/tabs.js', "/*\n * One.\n * Two.\n * Three.\n * Four.\n * Five.\n */\n// six\n// seven\nexport default {}\n");
+        $this->write('resources/js/hero.js', "// Ported from the Astro build's hero.js.\nexport default {}\n/* Used to hide alpine elements before being rendered. */\n/* The rect is measured against the page, not the frame. */\n/* Paper's card (12 October): 7px padding. */\n");
 
-        $this->assertSame(['resources/js/tabs.js:1 a comment of 5 lines: One. Two. Three. Four. Five.'], $this->found('comment-block'), 'the delimiters are not lines of the comment');
+        $this->assertSame([
+            'resources/js/hero.js:1 "Ported from": Ported from the Astro build\'s hero.js.',
+            'resources/js/hero.js:5 "12 October": Paper\'s card (12 October): 7px padding.',
+        ], $this->found('comment-history'));
     }
 
-    public function test_a_file_mostly_comments_is_found(): void
+    public function test_a_colour_that_varies_or_matches_the_palette_belongs_in_colours_css(): void
     {
-        $this->write('resources/js/notes.js', '/* '.str_repeat('Why this is. ', 40)."*/\nexport const a = 1\n".str_repeat("export const b = 2\n", 20));
+        $this->write('resources/css/colours.css', "@theme {\n  --color-ink: #320c42;\n  --color-surface: #dfddf4;\n  --body-color: var(--color-ink);\n}\n");
+        $this->write('resources/css/components/hero.css', implode("\n", [
+            ':root {',
+            '  --hero-tilt: 3deg;',
+            '  --hero-lilac: var(--color-surface);',
+            '  --hero-ground: color-mix(in srgb, var(--color-ink) 10%, var(--color-surface));',
+            '  --hero-fade: color-mix(in srgb, var(--hero-lilac) 50%, transparent);',
+            '  --hero-ink: #330c43;',
+            '  --hero-near: #3a1650;',
+            '  --hero-green: #2f9e44;',
+            '}',
+            '.hero--dark { --hero-glow: oklch(from var(--color-ink) l c h / 50%); }',
+        ]));
 
-        $this->assertSame(['resources/js/notes.js 50% of the file is comments'], array_map(fn ($f) => preg_replace('/\d+%/', '50%', $f), $this->found('comment-heavy')));
+        $this->assertSame([
+            'resources/css/components/hero.css:4 3 colours vary the palette: --hero-ground, --hero-fade, --hero-glow',
+            'resources/css/components/hero.css:6 --hero-ink: #330c43 is the same as --color-ink',
+            'resources/css/components/hero.css:7 --hero-near: #3a1650 is close to --color-ink',
+        ], $this->found('component-colour'), 'a parameter, an alias and a colour of its own are not variants');
+    }
+
+    public function test_vendor_overrides_are_read_but_never_reported(): void
+    {
+        $this->write('resources/views/vendor/statamic/forms/fields/text.antlers.html', '<input class="form__input bg-[#fff]"><img src="{{ x }}">');
+
+        $result = Audit::make($this->root)->run();
+
+        $this->assertSame([], array_filter($result['findings'], fn ($f) => str_starts_with($f['path'], 'resources/views/vendor/')));
     }
 
     public function test_a_finding_kept_with_its_reason_is_silenced_and_one_without_a_reason_is_not(): void

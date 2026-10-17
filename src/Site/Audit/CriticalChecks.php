@@ -3,16 +3,18 @@
 namespace Avocadesign\StatamicTools\Site\Audit;
 
 /**
- * The critical sheets: an @source line in a file critical.css shares, too many page-specific sheets, and a
- * page-specific sheet that saves too little to be worth one, measured from the last build.
+ * The critical sheets: an @source line in a file critical.css shares, and a page-specific sheet that saves the
+ * other pages too little to be worth one, measured from the last build.
  */
 final class CriticalChecks
 {
-    /** How much more a page-specific sheet has to carry than critical.css, gzipped, to be worth one. */
-    public const SAVING = 2048;
+    /**
+     * What a page-specific sheet has to save every other page, as a share of the critical CSS they would inline if it
+     * were folded back into critical.css, gzipped. Between the two, it is on the line.
+     */
+    public const SAVING = 0.10;
 
-    /** How many page-specific sheets is already a lot. */
-    public const SHEETS = 2;
+    public const CLEAR_SAVING = 0.15;
 
     public function __construct(private Files $files, private Findings $out)
     {
@@ -27,9 +29,6 @@ final class CriticalChecks
         $this->sharedSources();
 
         $sheets = array_values(array_filter(array_keys($this->files->stylesheets()), fn (string $path) => preg_match('~^resources/css/critical-[^/]+\.css$~', $path)));
-        if (count($sheets) > self::SHEETS) {
-            $this->out->add('critical-sheets', $sheets[0], 1, count($sheets).' page-specific critical sheets: '.Findings::list(array_map('basename', $sheets)));
-        }
         if ($sheets !== []) {
             $this->sizes($sheets);
         }
@@ -82,10 +81,18 @@ final class CriticalChecks
             $this->out->note("the build in {$base} is older than resources/css, so the critical sheets were measured as last built");
         }
 
+        // Every page without the sheet's blocks inlines critical.css; folded back, they would inline the sheet's size.
         foreach ($sheets as $sheet) {
             $size = $this->gzipped($manifest, $base, $sheet);
-            if ($size !== null && $size - $critical < self::SAVING) {
-                $this->out->add('critical-small', $sheet, 1, sprintf('adds %.1f KB gzipped to critical.css (%.1f KB against %.1f KB)', ($size - $critical) / 1024, $size / 1024, $critical / 1024));
+            if ($size === null || $size === 0) {
+                continue;
+            }
+            $saving = ($size - $critical) / $size;
+            $said = sprintf('saves the other pages %d%% of their critical CSS (%.1f KB of %.1f KB gzipped)', round(100 * $saving), ($size - $critical) / 1024, $size / 1024);
+            if ($saving < self::SAVING) {
+                $this->out->add('critical-saving', $sheet, 1, $said);
+            } elseif ($saving < self::CLEAR_SAVING) {
+                $this->out->note(basename($sheet)." {$said}: on the line for a sheet of its own");
             }
         }
     }

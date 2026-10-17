@@ -3,24 +3,22 @@
 namespace Avocadesign\StatamicTools\Site\Audit;
 
 /**
- * Comments that run long: a template comment over two lines or about 160 characters, an @desc over one line, a
- * CSS or JS comment over four lines, and a file whose comments outweigh its code. A docblock, the kit's
- * <!-- /path --> markers and commented-out code are left out, and so are the site's copies of vendor views, whose
- * comments say what was changed from upstream.
+ * Comments that don't help: one that restates what the code beside it already says, such as its values, colours and
+ * classes, one that tells the history of the code, and an @desc over one line. A comment's length is no measure: a
+ * long one that gives key context is fine, and a short one that repeats the code is not.
  */
 final class CommentChecks
 {
-    public const TEMPLATE_LINES = 2;
+    /** How many of the code's own values a comment has to repeat to be restating it. */
+    public const RESTATED = 2;
 
-    public const TEMPLATE_CHARACTERS = 160;
+    /** How many lines of code after a comment it is read against. */
+    public const NEARBY_LINES = 8;
 
-    public const BLOCK_LINES = 4;
+    private const HISTORY = '/\b(?:used to be|previously|formerly|originally|was (?:moved|removed|changed|replaced|renamed)|(?:has|have) been (?:moved|removed|replaced|renamed)|(?:was|were) measured|measured (?:in|on|from|against) (?:the )?(?:paper|figma|reference|design|source|original|old|astro)|in the (?:old|original|previous) (?:\w+ )?(?:site|build|design|version|source)|before (?:the|this) (?:change|clean-?up|conversion|refactor|port)|ported from|commit [0-9a-f]{7,40})\b|\b20\d\d-\d\d-\d\d\b|\b\d{1,2} (?:January|February|March|April|May|June|July|August|September|October|November|December)\b/i';
 
-    /** The share of a file's characters, outside whitespace, that its comments may take. */
-    public const SHARE = 0.4;
-
-    /** Files smaller than this, outside whitespace, are not weighed: one good comment outweighs a short partial. */
-    public const SMALLEST = 600;
+    /** Colour words, which restate the code when the code beside them sets a colour. */
+    private const COLOUR_WORDS = '/\b(red|orange|yellow|green|blue|purple|violet|pink|magenta|lilac|lavender|plum|white|black|gr[ae]y|brown|teal|cyan|navy|cream|beige|gold)\b/i';
 
     public function __construct(private Files $files, private Findings $out)
     {
@@ -29,65 +27,128 @@ final class CommentChecks
     public function run(): void
     {
         foreach ($this->files->templates() as $path => $html) {
-            if (str_starts_with($path, 'resources/views/vendor/')) {
-                continue;
-            }
-            $comments = array_values(array_filter(Markup::comments($html), fn (array $c) => ! self::isMarker($c)));
-            foreach ($comments as $comment) {
-                $this->template($path, $html, $comment);
-            }
-            $this->weigh($path, $html, array_column(array_filter($comments, fn (array $c) => $c['kind'] !== 'docblock' && ! self::isCode($c['text'])), 'text'));
-        }
-
-        foreach ([...$this->files->stylesheets(), ...$this->files->scripts()] as $path => $code) {
-            $comments = array_values(array_filter(
-                str_ends_with($path, '.css') ? Css::comments($code) : Js::comments($code),
-                fn (array $c) => ! self::isCode($c['text']),
-            ));
-            foreach ($comments as $comment) {
-                $lines = self::textLines($comment['text']);
-                if ($lines > self::BLOCK_LINES) {
-                    $this->out->add('comment-block', $path, Files::line($code, $comment['offset']), "a comment of {$lines} lines: ".self::opening($comment['text']));
+            $code = Markup::withoutComments($html);
+            foreach (Markup::comments($html) as $comment) {
+                if ($comment['kind'] === 'docblock') {
+                    $this->desc($path, $html, $comment);
+                } elseif (! self::isMarker($comment) && ! self::isCode($comment['text'])) {
+                    $nearby = self::nearby($code, $comment);
+                    $classes = [];
+                    foreach (Markup::classTokens($nearby) as $token) {
+                        $classes[] = trim($token['token'], "'\",{}");
+                        $classes[] = (string) Markup::className($token['token']);
+                    }
+                    $this->judge($path, $html, $comment, $nearby, array_values(array_filter($classes)));
                 }
             }
-            $this->weigh($path, $code, array_column($comments, 'text'));
         }
-    }
 
-    private function template(string $path, string $html, array $comment): void
-    {
-        $line = Files::line($html, $comment['offset']);
-        $text = $comment['text'];
-
-        if ($comment['kind'] === 'docblock') {
-            if (preg_match('/@desc\b(.*?)(?=\n\s*@|#\}\})/s', $text, $m) && substr_count(trim($m[1]), "\n") > 0) {
-                $this->out->add('desc-long', $path, $line + substr_count(substr($text, 0, (int) strpos($text, '@desc')), "\n"), '@desc runs to '.(substr_count(trim($m[1]), "\n") + 1).' lines');
+        foreach ([...$this->files->stylesheets(), ...$this->files->scripts()] as $path => $source) {
+            $css = str_ends_with($path, '.css');
+            $code = $css ? Css::withoutComments($source) : Js::withoutComments($source);
+            foreach ($css ? Css::comments($source) : Js::comments($source) as $comment) {
+                if (self::isCode($comment['text'])) {
+                    continue;
+                }
+                $nearby = self::nearby($code, $comment);
+                $classes = [];
+                if ($css) {
+                    preg_match_all('/([^{};]+)\{/', $nearby, $preludes);
+                    foreach ($preludes[1] as $prelude) {
+                        $classes = [...$classes, ...Css::classes($prelude)];
+                    }
+                }
+                $this->judge($path, $source, $comment, $nearby, $classes);
             }
-
-            return;
-        }
-        if (self::isCode($text)) {
-            return;
-        }
-
-        $lines = self::textLines($text);
-        $length = strlen(self::words($text));
-        if ($lines > self::TEMPLATE_LINES || $length > self::TEMPLATE_CHARACTERS) {
-            $this->out->add('comment-long', $path, $line, ($lines > self::TEMPLATE_LINES ? "a comment of {$lines} lines" : "a comment of {$length} characters").': '.self::opening($text));
         }
     }
 
-    /** @param array<int, string> $comments */
-    private function weigh(string $path, string $code, array $comments): void
+    /** @param array<int, string> $classes the classes the nearby code uses */
+    private function judge(string $path, string $source, array $comment, string $nearby, array $classes): void
     {
-        $total = strlen((string) preg_replace('/\s+/', '', $code));
-        if ($total < self::SMALLEST) {
+        $line = Files::line($source, $comment['offset']);
+        $text = self::strip($comment['text']);
+
+        if (preg_match(self::HISTORY, $text, $m)) {
+            $this->out->add('comment-history', $path, $line, "\"{$m[0]}\": ".self::opening($text));
+
             return;
         }
-        $share = strlen((string) preg_replace('/\s+/', '', implode('', $comments))) / $total;
-        if ($share > self::SHARE) {
-            $this->out->add('comment-heavy', $path, null, sprintf('%d%% of the file is comments', round(100 * $share)));
+
+        $restated = self::restated($text, $nearby, $classes);
+        if (count($restated) >= self::RESTATED) {
+            $this->out->add('comment-restates', $path, $line, 'repeats '.Findings::list($restated, 3).' from the code beside it: '.self::opening($text));
         }
+    }
+
+    private function desc(string $path, string $html, array $comment): void
+    {
+        $text = $comment['text'];
+        if (preg_match('/@desc\b(.*?)(?=\n\s*@|#\}\})/s', $text, $m) && substr_count(trim($m[1]), "\n") > 0) {
+            $line = Files::line($html, $comment['offset']) + substr_count(substr($text, 0, (int) strpos($text, '@desc')), "\n");
+            $this->out->add('desc-long', $path, $line, '@desc runs to '.(substr_count(trim($m[1]), "\n") + 1).' lines');
+        }
+    }
+
+    /**
+     * The values the comment repeats from the code beside it: lengths, durations and shares, colours written out,
+     * utilities with a value in them, and a colour named in words beside code that sets one. A length in px or rem
+     * also counts when a class beside it is that step, as 32px is size-8. Naming a token, a class or an attribute to
+     * say what reads it is context, so names alone don't count.
+     *
+     * @param  array<int, string>  $classes
+     * @return array<int, string>
+     */
+    public static function restated(string $comment, string $nearby, array $classes): array
+    {
+        $found = [];
+        $has = fn (string $fact) => (bool) preg_match('/(?<![\w.#-])'.preg_quote($fact, '/').'(?![\w%-])/i', $nearby);
+
+        preg_match_all('/#[0-9a-f]{3,8}\b|(?:rgba?|hsla?|oklch|oklab)\([^)]*\)/i', $comment, $m);
+        foreach ($m[0] as $fact) {
+            if ($has($fact)) {
+                $found[] = $fact;
+            }
+        }
+
+        preg_match_all('/(?<![\w.#-])(-?\d*\.?\d+)(px|rem|em|ms|s|vw|vh|dvh|svh|%|deg|fr|ch)(?![\w%])/', $comment, $m, PREG_SET_ORDER);
+        foreach ($m as [$fact, $number, $unit]) {
+            if ($has($fact) || $has((string) preg_replace('/^(-?)0\./', '$1.', $fact))) {
+                $found[] = $fact;
+            } elseif (in_array($unit, ['px', 'rem'], true)) {
+                $step = rtrim(rtrim(sprintf('%.2f', (float) $number / ($unit === 'px' ? 4 : 0.25)), '0'), '.');
+                if (preg_grep('/(^|:)-?[a-z][\w-]*-'.preg_quote($step, '/').'$/', $classes)) {
+                    $found[] = $fact;
+                }
+            }
+        }
+
+        foreach (preg_split('/[\s,;()"\'`]+/', $comment) as $word) {
+            $word = ltrim(rtrim($word, '.:'), '.');
+            if (preg_match('/[:\[\d]/', $word) && preg_match('/^[a-z\[]/i', $word) && in_array($word, $classes, true)) {
+                $found[] = $word;
+            }
+        }
+
+        $setsColour = preg_match('/--color-|color-mix\(|#[0-9a-f]{3,8}\b|oklch\(|rgba?\(|(?<![\w-])(?:bg|text|fill|stroke|border|ring|outline|decoration|from|via|to)-(?!\[?\d)[a-z]/i', $nearby);
+        if ($setsColour && preg_match(self::COLOUR_WORDS, $comment, $colour)) {
+            $found[] = strtolower($colour[0]);
+        }
+
+        return array_values(array_unique($found));
+    }
+
+    /** The comment's own line and the lines of code after it. */
+    private static function nearby(string $code, array $comment): string
+    {
+        $start = strrpos(substr($code, 0, $comment['offset']), "\n");
+        $start = $start === false ? 0 : $start + 1;
+        $end = $comment['offset'] + strlen($comment['text']);
+        for ($i = 0; $i <= self::NEARBY_LINES && $end !== false && $end < strlen($code); $i++) {
+            $end = strpos($code, "\n", $end + 1);
+        }
+
+        return substr($code, $start, ($end === false ? strlen($code) : $end) - $start);
     }
 
     /** The kit's <!-- /page_builder/_x.antlers.html --> and <!-- End: … --> lines, which mark where a partial starts and ends. */
@@ -96,7 +157,7 @@ final class CommentChecks
         return $comment['kind'] === 'html' && (bool) preg_match('~^<!--\s*(End:\s*)?/?[\w/.-]+\.html\s*-->$~', $comment['text']);
     }
 
-    /** Commented-out code, such as upstream's example tokens and font faces: dead code is not a long comment. */
+    /** Commented-out code, such as upstream's example tokens and font faces, which repeats no code because it is code. */
     private static function isCode(string $text): bool
     {
         $body = self::strip($text);
@@ -109,27 +170,16 @@ final class CommentChecks
         return $lines !== [] && count($code) * 2 >= count($lines);
     }
 
-    /** How many of the comment's lines hold words, not just its delimiters. */
-    private static function textLines(string $text): int
-    {
-        return count(array_filter(explode("\n", self::strip($text)), fn (string $line) => trim($line, " \t*/") !== ''));
-    }
-
     /** The comment without its delimiters or the * and // that open its lines. */
     private static function strip(string $text): string
     {
-        return (string) preg_replace(['~^\s*(\{\{#|<!--|/\*+|//)~', '~(#\}\}|-->|\*+/)\s*$~', '~\n[ \t]*(\*(?!/)|//)~'], ['', '', "\n"], $text);
-    }
-
-    private static function words(string $text): string
-    {
-        return trim((string) preg_replace('/\s+/', ' ', self::strip($text)));
+        return trim((string) preg_replace(['~^\s*(\{\{#|<!--|/\*+|//)~', '~(#\}\}|-->|\*+/)\s*$~', '~\n[ \t]*(\*(?!/)|//)~'], ['', '', "\n"], $text));
     }
 
     /** The comment's first words, to say which one is meant. */
     private static function opening(string $text): string
     {
-        $words = self::words($text);
+        $words = trim((string) preg_replace('/\s+/', ' ', $text));
 
         return strlen($words) > 60 ? rtrim(substr($words, 0, 57)).'…' : $words;
     }

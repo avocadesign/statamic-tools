@@ -4,7 +4,7 @@ namespace Avocadesign\StatamicTools\Site\Audit;
 
 /**
  * The token layer: aliases of Tailwind's tokens, two tokens holding one value, a spacing scale of the site's own,
- * and tokens declared outside the files the recipe keeps them in.
+ * tokens declared outside the files the recipe keeps them in, and palette colours kept outside colours.css.
  */
 final class TokenChecks
 {
@@ -29,6 +29,12 @@ final class TokenChecks
 
     /** Where the recipe keeps tokens: theme.css and colours.css, Peak's in typography.css and its own in peak.css. */
     private const TOKEN_FILES = ['resources/css/theme.css', 'resources/css/colours.css', 'resources/css/typography.css', 'resources/css/peak.css'];
+
+    /** How far a colour may be from one of the palette's, in OKLab, and still be a variant of it. */
+    public const CLOSE = 0.05;
+
+    /** @var array<string, array{value: string, site: bool, path: string, line: int|null}>|null */
+    private ?array $defaults = null;
 
     public function __construct(private Files $files, private Findings $out)
     {
@@ -65,6 +71,96 @@ final class TokenChecks
         $this->aliases($declared, $hooks);
         $this->duplicates(array_values(array_filter($declared, fn (array $d) => $d['theme'])));
         $this->scales($declared);
+        $this->componentColours();
+    }
+
+    /**
+     * A colour outside colours.css that varies the palette, such as a color-mix() of its colours, or that matches
+     * or comes close to one of them: the palette lives in one file. One finding for each file's mixes, and one for
+     * each colour written out.
+     */
+    private function componentColours(): void
+    {
+        $all = [];
+        $palette = [];
+        foreach ($this->files->stylesheets() as $path => $css) {
+            foreach (Css::parse($css)['rules'] as $rule) {
+                foreach ($rule['declarations'] as $d) {
+                    if (str_starts_with($d['property'], '--')) {
+                        $all[$d['property']] ??= $d['value'];
+                        if ($path === 'resources/css/colours.css' && Css::isTheme($rule['prelude'])) {
+                            $palette[$d['property']] = $d['value'];
+                        }
+                    }
+                }
+            }
+        }
+        $known = $palette + array_map(fn (array $t) => $t['value'], $this->tailwindDefaults()) + $all;
+        $isPalette = fn (string $name) => isset($palette[$name]) || str_starts_with($name, '--color-');
+
+        $colours = [];
+        foreach (array_keys($palette) as $name) {
+            if (($lab = Colour::oklab($this->resolve($name, $known))) !== null) {
+                $colours[$name] = $lab;
+            }
+        }
+
+        foreach ($this->files->stylesheets() as $path => $css) {
+            if (in_array($path, self::TOKEN_FILES, true)) {
+                continue;
+            }
+            $mixes = [];
+            foreach (Css::parse($css)['rules'] as $rule) {
+                foreach ($rule['declarations'] as $d) {
+                    if (! str_starts_with($d['property'], '--') || preg_match('/^var\([^()]*\)$/', $d['value'])) {
+                        continue;   // not a token, or an alias, which token-alias reports
+                    }
+                    if (preg_match('/color-mix\(|\bfrom\s+var\(/', $d['value']) && $this->reaches($d['value'], $isPalette, $all)) {
+                        $mixes[] = ['name' => $d['property'], 'line' => Files::line($css, $d['offset'])];
+
+                        continue;
+                    }
+                    if (($lab = Colour::oklab($d['value'])) === null || $colours === []) {
+                        continue;
+                    }
+                    $distances = array_map(fn (array $c) => Colour::distance($lab, $c), $colours);
+                    asort($distances);
+                    $nearest = array_key_first($distances);
+                    if ($distances[$nearest] < self::CLOSE) {
+                        $this->out->add('component-colour', $path, Files::line($css, $d['offset']),
+                            "{$d['property']}: {$d['value']} is ".($distances[$nearest] < 0.02 ? 'the same as' : 'close to')." {$nearest}");
+                    }
+                }
+            }
+            if ($mixes !== []) {
+                $names = array_values(array_unique(array_column($mixes, 'name')));
+                $this->out->add('component-colour', $path, $mixes[0]['line'], Findings::count($names, 'colour').(count($names) === 1 ? ' varies' : ' vary').' the palette: '.Findings::list($names));
+            }
+        }
+    }
+
+    /** Whether a value reads a palette colour, directly or through the custom properties it reads. */
+    private function reaches(string $value, callable $isPalette, array $all, int $depth = 0): bool
+    {
+        preg_match_all('/var\(\s*(--[\w-]+)/', $value, $m);
+        foreach ($m[1] as $name) {
+            if ($isPalette($name) || ($depth < 4 && isset($all[$name]) && $this->reaches($all[$name], $isPalette, $all, $depth + 1))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /** A token's value with var() followed to the value it ends at. */
+    private function resolve(string $name, array $known): string
+    {
+        $value = $known[$name] ?? '';
+        for ($i = 0; $i < 5 && preg_match('/^var\(\s*(--[\w-]+)\s*\)$/', $value, $m); $i++) {
+            $value = $known[$m[1]] ?? '';
+        }
+
+        return $value;
     }
 
     /**
@@ -158,11 +254,14 @@ final class TokenChecks
     /** @return array<string, array{value: string, site: bool, path: string, line: int|null}> */
     private function tailwindDefaults(): array
     {
+        if ($this->defaults !== null) {
+            return $this->defaults;
+        }
         $theme = $this->files->get('node_modules/tailwindcss/theme.css');
         if ($theme === null) {
             $this->out->note('node_modules/tailwindcss is not installed, so tokens were compared with each other but not with Tailwind\'s own');
 
-            return [];
+            return $this->defaults = [];
         }
 
         $tokens = [];
@@ -174,7 +273,7 @@ final class TokenChecks
             }
         }
 
-        return $tokens;
+        return $this->defaults = $tokens;
     }
 
     public static function namespace(string $name): ?string

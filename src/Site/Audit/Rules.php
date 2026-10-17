@@ -13,6 +13,7 @@ final class Rules
         'token-duplicate' => ['Colours and design tokens', 'One value, one token: point every use at the token that already holds it'],
         'token-scale' => ['Colours and design tokens', "No spacing scale of the site's own beside Tailwind's: --spacing(4) in CSS, p-4 in a template"],
         'token-elsewhere' => ['Colours and design tokens', "Tokens are declared in theme.css and colours.css, Peak's in typography.css, and nowhere else"],
+        'component-colour' => ['Colours and design tokens', 'A colour that varies the palette, or matches it, belongs in colours.css, not in a component\'s stylesheet'],
 
         'bem-class' => ['Styling', "A source's BEM classes are rewritten as utilities, or as data- hooks where CSS has to stay"],
         'single-use-class' => ['Styling', "A class only one block uses is utilities in that block's template"],
@@ -23,8 +24,7 @@ final class Rules
         'arbitrary-text-size' => ['Styling', 'A type size is always a step on the scale, never an arbitrary value'],
 
         'critical-shared-source' => ['Critical CSS', 'No shared import names a source: @source lines belong in site.css and the critical entries'],
-        'critical-sheets' => ['Critical CSS', 'Keep page-specific critical sheets few: blocks that share pages share one'],
-        'critical-small' => ['Critical CSS', 'A page-specific critical sheet only for a large saving: fold one under a couple of KB back into critical.css'],
+        'critical-saving' => ['Critical CSS', 'A page-specific critical sheet only when it saves most other pages 10 to 15% of their critical CSS: fold it back otherwise'],
 
         'script-class-selector' => ['Scripts', 'Scripts find elements by data- attributes, never by class'],
         'script-reads-css' => ['Scripts', 'A script takes its values from the template, never from a stylesheet'],
@@ -33,10 +33,9 @@ final class Rules
 
         'bare-img' => ['Images', 'Render images with the figure or picture partial, never a bare <img>'],
 
-        'comment-long' => ['Comments', "A comment says what the code can't, in a line"],
+        'comment-restates' => ['Comments', "A comment says what the code can't: not the values, colours and classes the code beside it shows"],
+        'comment-history' => ['Comments', 'Not the history of a value or what the code used to do: that belongs in the commit message'],
         'desc-long' => ['Comments', "A template's @desc is one line"],
-        'comment-block' => ['Comments', 'A comment that needs a paragraph is a sign: simplify the code, or move the reasoning to the guidance'],
-        'comment-heavy' => ['Comments', 'File headers say what the file is for and what reads it, not the story of how it got there'],
 
         'ignore-reason' => ['Review steps', 'A finding the site keeps is recorded with its reason, or it is still a finding'],
     ];
