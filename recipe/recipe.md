@@ -108,7 +108,7 @@ Don't edit this file in `vendor/`. If a step is wrong, missing or contradicted b
 ### Changing what an add-on renders
 
 - **Override, don't rebuild.** To change what an add-on renders, such as Peak SEO's consent banner or Peak Tools' form handler, copy its view to the same path under `resources/views/vendor/<package>/`, which Laravel uses in place of the package's, and change only what has to change. Never rebuild it as a view of the site's own, and never edit it in `vendor/`.
-- **Say what changed, so it can be updated.** The copy's header names the package and the version it came from, says what changed and why, and gives the steps to make each change again. Mark each change in the file with `{{# Avoca: ... #}}`, saying what it was. After updating the package, compare its view with the copy, copy the new version over it and repeat the changes.
+- **Say what changed, so it can be updated.** The copy's header names the package and the version it came from, says what changed and why, and gives the steps to make each change again. Mark each change in the file with `{{# Avoca: ... #}}`, saying what it was. Never write `{{#` or `#}}` inside the header itself: Antlers ends a comment at the first `#}}`, and the rest of the header prints on the page. After updating the package, compare its view with the copy, copy the new version over it and repeat the changes.
 - **Look before copying.** The kit already overrides Peak SEO's `snippets/_seo` and `components/_consent_banner`, Peak Tools' `snippets/_form_handler` and Statamic's form field views, all in `resources/views/vendor/`. Change the site's copy rather than making a second one.
 
 ### Colours and design tokens
