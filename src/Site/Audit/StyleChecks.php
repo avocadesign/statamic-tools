@@ -32,6 +32,73 @@ final class StyleChecks
         $this->peakOverrides();
         $this->sourceNone();
         $this->templateValues();
+        $this->applyCandidates();
+    }
+
+    /**
+     * How much of a stylesheet utilities could say, written with @apply: a stylesheet that has to exist, such as an
+     * animated illustration's, then keeps only what they can't. One finding for each stylesheet, counting the rules
+     * that could be @apply in whole and in part, with the largest as examples. A rule in a breakpoint's or a motion
+     * preference's media query takes its variant; one in any other at-rule, or a keyframe, is left as it is.
+     */
+    private function applyCandidates(): void
+    {
+        foreach ($this->files->stylesheets() as $path => $css) {
+            if (in_array($path, ['resources/css/theme.css', 'resources/css/colours.css', 'resources/css/typography.css', 'resources/css/peak.css', 'resources/css/fonts.css'], true)
+                || preg_match('~^resources/css/critical[^/]*\.css$~', $path)) {
+                continue;
+            }
+            $whole = [];
+            $part = [];
+            $mapped = 0;
+            $total = 0;
+            foreach (Css::parse($css)['rules'] as $rule) {
+                if (str_starts_with($rule['prelude'], '@') || $rule['declarations'] === []) {
+                    continue;
+                }
+                $variant = '';
+                foreach ($rule['parents'] as $parent) {
+                    if (str_starts_with($parent, '@keyframes') || (str_starts_with($parent, '@') && ! str_starts_with($parent, '@layer') && ($v = Utilities::variant($parent)) === null)) {
+                        continue 2;
+                    }
+                    $variant .= str_starts_with($parent, '@media') ? Utilities::variant($parent) : '';
+                }
+                $declarations = array_filter($rule['declarations'], fn (array $d) => ! str_starts_with($d['property'], '--'));
+                $utilities = [];
+                foreach ($declarations as $d) {
+                    if (($utility = Utilities::for($d['property'], $d['value'])) !== null) {
+                        $utilities[] = implode(' ', array_map(fn ($u) => $variant.$u, explode(' ', $utility)));
+                    }
+                }
+                $total += count($declarations);
+                $mapped += count($utilities);
+                $selector = $rule['prelude'];
+                foreach (array_reverse($rule['parents']) as $parent) {
+                    if (! str_starts_with($parent, '@')) {
+                        $selector = str_contains($selector, '&') ? str_replace('&', $parent, $selector) : "{$parent} {$selector}";
+                        break;
+                    }
+                }
+                $example = ['selector' => $selector, 'line' => Files::line($css, $rule['offset']), 'apply' => implode(' ', $utilities), 'count' => count($utilities)];
+                if ($utilities !== [] && count($utilities) === count($declarations)) {
+                    $whole[] = $example;
+                } elseif (count($utilities) >= 2) {
+                    $part[] = $example;
+                }
+            }
+            if ($whole === [] && $part === []) {
+                continue;
+            }
+            $examples = [...$whole, ...$part];
+            usort($examples, fn (array $a, array $b) => $b['count'] <=> $a['count']);
+            $rules = implode(' and ', array_filter([
+                $whole !== [] ? Findings::count(count($whole), 'rule').' in whole' : null,
+                $part !== [] ? ($whole !== [] ? count($part) : Findings::count(count($part), 'rule')).' in part' : null,
+            ]));
+            $this->out->add('apply-candidates', $path, min(array_column($examples, 'line')),
+                sprintf('%s could be @apply, %d of its %d declarations: ', $rules, $mapped, $total)
+                .implode('; ', array_map(fn (array $e) => "{$e['selector']} → {$e['apply']}", array_slice($examples, 0, 3))));
+        }
     }
 
     /**

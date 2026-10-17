@@ -4,7 +4,7 @@ namespace Avocadesign\StatamicTools\Site\Audit;
 
 /**
  * The token layer: aliases of Tailwind's tokens, two tokens holding one value, a spacing scale of the site's own,
- * tokens declared outside the files the recipe keeps them in, and palette colours kept outside colours.css.
+ * tokens declared outside the files the recipe keeps them in, and colours defined outside colours.css.
  */
 final class TokenChecks
 {
@@ -30,7 +30,7 @@ final class TokenChecks
     /** Where the recipe keeps tokens: theme.css and colours.css, Peak's in typography.css and its own in peak.css. */
     private const TOKEN_FILES = ['resources/css/theme.css', 'resources/css/colours.css', 'resources/css/typography.css', 'resources/css/peak.css'];
 
-    /** How far a colour may be from one of the palette's, in OKLab, and still be a variant of it. */
+    /** How far a colour may be from one of the palette's, in OKLab, and still be close to it. */
     public const CLOSE = 0.05;
 
     /** @var array<string, array{value: string, site: bool, path: string, line: int|null}>|null */
@@ -75,14 +75,14 @@ final class TokenChecks
     }
 
     /**
-     * A colour outside colours.css that varies the palette, such as a color-mix() of its colours, or that matches
-     * or comes close to one of them: the palette lives in one file. One finding for each file's mixes, and one for
-     * each colour written out.
+     * A colour written out in a stylesheet other than colours.css: a hex, rgb(), oklch() or the like, with which palette
+     * colour it matches or comes close to. Mixing the palette's own colours, as color-mix(... var(--color-ink) ...)
+     * does, is fine anywhere: what the palette avoids is colours defined all over the place. One finding for each file.
      */
     private function componentColours(): void
     {
-        $all = [];
         $palette = [];
+        $all = [];
         foreach ($this->files->stylesheets() as $path => $css) {
             foreach (Css::parse($css)['rules'] as $rule) {
                 foreach ($rule['declarations'] as $d) {
@@ -96,8 +96,6 @@ final class TokenChecks
             }
         }
         $known = $palette + array_map(fn (array $t) => $t['value'], $this->tailwindDefaults()) + $all;
-        $isPalette = fn (string $name) => isset($palette[$name]) || str_starts_with($name, '--color-');
-
         $colours = [];
         foreach (array_keys($palette) as $name) {
             if (($lab = Colour::oklab($this->resolve($name, $known))) !== null) {
@@ -106,50 +104,42 @@ final class TokenChecks
         }
 
         foreach ($this->files->stylesheets() as $path => $css) {
-            if (in_array($path, self::TOKEN_FILES, true)) {
+            if ($path === 'resources/css/colours.css') {
                 continue;
             }
-            $mixes = [];
+            $found = [];
             foreach (Css::parse($css)['rules'] as $rule) {
                 foreach ($rule['declarations'] as $d) {
-                    if (! str_starts_with($d['property'], '--') || preg_match('/^var\([^()]*\)$/', $d['value'])) {
-                        continue;   // not a token, or an alias, which token-alias reports
-                    }
-                    if (preg_match('/color-mix\(|\bfrom\s+var\(/', $d['value']) && $this->reaches($d['value'], $isPalette, $all)) {
-                        $mixes[] = ['name' => $d['property'], 'line' => Files::line($css, $d['offset'])];
-
-                        continue;
-                    }
-                    if (($lab = Colour::oklab($d['value'])) === null || $colours === []) {
-                        continue;
-                    }
-                    $distances = array_map(fn (array $c) => Colour::distance($lab, $c), $colours);
-                    asort($distances);
-                    $nearest = array_key_first($distances);
-                    if ($distances[$nearest] < self::CLOSE) {
-                        $this->out->add('component-colour', $path, Files::line($css, $d['offset']),
-                            "{$d['property']}: {$d['value']} is ".($distances[$nearest] < 0.02 ? 'the same as' : 'close to')." {$nearest}");
+                    // Not inside url(), such as an SVG data image, nor a string.
+                    $value = (string) preg_replace(['/url\([^)]*\)/i', '/(["\']).*?\1/'], '', $d['value']);
+                    preg_match_all('/#[0-9a-f]{3,8}\b|(?:rgba?|hsla?|oklch|oklab|lab|lch|hwb|color)\([^()]*\)/i', $value, $m);
+                    foreach ($m[0] as $literal) {
+                        $found[] = ['literal' => $literal, 'line' => Files::line($css, $d['offset'])];
                     }
                 }
             }
-            if ($mixes !== []) {
-                $names = array_values(array_unique(array_column($mixes, 'name')));
-                $this->out->add('component-colour', $path, $mixes[0]['line'], Findings::count($names, 'colour').(count($names) === 1 ? ' varies' : ' vary').' the palette: '.Findings::list($names));
+            if ($found === []) {
+                continue;
             }
-        }
-    }
-
-    /** Whether a value reads a palette colour, directly or through the custom properties it reads. */
-    private function reaches(string $value, callable $isPalette, array $all, int $depth = 0): bool
-    {
-        preg_match_all('/var\(\s*(--[\w-]+)/', $value, $m);
-        foreach ($m[1] as $name) {
-            if ($isPalette($name) || ($depth < 4 && isset($all[$name]) && $this->reaches($all[$name], $isPalette, $all, $depth + 1))) {
-                return true;
+            $said = [];
+            foreach ($found as $colour) {
+                $note = '';
+                if (($lab = Colour::oklab($colour['literal'])) !== null && $colours !== []) {
+                    $distances = array_map(fn (array $c) => Colour::distance($lab, $c), $colours);
+                    asort($distances);
+                    $nearest = array_key_first($distances);
+                    $alpha = Colour::alpha($colour['literal']);
+                    $at = $alpha < 1 ? ' at '.round($alpha * 100).'%' : '';
+                    $note = match (true) {
+                        $distances[$nearest] < 0.02 => $at === '' ? " (the same as {$nearest})" : " ({$nearest}{$at})",
+                        $distances[$nearest] < self::CLOSE => " (close to {$nearest}{$at})",
+                        default => '',
+                    };
+                }
+                $said[] = $colour['literal'].$note;
             }
+            $this->out->add('component-colour', $path, $found[0]['line'], 'defines '.Findings::count(array_column($found, 'literal'), 'colour').' of its own: '.Findings::list($said));
         }
-
-        return false;
     }
 
     /** A token's value with var() followed to the value it ends at. */

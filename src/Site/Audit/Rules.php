@@ -13,9 +13,10 @@ final class Rules
         'token-duplicate' => ['Colours and design tokens', 'One value, one token: point every use at the token that already holds it'],
         'token-scale' => ['Colours and design tokens', "No spacing scale of the site's own beside Tailwind's: --spacing(4) in CSS, p-4 in a template"],
         'token-elsewhere' => ['Colours and design tokens', "Tokens are declared in theme.css and colours.css, Peak's in typography.css, and nowhere else"],
-        'component-colour' => ['Colours and design tokens', 'A colour that varies the palette, or matches it, belongs in colours.css, not in a component\'s stylesheet'],
+        'component-colour' => ['Colours and design tokens', 'Colours are defined in colours.css only: a component mixes the palette\'s, never writes its own'],
 
-        'bem-class' => ['Styling', "A source's BEM classes are rewritten as utilities, or as data- hooks where CSS has to stay"],
+        'bem-class' => ['Styling', "A source's BEM classes are rewritten as utilities; an illustration's stylesheet may keep them, recorded with its reason"],
+        'apply-candidates' => ['Styling', 'A stylesheet that has to exist writes what utilities can say with @apply, and keeps only what they can\'t'],
         'single-use-class' => ['Styling', "A class only one block uses is utilities in that block's template"],
         'import-only' => ['Styling', 'No file whose job is to wrap another: import that file itself'],
         'peak-override' => ['Styling', "Change Peak in peak.css, don't override it from another stylesheet"],
@@ -27,6 +28,7 @@ final class Rules
         'critical-saving' => ['Critical CSS', 'A page-specific critical sheet only when it saves most other pages 10 to 15% of their critical CSS: fold it back otherwise'],
 
         'script-class-selector' => ['Scripts', 'Scripts find elements by data- attributes, never by class'],
+        'script-class-state' => ['Scripts', 'Scripts mark state with data- attributes, which utilities read, not with classes'],
         'script-reads-css' => ['Scripts', 'A script takes its values from the template, never from a stylesheet'],
         'unused-alpine-plugin' => ['Scripts', 'Load only what a page uses: remove a plugin nothing uses'],
         'layout-third-party' => ['Scripts', 'A third-party script is pushed by the block that needs it, never printed by the layout'],

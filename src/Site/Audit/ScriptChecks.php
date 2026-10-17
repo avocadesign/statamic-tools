@@ -37,6 +37,7 @@ final class ScriptChecks
     public function run(): void
     {
         $this->classSelectors();
+        $this->classState();
         $this->cssReads();
         $this->plugins();
         $this->layoutScripts();
@@ -67,6 +68,46 @@ final class ScriptChecks
                     $this->out->add('script-class-selector', $path, Files::line($original, $call[0][1]), "{$call[1][0]}('{$selector}') finds an element by class");
                 }
             }
+        }
+    }
+
+    /**
+     * A script that marks state with a class, or reads it from one, rather than a data- attribute the template's
+     * utilities can read. One finding for each file, naming the classes. Some stay, such as a page-wide switch on
+     * <html>: record those in the ignore file.
+     */
+    private function classState(): void
+    {
+        $sources = [];
+        foreach ($this->files->scripts() as $path => $js) {
+            $sources[$path] = [$js, Js::withoutComments($js)];
+        }
+        foreach ($this->files->templates() as $path => $html) {
+            $sources[$path] = [$html, Markup::withoutComments($html)];
+        }
+
+        foreach ($sources as $path => [$original, $code]) {
+            // Not className = '…', which gives an element the script creates its class: that is styling, not state.
+            preg_match_all('/\bclassList\.(add|remove|toggle|replace|contains)\(([^)]*)\)/', $code, $calls, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
+            if ($calls === []) {
+                continue;
+            }
+            $set = [];
+            $read = [];
+            foreach ($calls as $call) {
+                preg_match_all('/[\'"`]([^\'"`]+)[\'"`]/', $call[2][0], $names);
+                $classes = array_filter(preg_split('/\s+/', trim(implode(' ', $names[1]))) ?: []) ?: ['a class'];
+                if ($call[1][0] === 'contains') {
+                    $read = [...$read, ...$classes];
+                } else {
+                    $set = [...$set, ...$classes];
+                }
+            }
+            $said = array_filter([
+                $set !== [] ? 'marks state with '.Findings::list($set) : null,
+                $read !== [] ? 'reads state from '.Findings::list($read) : null,
+            ]);
+            $this->out->add('script-class-state', $path, Files::line($original, $calls[0][0][1]), implode(', and ', $said).': a data- attribute lets the template\'s utilities read it');
         }
     }
 

@@ -260,27 +260,53 @@ class SiteAuditTest extends TestCase
         ], $this->found('comment-history'));
     }
 
-    public function test_a_colour_that_varies_or_matches_the_palette_belongs_in_colours_css(): void
+    public function test_a_colour_defined_outside_colours_css_is_found_but_a_mix_of_the_palette_is_not(): void
     {
         $this->write('resources/css/colours.css', "@theme {\n  --color-ink: #320c42;\n  --color-surface: #dfddf4;\n  --body-color: var(--color-ink);\n}\n");
         $this->write('resources/css/components/hero.css', implode("\n", [
             ':root {',
             '  --hero-tilt: 3deg;',
-            '  --hero-lilac: var(--color-surface);',
             '  --hero-ground: color-mix(in srgb, var(--color-ink) 10%, var(--color-surface));',
-            '  --hero-fade: color-mix(in srgb, var(--hero-lilac) 50%, transparent);',
-            '  --hero-ink: #330c43;',
-            '  --hero-near: #3a1650;',
-            '  --hero-green: #2f9e44;',
+            '  --hero-glow: oklch(from var(--color-ink) l c h / 50%);',
+            '  --hero-tick: url("data:image/svg+xml,%3Csvg stroke=\'%23fff\'/%3E");',
             '}',
-            '.hero--dark { --hero-glow: oklch(from var(--color-ink) l c h / 50%); }',
+            '.hero__ink { color: #330c43; }',
+            '.hero__near { color: #3a1650; }',
+            '.hero__shade { background: rgba(50, 12, 66, 0.2); }',
+            '.hero__leaf { fill: #2f9e44; }',
         ]));
 
         $this->assertSame([
-            'resources/css/components/hero.css:4 3 colours vary the palette: --hero-ground, --hero-fade, --hero-glow',
-            'resources/css/components/hero.css:6 --hero-ink: #330c43 is the same as --color-ink',
-            'resources/css/components/hero.css:7 --hero-near: #3a1650 is close to --color-ink',
-        ], $this->found('component-colour'), 'a parameter, an alias and a colour of its own are not variants');
+            'resources/css/components/hero.css:7 defines 4 colours of its own: #330c43 (the same as --color-ink), #3a1650 (close to --color-ink), rgba(50, 12, 66, 0.2) (--color-ink at 20%), #2f9e44',
+        ], $this->found('component-colour'), 'mixes of the palette, parameters and data images are not colours of its own');
+    }
+
+    public function test_a_script_that_marks_state_with_a_class_is_found_once_per_file(): void
+    {
+        $this->write('resources/js/hero.js', "const frame = document.createElement('iframe')\nframe.className = 'hero__frame'\nhero.classList.add('is-playing')\nhero.classList.toggle('is-held', !visible)\nif (art.classList.contains('is-playing')) {}\nel.dataset.active = ''\n");
+        $this->write('resources/views/layout.antlers.html', "<script>document.documentElement.classList.add('js-armed')</script>");
+
+        $this->assertSame([
+            "resources/js/hero.js:3 marks state with is-playing, is-held, and reads state from is-playing: a data- attribute lets the template's utilities read it",
+            "resources/views/layout.antlers.html:1 marks state with js-armed: a data- attribute lets the template's utilities read it",
+        ], $this->found('script-class-state'), 'a class given to an element the script creates is styling, not state');
+    }
+
+    public function test_what_utilities_can_say_in_a_stylesheet_is_counted_for_apply(): void
+    {
+        $this->write('resources/css/components/scene.css', implode("\n", [
+            '.scene__card { display: flex; gap: 1rem; border-radius: var(--radius-xl); color: var(--color-ink); }',
+            '.scene__pin { position: absolute; top: 50%; width: 38px; height: 38px; transform: rotate(4deg); }',
+            '.scene__path { offset-path: path("M0 0"); animation: drift 3s; }',
+            '@media (min-width: 64rem) { .scene__card { display: grid; padding: 0.5rem 2rem; } }',
+            '@supports (offset-path: none) { .scene__pin { display: none; } }',
+            '@keyframes drift { from { opacity: 0; } to { opacity: 1; } }',
+        ]));
+
+        $this->assertSame([
+            'resources/css/components/scene.css:1 2 rules in whole and 1 in part could be @apply, 10 of its 13 declarations: '
+                .'.scene__card → flex gap-4 rounded-xl text-ink; .scene__pin → absolute top-1/2 w-9.5 h-9.5; .scene__card → lg:grid lg:py-2 lg:px-8',
+        ], $this->found('apply-candidates'), 'a transform, a path and an animation stay CSS; @supports and keyframes are left alone');
     }
 
     public function test_vendor_overrides_are_read_but_never_reported(): void

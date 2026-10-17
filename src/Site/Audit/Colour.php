@@ -33,6 +33,22 @@ final class Colour
         return null;
     }
 
+    /** The colour's opacity, from 0 to 1: the fourth hex pair, rgba()'s fourth value or what follows a slash. */
+    public static function alpha(string $value): float
+    {
+        $value = strtolower(trim($value));
+        if (preg_match('/^#(?:[0-9a-f]{3}([0-9a-f])|[0-9a-f]{6}([0-9a-f]{2}))$/', $value, $m)) {
+            return hexdec(($m[1] ?? '') !== '' ? $m[1].$m[1] : $m[2]) / 255;
+        }
+        if (preg_match('/^\w+\((?:[^,()]*,){3}\s*([\d.]+)(%?)\s*\)$|\/\s*([\d.]+)(%?)\s*\)$/', $value, $m)) {
+            [$number, $percent] = ($m[1] ?? '') !== '' ? [$m[1], $m[2]] : [$m[3], $m[4]];
+
+            return (float) $number / ($percent === '%' ? 100 : 1);
+        }
+
+        return 1.0;
+    }
+
     public static function distance(array $a, array $b): float
     {
         return sqrt(($a[0] - $b[0]) ** 2 + ($a[1] - $b[1]) ** 2 + ($a[2] - $b[2]) ** 2);
