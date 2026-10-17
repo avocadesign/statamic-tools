@@ -9,6 +9,7 @@ The machinery Avoca Design sites share: reference pages for clients, plus the ch
 - `php please avoca:site:install`: says which images from the images container the reference pages will use.
 - `php please avoca:site:urls`: the pages a check should render, which is not all of them.
 - `scripts/check-site.sh`: installs, builds, boots and renders the site, for the updater and for a developer changing a dependency. See Updates in the recipe.
+- `scripts/design-check.sh`: snapshots every block before and after a change that should look the same, such as moving a block to utilities, and says whether each block is exactly the same. See [Design check](#design-check).
 - `php please avoca:site:script`: writes the server git script into the site at `scripts/server-git.sh`, where the site owns it. See [Server scripts](#server-scripts).
 - `php please avoca:site:catalogue`: writes the site's AI block catalogue.
 - `php please avoca:make:collection`: makes a collection with a page builder or custom blueprint, a listing block, editor access and a record an AI agent finishes it from.
@@ -52,6 +53,7 @@ The rest are `--sk-ink` (text), `--sk-ground` (page background), `--sk-on-accent
 | `resources/site/editor-access.yaml` | people | `avoca:site:permissions`, the automatic editor role updates and `avoca:site:check` |
 | `resources/site/installed.yaml` | `avoca:library:install`, `avoca:site:script` | `avoca:library:list`, `avoca:site:check` |
 | `scripts/server-git.sh` | `avoca:site:script`, then the site | cron and the deploy script on the server |
+| `storage/design-check/<run>`, which git ignores | `scripts/design-check.sh` | `scripts/design-check.sh compare` |
 
 The paths are set in `config/statamic-tools.php`.
 
@@ -68,6 +70,64 @@ The paths are set in `config/statamic-tools.php`.
 - Feedback runs the site's copy too: a change to a comment runs `scripts/server-git.sh commit --now` once the response has gone, with `AVOCA_GIT_SUBJECT` set to say what changed, so comments are committed within seconds. The Feedback section has what a server needs for it.
 
 The package still holds the script at `vendor/avocadesign/statamic-tools/scripts/server-git.sh`, so a server set up before this and pointing at that path keeps working.
+
+## Design check
+
+`scripts/design-check.sh` proves that a change leaves the design exactly as it was. It is for changes meant to look the same: moving a block from a stylesheet of its own to Tailwind utilities, or changing a shared class or a token. It snapshots the site before the change and after it, then compares the two block by block. The recipe's Styling section says when a change needs it. Like `check-site.sh`, it stays in the package.
+
+```bash
+bash vendor/avocadesign/statamic-tools/scripts/design-check.sh before
+# ...make the change...
+bash vendor/avocadesign/statamic-tools/scripts/design-check.sh after
+bash vendor/avocadesign/statamic-tools/scripts/design-check.sh compare before after
+```
+
+A run first runs `npm run build`. Then it takes every page builder block, plus the header, the page header and the footer, on each page `php please avoca:site:urls` names, at 390 and 1440 wide. A block is found by the comment its template starts with, `<!-- /page_builder/_<handle>.antlers.html -->`, never by its class. Each block is recorded in two ways:
+
+- **Computed styles.** Every element in the block, with its `::before` and `::after`, its box and every computed property. Elements are matched by their place in the DOM, never by class, so renaming every class can't hide a change. Colours are compared by the pixel they paint, so a hex value and the oklch token that replaced it count as equal.
+- **Pixels.** A screenshot of the block, compared pixel for pixel. Everything outside the block is hidden first, so a change to one block can't make its neighbour differ.
+
+Each block is taken on a page of its own, loaded fresh, four at a time; `--jobs` changes how many. Every web font is loaded before anything is measured. A block whose fonts or images haven't arrived after 20 seconds fails, rather than being taken half drawn. Timers of a second or more never fire, so an autoplaying carousel is taken on the slide it loads on, however long the page took.
+
+`compare` prints one line per block, such as `home/proof_strip: SAME`, and exits 1 when any block differs. To see what changed, name the block. You get each property as `before -> after` with the elements it touches, and a diff image for each screenshot that differs:
+
+```bash
+bash vendor/avocadesign/statamic-tools/scripts/design-check.sh compare before after home/proof_strip
+```
+
+A block that moves, such as a carousel, a set of tabs or anything revealed on scroll, needs its states checked as well. Add them to the same runs after the whole site, using `--block` with a `--state` for each. `--no-build` skips a second build straight after the first:
+
+```bash
+bash vendor/avocadesign/statamic-tools/scripts/design-check.sh before --no-build --block @proof_strip \
+    --state default \
+    --state "slide2=Alpine.\$data(root.querySelector('[x-data]')).go(1)" \
+    --state "dothover=hover:[aria-roledescription=carousel] button:nth-of-type(2)"
+bash vendor/avocadesign/statamic-tools/scripts/design-check.sh before --no-build --block @proof_strip --scroll silent --state prereveal
+bash vendor/avocadesign/statamic-tools/scripts/design-check.sh before --no-build --block @proof_strip --reduced --state default
+```
+
+- **A state** is JavaScript that runs with the block as `root`, or `hover:` and a selector inside the block. Find elements by ARIA, `x-data` or structure, never by the classes being changed.
+- **`--scroll silent`** puts the block in view without a scroll event, to show it as it looks before a scroll-triggered reveal. **`--reduced`** asks for reduced motion.
+- **`--block`** takes `@<handle>` for a page builder block, the path of any other template, such as `@layout/_header`, or a CSS selector. The block is taken from the first page that has it; `--url` names a different page.
+- **`--widths`** sets the viewport widths, such as `375,700,1100,1440` for the sizes between.
+
+Run the same commands for `after`, with the same options. `--help` lists the rest.
+
+Runs go in `storage/design-check/<name>`, which has a `.gitignore` of its own. A run of the whole site replaces any earlier run with the same name, so a block that fails can't be stood in for by an old snapshot. Puppeteer and its Chrome come from the site's own `node_modules`, which the starter kit lists, so nothing is installed.
+
+Keep the two runs comparable:
+
+- **Take both runs the same way:** both from the Vite dev server (`public/hot` present) or both from a build. A run always builds first, because the layout inlines the critical CSS from the last build even when the dev server is on, and a stale build paints old rules over the change. `compare` warns when the two runs took their CSS differently.
+- **Serve the site with Herd or Valet.** `php artisan serve` answers one request per worker, and Chrome holds six connections open, so give it `PHP_CLI_SERVER_WORKERS=8` or more, or run with `--jobs 1`. Otherwise fonts and images stall.
+- **Keep the static cache off:** `STATAMIC_STATIC_CACHING_STRATEGY=null`, as it is locally. A run refuses to start with it on, because cached pages would show the site as it was before the change.
+- **Keep the content the same.** On a site whose content is edited on the server, don't pull its `[BOT]` commits between the two runs.
+- **Use the same Chrome for both.** Each run records it, and `compare` warns when it differs. If it does, take the before run again.
+
+Known noise:
+
+- **Pixels can differ while styles match.** A band of pixels in a block can differ between two runs of the same code while its computed styles are identical; Whoosh's Close block did at 1100 wide. Judge it by the styles, or take both runs again.
+- **A photo can redraw slightly differently** when the stacking around it changes, such as an `isolate` on an ancestor. Identical styles with photo pixels that differ point to a stacking change, which is worth finding rather than ignoring. `--mask-images` leaves images out of the screenshots when their resampling isn't repeatable on a machine.
+- **Content that changes on every request** differs every time, such as a random order or today's date. So does motion a script drives frame by frame rather than with CSS or a timer.
 
 ## Prototype
 
